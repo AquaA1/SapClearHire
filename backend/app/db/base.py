@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, MetaData, Uuid
+from sqlalchemy import DateTime, MetaData, Uuid, event
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 # Explicit naming convention for database constraints to ensure clean migrations
@@ -28,6 +28,12 @@ class UUIDPrimaryKeyMixin:
         primary_key=True,
         default=uuid.uuid4,
     )
+
+
+@event.listens_for(Base, "init", propagate=True)
+def _init_uuid_pk(target, args, kwargs):
+    if "id" not in kwargs and isinstance(target, UUIDPrimaryKeyMixin):
+        kwargs["id"] = uuid.uuid4()
 
 
 class TimestampMixin:

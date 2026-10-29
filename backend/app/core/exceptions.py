@@ -58,7 +58,7 @@ class ValidationError(ClearHireException):
         super().__init__(
             message=message,
             code="VALIDATION_ERROR",
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             details=details,
         )
 
@@ -132,7 +132,7 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def validation_exception_handler(_: Request, exc: RequestValidationError) -> JSONResponse:
         logger.warning("Request schema validation error: %s", exc.errors())
         return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             content={
                 "error": {
                     "code": "REQUEST_VALIDATION_ERROR",
