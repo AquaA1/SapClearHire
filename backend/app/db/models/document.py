@@ -53,6 +53,7 @@ class Document(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         nullable=False,
         index=True,
     )
+    processing_error: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
     # Relationships
     candidate: Mapped["User"] = relationship("User", back_populates="documents", lazy="selectin")

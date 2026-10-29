@@ -2,6 +2,7 @@ from app.repositories.audit import AuditEventRepository
 from app.repositories.base import BaseRepository
 from app.repositories.domain import (
     ApplicationRepository,
+    DocumentRepository,
     EvaluationRepository,
     JobRepository,
     ReviewDecisionRepository,
@@ -14,6 +15,7 @@ __all__ = [
     "UserRepository",
     "JobRepository",
     "ApplicationRepository",
+    "DocumentRepository",
     "EvaluationRepository",
     "ReviewDecisionRepository",
 ]

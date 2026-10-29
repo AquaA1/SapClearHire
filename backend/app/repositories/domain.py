@@ -8,7 +8,8 @@ from sqlalchemy.orm import selectinload
 from app.core.exceptions import ValidationError
 from app.db.models.application import Application
 from app.db.models.audit import AuditEvent
-from app.db.models.enums import ReviewDecisionType, VerificationState
+from app.db.models.document import Document
+from app.db.models.enums import DocumentProcessingStatus, ReviewDecisionType, VerificationState
 from app.db.models.evaluation import CriterionEvidence, Evaluation
 from app.db.models.job import Job, JobCriterion
 from app.db.models.review import ReviewDecision
@@ -241,3 +242,69 @@ class ReviewDecisionRepository(BaseRepository[ReviewDecision]):
         await self.session.flush()
 
         return review_decision
+
+
+class DocumentRepository(BaseRepository[Document]):
+    """Data access repository for Document records."""
+
+    def __init__(self, session: AsyncSession):
+        super().__init__(Document, session)
+
+    async def get_by_id(self, document_id: uuid.UUID) -> Document | None:
+        query = select(Document).where(Document.id == document_id)
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
+
+    async def get_by_id_and_candidate(
+        self, document_id: uuid.UUID, candidate_id: uuid.UUID
+    ) -> Document | None:
+        query = select(Document).where(
+            Document.id == document_id,
+            Document.candidate_id == candidate_id,
+        )
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
+
+    async def create_document(
+        self,
+        candidate_id: uuid.UUID,
+        file_name: str,
+        file_path: str,
+        file_hash: str,
+        file_size_bytes: int,
+        mime_type: str = "application/pdf",
+        status: DocumentProcessingStatus = DocumentProcessingStatus.QUEUED,
+    ) -> Document:
+        doc = Document(
+            candidate_id=candidate_id,
+            file_name=file_name,
+            file_path=file_path,
+            file_hash=file_hash,
+            mime_type=mime_type,
+            file_size_bytes=file_size_bytes,
+            processing_status=status,
+            extracted_text_by_page={},
+        )
+        self.session.add(doc)
+        await self.session.flush()
+        return doc
+
+    async def update_status(
+        self,
+        document_id: uuid.UUID,
+        status: DocumentProcessingStatus,
+        page_count: int | None = None,
+        extracted_text_by_page: dict[str, Any] | None = None,
+        processing_error: dict[str, Any] | None = None,
+    ) -> Document | None:
+        doc = await self.get_by_id(document_id)
+        if not doc:
+            return None
+        doc.processing_status = status
+        if page_count is not None:
+            doc.page_count = page_count
+        if extracted_text_by_page is not None:
+            doc.extracted_text_by_page = extracted_text_by_page
+        doc.processing_error = processing_error
+        await self.session.flush()
+        return doc

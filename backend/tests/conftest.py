@@ -81,8 +81,19 @@ async def client(test_engine: AsyncEngine) -> AsyncGenerator[AsyncClient, None]:
                 await session.rollback()
                 raise
 
+    import app.db.session as session_module
+
+    old_engine = session_module._engine
+    old_sessionmaker = session_module._sessionmaker
+    session_module._engine = test_engine
+    session_module._sessionmaker = session_factory
+
     app.dependency_overrides[get_db_session] = override_get_db_session
 
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://testserver") as async_client:
-        yield async_client
+    try:
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://testserver") as async_client:
+            yield async_client
+    finally:
+        session_module._engine = old_engine
+        session_module._sessionmaker = old_sessionmaker

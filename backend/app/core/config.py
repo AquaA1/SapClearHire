@@ -70,6 +70,7 @@ class Settings(BaseSettings):
     # Storage & Uploads
     STORAGE_LOCAL_DIR: str = "./storage"
     MAX_UPLOAD_SIZE_MB: int = 15
+    MAX_PDF_PAGES: int = 30
 
     # Background Workers
     WORKER_CONCURRENCY: int = 2

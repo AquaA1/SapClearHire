@@ -48,6 +48,7 @@ ignore = ["B008", "E501", "UP042", "UP046"]
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
+pythonpath = ["."]
 asyncio_mode = "auto"
 python_files = ["test_*.py"]
 filterwarnings = [
