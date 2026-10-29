@@ -1,0 +1,47 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: clearhire_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-clearhire_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-clearhire_secure_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-clearhire_db}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-clearhire_user} -d ${POSTGRES_DB:-clearhire_db}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: clearhire_api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: development
+      DEBUG: "true"
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-clearhire_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-clearhire_secure_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-clearhire_db}
+      SECRET_KEY: ${SECRET_KEY:-dev_secret_key_change_in_production_min_32_characters_long}
+      LLM_PROVIDER: ${LLM_PROVIDER:-fake}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app/app:ro
+      - ./storage:/app/storage
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
