@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import Any
 
 from sqlalchemy import select, update
@@ -9,10 +10,16 @@ from app.core.exceptions import ValidationError
 from app.db.models.application import Application
 from app.db.models.audit import AuditEvent
 from app.db.models.document import CandidateSkill, Document, EvidenceItem, ExtractionRun
-from app.db.models.enums import DocumentProcessingStatus, ReviewDecisionType, VerificationState
+from app.db.models.enums import (
+    CorrectionRequestStatus,
+    DocumentProcessingStatus,
+    ReviewDecisionType,
+    ReviewFlagStatus,
+    VerificationState,
+)
 from app.db.models.evaluation import CriterionEvidence, Evaluation
 from app.db.models.job import Job, JobCriterion
-from app.db.models.review import ReviewDecision
+from app.db.models.review import CorrectionRequest, ReviewDecision, ReviewFlag
 from app.db.models.user import User
 from app.repositories.base import BaseRepository
 
@@ -284,6 +291,152 @@ class ReviewDecisionRepository(BaseRepository[ReviewDecision]):
         await self.session.flush()
 
         return review_decision
+
+
+class ReviewFlagRepository(BaseRepository[ReviewFlag]):
+    def __init__(self, session: AsyncSession):
+        super().__init__(ReviewFlag, session)
+
+    async def create_flag(
+        self,
+        application_id: uuid.UUID,
+        flag_type: str,
+        reason: str,
+        criterion_evidence_id: uuid.UUID | None = None,
+        priority: str = "normal",
+        assigned_to_user_id: uuid.UUID | None = None,
+        status: ReviewFlagStatus = ReviewFlagStatus.PENDING,
+    ) -> ReviewFlag:
+        flag = ReviewFlag(
+            application_id=application_id,
+            criterion_evidence_id=criterion_evidence_id,
+            flag_type=flag_type,
+            status=status,
+            priority=priority,
+            reason=reason,
+            assigned_to_user_id=assigned_to_user_id,
+        )
+        self.session.add(flag)
+        await self.session.flush()
+        return flag
+
+    async def get_by_criterion_evidence(self, criterion_evidence_id: uuid.UUID) -> list[ReviewFlag]:
+        query = (
+            select(ReviewFlag)
+            .where(ReviewFlag.criterion_evidence_id == criterion_evidence_id)
+            .order_by(ReviewFlag.created_at.desc())
+        )
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
+
+    async def get_by_application(self, application_id: uuid.UUID) -> list[ReviewFlag]:
+        query = (
+            select(ReviewFlag)
+            .where(ReviewFlag.application_id == application_id)
+            .order_by(ReviewFlag.created_at.desc())
+        )
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
+
+    async def get_assigned_flags(
+        self,
+        user_id: uuid.UUID | None = None,
+        status: ReviewFlagStatus | None = None,
+        application_id: uuid.UUID | None = None,
+    ) -> list[ReviewFlag]:
+        query = (
+            select(ReviewFlag)
+            .options(
+                selectinload(ReviewFlag.application).selectinload(Application.candidate),
+                selectinload(ReviewFlag.application).selectinload(Application.job),
+                selectinload(ReviewFlag.criterion_evidence).selectinload(
+                    CriterionEvidence.criterion
+                ),
+            )
+            .order_by(ReviewFlag.created_at.desc())
+        )
+        if user_id is not None:
+            query = query.where(ReviewFlag.assigned_to_user_id == user_id)
+        if status is not None:
+            query = query.where(ReviewFlag.status == status)
+        if application_id is not None:
+            query = query.where(ReviewFlag.application_id == application_id)
+
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
+
+    async def get_flag_with_full_details(self, flag_id: uuid.UUID) -> ReviewFlag | None:
+        query = (
+            select(ReviewFlag)
+            .where(ReviewFlag.id == flag_id)
+            .options(
+                selectinload(ReviewFlag.application).selectinload(Application.candidate),
+                selectinload(ReviewFlag.application).selectinload(Application.job),
+                selectinload(ReviewFlag.criterion_evidence).selectinload(
+                    CriterionEvidence.criterion
+                ),
+                selectinload(ReviewFlag.criterion_evidence).selectinload(
+                    CriterionEvidence.evidence_item
+                ),
+                selectinload(ReviewFlag.criterion_evidence).selectinload(
+                    CriterionEvidence.correction_requests
+                ),
+                selectinload(ReviewFlag.criterion_evidence).selectinload(
+                    CriterionEvidence.review_decisions
+                ),
+                selectinload(ReviewFlag.assigned_to),
+            )
+        )
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
+
+    async def update_status(
+        self,
+        flag_id: uuid.UUID,
+        status: ReviewFlagStatus,
+        resolved_at: datetime | None = None,
+    ) -> ReviewFlag | None:
+        flag = await self.get_by_id(flag_id)
+        if not flag:
+            return None
+        flag.status = status
+        flag.resolved_at = resolved_at
+        await self.session.flush()
+        return flag
+
+
+class CorrectionRequestRepository(BaseRepository[CorrectionRequest]):
+    def __init__(self, session: AsyncSession):
+        super().__init__(CorrectionRequest, session)
+
+    async def create_correction(
+        self,
+        application_id: uuid.UUID,
+        candidate_id: uuid.UUID,
+        criterion_evidence_id: uuid.UUID,
+        candidate_statement: str,
+        additional_document_id: uuid.UUID | None = None,
+    ) -> CorrectionRequest:
+        req = CorrectionRequest(
+            application_id=application_id,
+            candidate_id=candidate_id,
+            criterion_evidence_id=criterion_evidence_id,
+            candidate_statement=candidate_statement.strip(),
+            additional_document_id=additional_document_id,
+            status=CorrectionRequestStatus.SUBMITTED,
+        )
+        self.session.add(req)
+        await self.session.flush()
+        return req
+
+    async def get_by_application(self, application_id: uuid.UUID) -> list[CorrectionRequest]:
+        query = (
+            select(CorrectionRequest)
+            .where(CorrectionRequest.application_id == application_id)
+            .order_by(CorrectionRequest.created_at.desc())
+        )
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
 
 
 class DocumentRepository(BaseRepository[Document]):
