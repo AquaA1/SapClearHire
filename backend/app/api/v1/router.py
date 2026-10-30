@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import (
     applications,
     audit,
+    benchmark,
     documents,
     evaluations,
     health,
@@ -20,3 +21,4 @@ api_v1_router.include_router(evaluations.router)
 api_v1_router.include_router(profiles.router)
 api_v1_router.include_router(reviews.router)
 api_v1_router.include_router(audit.router)
+api_v1_router.include_router(benchmark.router)
