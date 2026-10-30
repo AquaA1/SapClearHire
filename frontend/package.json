@@ -1,0 +1,21 @@
+{
+  "name": "clearhire-frontend",
+  "version": "0.1.0",
+  "description": "ClearHire — Hiring Evidence Transparency Platform (Frontend)",
+  "type": "module",
+  "scripts": {
+    "dev": "npx serve -l 3000 .",
+    "start": "npx serve -l 3000 .",
+    "serve": "npx serve ."
+  },
+  "keywords": [
+    "clearhire",
+    "sap-hackfest-2026",
+    "evidence-transparency",
+    "human-in-the-loop",
+    "compliance",
+    "successfactors"
+  ],
+  "author": "ClearHire Team",
+  "license": "Apache-2.0"
+}
