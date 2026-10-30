@@ -8,7 +8,6 @@ from sqlalchemy.orm import selectinload
 
 from app.core.exceptions import ValidationError
 from app.db.models.application import Application
-from app.db.models.audit import AuditEvent
 from app.db.models.document import CandidateSkill, Document, EvidenceItem, ExtractionRun
 from app.db.models.enums import (
     CorrectionRequestStatus,
@@ -21,6 +20,7 @@ from app.db.models.evaluation import CriterionEvidence, Evaluation
 from app.db.models.job import Job, JobCriterion
 from app.db.models.review import CorrectionRequest, ReviewDecision, ReviewFlag
 from app.db.models.user import User
+from app.repositories.audit import AuditEventRepository
 from app.repositories.base import BaseRepository
 
 
@@ -174,12 +174,20 @@ class EvaluationRepository(BaseRepository[Evaluation]):
             self.session.add(ce)
 
         # Append-only audit record in same transaction
-        audit_event = AuditEvent(
+        audit_repo = AuditEventRepository(self.session)
+        await audit_repo.log_event(
             action="EVALUATION_RECORDED",
             resource_type="evaluation",
             resource_id=str(evaluation.id),
             actor_id=actor_id or "system_ai_pipeline",
             actor_role="system",
+            entity_version=next_version,
+            prior_state={"previous_evaluation_version": max_ver} if max_ver > 0 else None,
+            new_state={
+                "version": next_version,
+                "overall_status": str(overall_status),
+                "criteria_evaluated_count": len(criterion_mappings),
+            },
             details={
                 "application_id": str(application_id),
                 "evaluation_version": next_version,
@@ -187,8 +195,6 @@ class EvaluationRepository(BaseRepository[Evaluation]):
                 "criteria_evaluated_count": len(criterion_mappings),
             },
         )
-        self.session.add(audit_event)
-        await self.session.flush()
 
         return evaluation
 
@@ -271,12 +277,16 @@ class ReviewDecisionRepository(BaseRepository[ReviewDecision]):
         ce.verification_state = new_verification_state
 
         # Append-only audit trail record in the same transaction
-        audit_event = AuditEvent(
+        audit_repo = AuditEventRepository(self.session)
+        await audit_repo.log_event(
             action="REVIEW_DECISION_RECORDED",
             resource_type="review_decision",
             resource_id=str(review_decision.id),
             actor_id=str(reviewer_id),
             actor_role=actor_role,
+            entity_version=1,
+            prior_state={"verification_state": str(previous_state)},
+            new_state={"verification_state": str(new_verification_state)},
             details={
                 "application_id": str(application_id),
                 "criterion_evidence_id": str(criterion_evidence_id),
@@ -287,8 +297,6 @@ class ReviewDecisionRepository(BaseRepository[ReviewDecision]):
             },
             ip_address=ip_address,
         )
-        self.session.add(audit_event)
-        await self.session.flush()
 
         return review_decision
 

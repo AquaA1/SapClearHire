@@ -11,6 +11,7 @@ from app.core.logging import logger
 from app.db.models.document import Document
 from app.db.models.enums import DocumentProcessingStatus
 from app.db.session import get_session_factory
+from app.repositories.audit import AuditEventRepository
 from app.repositories.domain import DocumentRepository
 from app.services.storage import LocalStorageService
 from app.utils.document import (
@@ -74,6 +75,29 @@ class DocumentService:
         )
         session.add(doc)
         await session.flush()
+
+        audit_repo = AuditEventRepository(session)
+        await audit_repo.log_event(
+            action="DOCUMENT_UPLOADED",
+            resource_type="document",
+            resource_id=str(doc.id),
+            actor_id=str(candidate_id),
+            actor_role="candidate",
+            entity_version=1,
+            prior_state=None,
+            new_state={
+                "processing_status": DocumentProcessingStatus.QUEUED.value,
+                "file_name": filename,
+                "file_hash": file_hash,
+                "file_size_bytes": file_size,
+            },
+            details={
+                "file_name": filename,
+                "file_size_bytes": file_size,
+                "mime_type": doc.mime_type,
+            },
+        )
+
         return doc
 
     async def process_document_extraction(

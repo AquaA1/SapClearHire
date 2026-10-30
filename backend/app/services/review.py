@@ -8,7 +8,6 @@ from sqlalchemy.orm import selectinload
 from app.core.exceptions import AuthorizationError, NotFoundError, ValidationError
 from app.core.security import CurrentUser, UserRole
 from app.db.models.application import Application
-from app.db.models.audit import AuditEvent
 from app.db.models.enums import (
     ApplicationStatus,
     EvidenceStatus,
@@ -17,6 +16,7 @@ from app.db.models.enums import (
     VerificationState,
 )
 from app.db.models.evaluation import CriterionEvidence, Evaluation
+from app.repositories.audit import AuditEventRepository
 from app.repositories.domain import (
     CorrectionRequestRepository,
     DocumentRepository,
@@ -159,12 +159,20 @@ class ReviewWorkflowService:
             )
 
             # Audit event
-            audit_event = AuditEvent(
+            audit_repo = AuditEventRepository(session)
+            await audit_repo.log_event(
                 action="REVIEW_FLAG_CREATED",
                 resource_type="review_flag",
                 resource_id=str(flag.id),
                 actor_id=actor_id or "system",
                 actor_role=actor_role or "system",
+                entity_version=1,
+                prior_state=None,
+                new_state={
+                    "status": ReviewFlagStatus.PENDING.value,
+                    "priority": priority,
+                    "flag_type": flag_type,
+                },
                 details={
                     "application_id": str(application_id),
                     "criterion_evidence_id": str(ce.id),
@@ -176,7 +184,6 @@ class ReviewWorkflowService:
                     else None,
                 },
             )
-            session.add(audit_event)
             created_flags.append(ReviewFlagResponse.model_validate(flag))
 
         # 4. Update application status to NEEDS_REVIEW
@@ -486,12 +493,16 @@ class ReviewWorkflowService:
         application.status = ApplicationStatus.NEEDS_REVIEW
 
         # 7. Append immutable audit event
-        audit_event = AuditEvent(
+        audit_repo = AuditEventRepository(session)
+        await audit_repo.log_event(
             action="CANDIDATE_CLARIFICATION_SUBMITTED",
             resource_type="correction_request",
             resource_id=str(correction.id),
             actor_id=str(candidate_id),
             actor_role=candidate.role.value,
+            entity_version=1,
+            prior_state={"verification_state": VerificationState.UNVERIFIED.value},
+            new_state={"verification_state": VerificationState.CANDIDATE_CLARIFIED.value},
             details={
                 "application_id": str(application_id),
                 "criterion_evidence_id": str(criterion_evidence_id),
@@ -500,8 +511,6 @@ class ReviewWorkflowService:
             },
             ip_address=ip_address,
         )
-        session.add(audit_event)
-        await session.flush()
 
         return CandidateClarificationResponse(
             id=correction.id,

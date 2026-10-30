@@ -16,6 +16,8 @@ os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
 os.environ["SECRET_KEY"] = "test_environment_secret_key_minimum_32_chars!"
 os.environ["LLM_PROVIDER"] = "fake"
 
+from sqlalchemy.pool import StaticPool
+
 from app.core.config import Settings, get_settings
 from app.db.base import Base
 from app.db.session import get_db_session
@@ -35,6 +37,7 @@ async def test_engine() -> AsyncGenerator[AsyncEngine, None]:
     engine = create_async_engine(
         "sqlite+aiosqlite:///:memory:",
         connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
