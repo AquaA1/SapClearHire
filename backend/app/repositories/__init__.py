@@ -4,6 +4,7 @@ from app.repositories.domain import (
     ApplicationRepository,
     DocumentRepository,
     EvaluationRepository,
+    ExtractionRepository,
     JobRepository,
     ReviewDecisionRepository,
     UserRepository,
@@ -17,5 +18,6 @@ __all__ = [
     "ApplicationRepository",
     "DocumentRepository",
     "EvaluationRepository",
+    "ExtractionRepository",
     "ReviewDecisionRepository",
 ]

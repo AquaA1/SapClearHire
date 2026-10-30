@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from app.integrations.llm.schemas import ExtractionResult
+from app.integrations.llm.schemas import ExtractedResumeProfile, ExtractionResult
 
 
 class BaseLLMProvider(ABC):
@@ -13,6 +13,7 @@ class BaseLLMProvider(ABC):
     3. The LLM must NEVER mark a criterion 'supported' without verified source quotes.
     4. Delimit untrusted document text so instructions inside resumes cannot alter system prompt rules.
     5. Flag contradictory or uncertain claims as 'ambiguous' for human review.
+    6. Never infer protected characteristics (race, gender, age, disability).
     """
 
     @abstractmethod
@@ -24,13 +25,16 @@ class BaseLLMProvider(ABC):
     ) -> ExtractionResult:
         """
         Extract structured claims mapped to criteria with page-referenced source quotes.
+        """
+        pass
 
-        Args:
-            resume_pages: Mapping of 1-indexed page number to raw page text.
-            criteria: List of target job requirements / evaluation criteria.
-            document_hash: SHA-256 hash of the source document for provenance.
-
-        Returns:
-            ExtractionResult containing structured, grounded claims.
+    @abstractmethod
+    async def extract_resume_profile(
+        self,
+        resume_pages: dict[int, str],
+        document_hash: str,
+    ) -> ExtractedResumeProfile:
+        """
+        Extract structured profile (skills, experiences, education, projects) from page-labelled resume text.
         """
         pass

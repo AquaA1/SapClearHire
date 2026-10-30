@@ -65,6 +65,7 @@ class Settings(BaseSettings):
     LLM_PROVIDER: Literal["fake", "openai", "anthropic", "gemini"] = "fake"
     LLM_API_KEY: str = "placeholder_api_key"
     LLM_MODEL: str = "gpt-4o-mini"
+    LLM_BASE_URL: str = "https://api.openai.com/v1"
     LLM_TEMPERATURE: float = 0.0
 
     # Storage & Uploads

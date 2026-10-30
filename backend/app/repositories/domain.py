@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 from app.core.exceptions import ValidationError
 from app.db.models.application import Application
 from app.db.models.audit import AuditEvent
-from app.db.models.document import Document
+from app.db.models.document import CandidateSkill, Document, EvidenceItem, ExtractionRun
 from app.db.models.enums import DocumentProcessingStatus, ReviewDecisionType, VerificationState
 from app.db.models.evaluation import CriterionEvidence, Evaluation
 from app.db.models.job import Job, JobCriterion
@@ -308,3 +308,127 @@ class DocumentRepository(BaseRepository[Document]):
         doc.processing_error = processing_error
         await self.session.flush()
         return doc
+
+
+class ExtractionRepository(BaseRepository[ExtractionRun]):
+    """Data access repository for ExtractionRun, CandidateSkill, and EvidenceItem records."""
+
+    def __init__(self, session: AsyncSession):
+        super().__init__(ExtractionRun, session)
+
+    async def get_latest_run_for_document(self, document_id: uuid.UUID) -> ExtractionRun | None:
+        query = (
+            select(ExtractionRun)
+            .where(ExtractionRun.document_id == document_id)
+            .order_by(ExtractionRun.run_number.desc())
+            .limit(1)
+        )
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
+
+    async def get_next_run_number(self, document_id: uuid.UUID) -> int:
+        query = (
+            select(ExtractionRun.run_number)
+            .where(ExtractionRun.document_id == document_id)
+            .order_by(ExtractionRun.run_number.desc())
+            .limit(1)
+        )
+        result = await self.session.execute(query)
+        latest = result.scalar_one_or_none()
+        return (latest or 0) + 1
+
+    async def create_extraction_run(
+        self,
+        document_id: uuid.UUID,
+        provider: str,
+        model_name: str,
+        status: DocumentProcessingStatus = DocumentProcessingStatus.PROCESSING,
+    ) -> ExtractionRun:
+        run_number = await self.get_next_run_number(document_id)
+        run = ExtractionRun(
+            document_id=document_id,
+            run_number=run_number,
+            provider=provider,
+            model_name=model_name,
+            status=status,
+            raw_output={},
+        )
+        self.session.add(run)
+        await self.session.flush()
+        return run
+
+    async def complete_extraction_run(
+        self,
+        extraction_run_id: uuid.UUID,
+        status: DocumentProcessingStatus,
+        raw_output: dict[str, Any],
+        error_message: str | None = None,
+    ) -> ExtractionRun | None:
+        run = await self.get_by_id(extraction_run_id)
+        if not run:
+            return None
+        run.status = status
+        run.raw_output = raw_output
+        run.error_message = error_message
+        await self.session.flush()
+        return run
+
+    async def add_candidate_skill(
+        self,
+        extraction_run_id: uuid.UUID,
+        candidate_id: uuid.UUID,
+        skill_name: str,
+        category: str | None,
+        confidence: float,
+        source_page: int | None,
+        source_excerpt: str | None,
+    ) -> CandidateSkill:
+        skill = CandidateSkill(
+            extraction_run_id=extraction_run_id,
+            candidate_id=candidate_id,
+            skill_name=skill_name,
+            category=category,
+            confidence=confidence,
+            source_page=source_page,
+            source_excerpt=source_excerpt,
+        )
+        self.session.add(skill)
+        await self.session.flush()
+        return skill
+
+    async def add_evidence_item(
+        self,
+        extraction_run_id: uuid.UUID,
+        document_id: uuid.UUID,
+        claim_text: str,
+        source_page: int,
+        source_excerpt: str,
+        confidence: float,
+        grounding_verified: bool,
+        raw_metadata: dict[str, Any],
+    ) -> EvidenceItem:
+        item = EvidenceItem(
+            extraction_run_id=extraction_run_id,
+            document_id=document_id,
+            claim_text=claim_text,
+            source_page=source_page,
+            source_excerpt=source_excerpt,
+            confidence=confidence,
+            grounding_verified=grounding_verified,
+            raw_metadata=raw_metadata,
+        )
+        self.session.add(item)
+        await self.session.flush()
+        return item
+
+    async def get_evidence_items_for_run(self, extraction_run_id: uuid.UUID) -> list[EvidenceItem]:
+        query = select(EvidenceItem).where(EvidenceItem.extraction_run_id == extraction_run_id)
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
+
+    async def get_candidate_skills_for_run(
+        self, extraction_run_id: uuid.UUID
+    ) -> list[CandidateSkill]:
+        query = select(CandidateSkill).where(CandidateSkill.extraction_run_id == extraction_run_id)
+        result = await self.session.execute(query)
+        return list(result.scalars().all())

@@ -5,11 +5,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AuthorizationError, NotFoundError
 from app.core.security import CurrentUser, UserRole, get_current_user
+from app.db.models.enums import DocumentProcessingStatus
 from app.db.models.user import User
 from app.db.session import get_db_session
-from app.repositories.domain import DocumentRepository, UserRepository
-from app.schemas.document import DocumentStatusResponse, DocumentUploadResponse
+from app.repositories.domain import DocumentRepository, ExtractionRepository, UserRepository
+from app.schemas.document import (
+    CandidateSkillSummary,
+    DocumentStatusResponse,
+    DocumentUploadResponse,
+    EvidenceItemSummary,
+    ExtractionRunResponse,
+)
 from app.services.document import DocumentService
+from app.services.extraction import AIExtractionService
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
@@ -84,3 +92,109 @@ async def get_document_status(
         raise AuthorizationError("You are not authorized to view this document")
 
     return DocumentStatusResponse.model_validate(doc)
+
+
+@router.post(
+    "/{document_id}/extract",
+    response_model=ExtractionRunResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Trigger AI Evidence Extraction",
+    description="Triggers the AI extraction pipeline to parse structured claims and source quotes from resume text.",
+)
+async def trigger_ai_extraction(
+    document_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+) -> ExtractionRunResponse:
+    doc_repo = DocumentRepository(db)
+    doc = await doc_repo.get_by_id(document_id)
+
+    if not doc:
+        raise NotFoundError(f"Document {document_id} was not found")
+
+    if current_user.role == UserRole.CANDIDATE and doc.candidate_id != uuid.UUID(current_user.id):
+        raise AuthorizationError("You are not authorized to extract from this document")
+
+    extraction_service = AIExtractionService()
+    # Execute extraction in background task or directly
+    background_tasks.add_task(extraction_service.extract_and_persist, document_id)
+
+    # Return immediate run metadata placeholder
+    ext_repo = ExtractionRepository(db)
+    existing_run = await ext_repo.get_latest_run_for_document(document_id)
+    if existing_run:
+        skills = await ext_repo.get_candidate_skills_for_run(existing_run.id)
+        evidence_items = await ext_repo.get_evidence_items_for_run(existing_run.id)
+        return ExtractionRunResponse(
+            id=existing_run.id,
+            document_id=document_id,
+            run_number=existing_run.run_number,
+            provider=existing_run.provider,
+            model_name=existing_run.model_name,
+            status=existing_run.status,
+            error_message=existing_run.error_message,
+            skills=[CandidateSkillSummary.model_validate(s) for s in skills],
+            evidence_items=[EvidenceItemSummary.model_validate(e) for e in evidence_items],
+            started_at=existing_run.started_at,
+            completed_at=existing_run.completed_at,
+        )
+
+    # If first run scheduled, return queued status
+    next_num = await ext_repo.get_next_run_number(document_id)
+    return ExtractionRunResponse(
+        id=uuid.uuid4(),
+        document_id=document_id,
+        run_number=next_num,
+        provider="ai",
+        model_name="default",
+        status=DocumentProcessingStatus.QUEUED,
+        error_message=None,
+        skills=[],
+        evidence_items=[],
+        started_at=doc.created_at,
+        completed_at=None,
+    )
+
+
+@router.get(
+    "/{document_id}/extraction-results",
+    response_model=ExtractionRunResponse,
+    summary="Get AI Evidence Extraction Results",
+    description="Retrieves the latest structured AI evidence extraction run, including grounded skills and evidence items.",
+)
+async def get_extraction_results(
+    document_id: uuid.UUID,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+) -> ExtractionRunResponse:
+    doc_repo = DocumentRepository(db)
+    doc = await doc_repo.get_by_id(document_id)
+
+    if not doc:
+        raise NotFoundError(f"Document {document_id} was not found")
+
+    if current_user.role == UserRole.CANDIDATE and doc.candidate_id != uuid.UUID(current_user.id):
+        raise AuthorizationError("You are not authorized to view this document's extractions")
+
+    ext_repo = ExtractionRepository(db)
+    run = await ext_repo.get_latest_run_for_document(document_id)
+    if not run:
+        raise NotFoundError(f"No extraction run found for document {document_id}")
+
+    skills = await ext_repo.get_candidate_skills_for_run(run.id)
+    evidence_items = await ext_repo.get_evidence_items_for_run(run.id)
+
+    return ExtractionRunResponse(
+        id=run.id,
+        document_id=document_id,
+        run_number=run.run_number,
+        provider=run.provider,
+        model_name=run.model_name,
+        status=run.status,
+        error_message=run.error_message,
+        skills=[CandidateSkillSummary.model_validate(s) for s in skills],
+        evidence_items=[EvidenceItemSummary.model_validate(e) for e in evidence_items],
+        started_at=run.started_at,
+        completed_at=run.completed_at,
+    )
