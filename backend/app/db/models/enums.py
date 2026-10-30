@@ -43,6 +43,13 @@ class JobStatus(StrEnum):
     ARCHIVED = "archived"
 
 
+class CriterionCategory(StrEnum):
+    """Classification of job criterion importance."""
+
+    REQUIRED = "required"
+    PREFERRED = "preferred"
+
+
 class ApplicationStatus(StrEnum):
     """Screening lifecycle status of a candidate job application."""
 

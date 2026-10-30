@@ -57,6 +57,32 @@ class JobRepository(BaseRepository[Job]):
         await self.session.flush()
         return criterion
 
+    async def get_active_criteria(self, job_id: uuid.UUID) -> list[JobCriterion]:
+        query = (
+            select(JobCriterion)
+            .where(JobCriterion.job_id == job_id, JobCriterion.is_active == True)  # noqa: E712
+            .order_by(JobCriterion.version.desc())
+        )
+        result = await self.session.execute(query)
+        # Deduplicate to latest version per criterion name
+        seen_names = set()
+        active_items = []
+        for c in result.scalars().all():
+            if c.name.lower() not in seen_names:
+                seen_names.add(c.name.lower())
+                active_items.append(c)
+        return active_items
+
+    async def get_latest_criteria_version(self, job_id: uuid.UUID) -> int:
+        query = (
+            select(JobCriterion.version)
+            .where(JobCriterion.job_id == job_id)
+            .order_by(JobCriterion.version.desc())
+            .limit(1)
+        )
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none() or 1
+
 
 class ApplicationRepository(BaseRepository[Application]):
     def __init__(self, session: AsyncSession):
@@ -158,6 +184,22 @@ class EvaluationRepository(BaseRepository[Evaluation]):
         await self.session.flush()
 
         return evaluation
+
+    async def get_evaluation_with_items(self, evaluation_id: uuid.UUID) -> Evaluation | None:
+        query = (
+            select(Evaluation)
+            .where(Evaluation.id == evaluation_id)
+            .options(
+                selectinload(Evaluation.criterion_evidence_items).selectinload(
+                    CriterionEvidence.criterion
+                ),
+                selectinload(Evaluation.criterion_evidence_items).selectinload(
+                    CriterionEvidence.evidence_item
+                ),
+            )
+        )
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
 
 
 class ReviewDecisionRepository(BaseRepository[ReviewDecision]):
@@ -430,5 +472,14 @@ class ExtractionRepository(BaseRepository[ExtractionRun]):
         self, extraction_run_id: uuid.UUID
     ) -> list[CandidateSkill]:
         query = select(CandidateSkill).where(CandidateSkill.extraction_run_id == extraction_run_id)
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
+
+    async def get_skills_for_candidate(self, candidate_id: uuid.UUID) -> list[CandidateSkill]:
+        query = (
+            select(CandidateSkill)
+            .where(CandidateSkill.candidate_id == candidate_id)
+            .order_by(CandidateSkill.confidence.desc())
+        )
         result = await self.session.execute(query)
         return list(result.scalars().all())

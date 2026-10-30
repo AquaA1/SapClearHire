@@ -5,6 +5,7 @@ from app.db.models.document import CandidateSkill, Document, EvidenceItem, Extra
 from app.db.models.enums import (
     ApplicationStatus,
     CorrectionRequestStatus,
+    CriterionCategory,
     DocumentProcessingStatus,
     EvidenceStatus,
     JobStatus,
@@ -40,6 +41,7 @@ __all__ = [
     "ReviewDecisionType",
     "DocumentProcessingStatus",
     "JobStatus",
+    "CriterionCategory",
     "ApplicationStatus",
     "ReviewFlagStatus",
     "CorrectionRequestStatus",
