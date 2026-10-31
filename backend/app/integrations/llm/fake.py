@@ -241,7 +241,7 @@ class FakeLLMProvider(BaseLLMProvider):
                     ].lower()
                     if any(
                         term in context_snippet
-                        for term in ["familiar with", "basic", "exposure", "learning", "student"]
+                        for term in ["familiar with", "basic", "exposure", "learning"]
                     ):
                         is_ambiguous = True
 
