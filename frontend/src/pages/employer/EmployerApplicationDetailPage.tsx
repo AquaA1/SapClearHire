@@ -111,7 +111,7 @@ export const EmployerApplicationDetailPage: React.FC = () => {
             <h3 className="font-semibold text-ink text-sm">
               All Applicants ({allApps.length})
             </h3>
-            <span className="text-[11px] font-mono text-muted font-medium">Requisition Cohort</span>
+            <span className="text-[11px] text-muted font-medium">Requisition Cohort</span>
           </div>
 
           <div className="space-y-2.5 max-h-[calc(100vh-220px)] overflow-y-auto pr-1">
@@ -149,7 +149,7 @@ export const EmployerApplicationDetailPage: React.FC = () => {
 
                   <div className="flex items-center justify-between pt-2 border-t border-subtle">
                     <StatusBadge status={app.status} size="sm" />
-                    <span className="text-[10px] font-mono text-muted">
+                    <span className="text-[10px] font-medium text-muted">
                       #{app.id.slice(0, 8)}
                     </span>
                   </div>
@@ -181,7 +181,7 @@ export const EmployerApplicationDetailPage: React.FC = () => {
                   <div className="flex items-center gap-2.5 text-xs text-muted font-medium">
                     <span>{activeApp.job_title}</span>
                     <span>•</span>
-                    <span className="font-mono text-ink">{activeApp.candidate_email}</span>
+                    <span className="font-medium text-ink">{activeApp.candidate_email}</span>
                   </div>
                 </div>
               </div>
@@ -264,7 +264,7 @@ export const EmployerApplicationDetailPage: React.FC = () => {
                   <h3 className="font-semibold text-ink text-sm">
                     Grounded Criteria Evaluations ({evaluation.criteria_evaluations.length})
                   </h3>
-                  <span className="text-[11px] font-mono text-muted">
+                  <span className="text-[11px] font-medium text-muted">
                     Run #{evaluation.extraction_run_id}
                   </span>
                 </div>
@@ -327,7 +327,7 @@ export const EmployerApplicationDetailPage: React.FC = () => {
                     <div key={note.id} className="p-4 rounded-sm bg-elevated border border-subtle space-y-1.5">
                       <div className="flex justify-between items-center text-xs">
                         <span className="font-semibold text-ink">{note.author} ({note.role})</span>
-                        <span className="text-[10px] text-muted font-mono">{note.time}</span>
+                        <span className="text-[10px] text-muted font-medium">{note.time}</span>
                       </div>
                       <p className="text-xs text-muted leading-relaxed font-medium">{note.text}</p>
                     </div>
@@ -342,10 +342,10 @@ export const EmployerApplicationDetailPage: React.FC = () => {
             <div className="bg-surface rounded-card border border-subtle p-6 shadow-card space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-subtle">
                 <h3 className="font-semibold text-ink text-sm">Indexed Source Document</h3>
-                <span className="text-xs font-mono text-accent">OCR Parsed & Sealed</span>
+                <span className="text-xs font-medium text-accent">OCR Parsed & Sealed</span>
               </div>
-              <div className="p-6 rounded-sm bg-elevated border border-subtle font-mono text-xs text-ink space-y-4 leading-relaxed">
-                <div className="border-b border-subtle pb-2 font-bold text-ink">
+              <div className="p-6 rounded-sm bg-elevated border border-subtle text-xs text-ink space-y-4 leading-relaxed">
+                <div className="border-b border-subtle pb-2 font-semibold text-ink">
                   Elena Rostova — Distributed Systems & Cloud Infrastructure Engineer
                 </div>
                 <p>

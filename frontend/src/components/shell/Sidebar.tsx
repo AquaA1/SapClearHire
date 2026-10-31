@@ -47,12 +47,12 @@ export const Sidebar: React.FC = () => {
   return (
     <aside
       className="shrink-0 h-screen sticky top-0 z-30 flex flex-col items-center justify-between py-5 select-none"
-      style={{ width: 'var(--sidebar-w)', backgroundColor: 'var(--canvas)', borderRight: '1px solid var(--border)' }}
+      style={{ width: 'var(--sidebar-w)', backgroundColor: 'var(--sidebar)', borderRight: '1px solid var(--border)' }}
     >
       {/* Brand mark */}
       <div className="flex flex-col items-center gap-6">
         <div
-          className="w-9 h-9 rounded-card flex items-center justify-center font-bold text-sm cursor-pointer"
+          className="w-9 h-9 rounded-card flex items-center justify-center font-semibold text-sm cursor-pointer"
           style={{ backgroundColor: 'var(--accent)', color: 'var(--canvas)' }}
           title="ClearHire"
         >

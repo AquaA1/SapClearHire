@@ -79,7 +79,7 @@ export const EmployerDashboardPage: React.FC = () => {
 
         <Button
           onClick={() => navigate('/employer/jobs')}
-          variant="white"
+          variant="primary"
           size="sm"
           leftIcon={<Plus className="w-4 h-4" />}
           className="shrink-0 self-start sm:self-auto cursor-pointer font-semibold shadow-sm"
@@ -202,7 +202,7 @@ export const EmployerDashboardPage: React.FC = () => {
                   <TableRow key={app.id}>
                     <TableCell>
                       <div className="font-semibold text-ink text-xs">{app.candidate_name || 'Candidate'}</div>
-                      <div className="text-[11px] text-muted font-mono mt-0.5">{app.candidate_email}</div>
+                      <div className="text-[11px] text-muted font-medium mt-0.5">{app.candidate_email}</div>
                     </TableCell>
                     <TableCell>
                       <span className="text-xs font-medium text-ink/90 truncate block max-w-[220px]">
@@ -251,7 +251,7 @@ export const EmployerDashboardPage: React.FC = () => {
                   >
                     <div className="flex items-start justify-between">
                       <h4 className="text-xs font-semibold text-ink leading-tight">{job.title}</h4>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-pill bg-success-dim text-success border border-success/30 font-medium">
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-pill bg-success-dim text-success border border-success/30">
                         Active
                       </span>
                     </div>

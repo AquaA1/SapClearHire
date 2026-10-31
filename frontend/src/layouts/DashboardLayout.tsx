@@ -5,7 +5,7 @@ import { TopNavbar } from '../components/shell/TopNavbar';
 
 export const DashboardLayout: React.FC = () => {
   return (
-    <div className="min-h-screen bg-canvas text-ink flex overflow-hidden">
+    <div className="min-h-screen bg-canvas text-ink font-sans flex overflow-hidden">
       {/* Fixed Dark Sidebar Rail */}
       <Sidebar />
 

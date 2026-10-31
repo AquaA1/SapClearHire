@@ -6,37 +6,44 @@
    ============================================================ */
 
 :root {
-  /* ── Surfaces ─────────────────────────────────────────── */
-  --canvas:        #0F1012;           /* page floor / sidebar */
-  --surface:       #17181C;           /* card / panel */
-  --elevated:      #1E2027;           /* nested insets, icon wells */
+  /* ── Strict Surfaces ───────────────────────────────────── */
+  --canvas:           #171A19;           /* App background: Main dashboard background */
+  --sidebar:          #1B1E1D;           /* Sidebar background: Navigation */
+  --surface:          #222625;           /* Card background: Cards and panels */
+  --elevated:         #292E2C;           /* Elevated surface: Modals, dropdowns, elevated elements */
+  --outer:            #D3E1DE;           /* Outer background: Only where an outer page frame is necessary */
 
   /* ── Borders ──────────────────────────────────────────── */
-  --border:        rgba(255, 255, 255, 0.10);
-  --border-strong: rgba(255, 255, 255, 0.18);
+  --border:           #343B38;           /* Card borders and separators */
+  --border-strong:    #434B47;           /* Subtle highlight borders on hover/focus */
 
-  /* ── Text (High-Contrast & Fully Legible) ─────────────── */
-  --ink:           #FFFFFF;           /* primary text, values, titles */
-  --ink-secondary: #E5E7EB;           /* primary body text */
-  --muted:         #CBD5E1;           /* secondary labels, metadata, table headers (crisp high contrast) */
-  --muted-dim:     #94A3B8;           /* subtle fine print */
+  /* ── Strict Text ──────────────────────────────────────── */
+  --ink:              #F3F6F5;           /* Primary text: Headings and important content */
+  --ink-secondary:    #A5AEAA;           /* Secondary text: Descriptions and metadata */
+  --muted:            #77817D;           /* Muted text: Subtle labels and supporting information */
+  --muted-dim:        #5C6562;           /* Subtle fine print / disabled labels */
 
-  /* ── Single accent (Mint / Aqua) ──────────────────────── */
-  --accent:        #3ECFBF;
-  --accent-dim:    rgba(62, 207, 191, 0.14);
+  /* ── Mint Highlights ──────────────────────────────────── */
+  --accent:           #C8FFF5;           /* Primary mint: Primary actions and important highlights */
+  --accent-secondary: #A5EDE3;           /* Secondary mint: Secondary highlights */
+  --accent-dim:       rgba(200, 255, 245, 0.12);
 
-  /* ── Status Colors ────────────────────────────────────── */
-  --success:       #34D399;
-  --success-dim:   rgba(52, 211, 153, 0.15);
-  --warn:          #FBBF24;
-  --warn-dim:      rgba(251, 191, 36, 0.15);
-  --danger:        #F87171;
-  --danger-dim:    rgba(248, 113, 113, 0.15);
+  /* ── Restrained Coordinated Pastel Status Palette ─────── */
+  --success:          #A5EDE3;           /* Success / Verified (pastel mint) */
+  --success-dim:      rgba(165, 237, 227, 0.12);
+  --info:             #B8DDF5;           /* Information (pastel sky) */
+  --info-dim:         rgba(184, 221, 245, 0.12);
+  --pending:          #C9C5F4;           /* Pending / In review (pastel periwinkle) */
+  --pending-dim:      rgba(201, 197, 244, 0.12);
+  --warn:             #C5D9E8;           /* Warning / Needs attention / Ambiguous (pastel ice blue) */
+  --warn-dim:         rgba(197, 217, 232, 0.12);
+  --danger:           #D6B9CF;           /* Error / Failed / Not Found (pastel dusty mauve) */
+  --danger-dim:       rgba(214, 185, 207, 0.12);
 
-  /* ── Radii ────────────────────────────────────────────── */
-  --radius-card:   20px;
-  --radius-sm:     10px;
-  --radius-pill:   9999px;
+  /* ── Radii (22px Card Radius) ─────────────────────────── */
+  --radius-card:      22px;
+  --radius-sm:        10px;
+  --radius-pill:      9999px;
 
   /* ── Spacing (4px grid) ───────────────────────────────── */
   --space-1:  4px;
@@ -49,8 +56,8 @@
   --space-10: 40px;
   --space-12: 48px;
 
-  /* ── Typography ───────────────────────────────────────── */
-  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  /* ── Typography (Single Manrope Family) ───────────────── */
+  --font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   /* ── Sidebar ──────────────────────────────────────────── */
   --sidebar-w: 72px;

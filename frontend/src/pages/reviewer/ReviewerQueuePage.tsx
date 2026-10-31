@@ -78,10 +78,10 @@ export const ReviewerQueuePage: React.FC = () => {
           <div className="min-w-0 pr-2">
             <div className="flex items-center gap-1.5 mb-1">
               <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-              <span className="text-[10px] font-mono text-accent uppercase font-medium">Authorized Signer</span>
+              <span className="text-[10px] text-accent uppercase font-semibold">Authorized Signer</span>
             </div>
             <h4 className="text-xs font-semibold text-ink truncate">{user.full_name}</h4>
-            <span className="text-[11px] text-muted font-mono block mt-0.5">Human Reviewer Role</span>
+            <span className="text-[11px] text-muted font-medium block mt-0.5">Human Reviewer Role</span>
           </div>
           <div className="w-10 h-10 rounded-xl bg-elevated border border-subtle text-accent flex items-center justify-center shrink-0">
             <ShieldCheck className="w-5 h-5" />
@@ -157,7 +157,7 @@ export const ReviewerQueuePage: React.FC = () => {
                   <div className="font-semibold text-ink text-xs group-hover:text-accent transition-colors">
                     {flag.candidate_name}
                   </div>
-                  <div className="text-[11px] text-muted font-mono mt-0.5">CASE #{flag.id.slice(0, 8)}</div>
+                  <div className="text-[11px] text-muted font-medium mt-0.5">CASE #{flag.id.slice(0, 8)}</div>
                 </TableCell>
                 <TableCell>
                   <span className="text-xs font-medium text-ink">

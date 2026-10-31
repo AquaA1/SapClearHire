@@ -52,13 +52,13 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
               Verbatim Resume Evidence
             </span>
             {item.source_page && (
-              <span className="flex items-center gap-1 px-2 py-0.5 bg-surface border border-subtle rounded text-[10px] text-muted font-mono">
+              <span className="flex items-center gap-1 px-2 py-0.5 bg-surface border border-subtle rounded text-[10px] text-muted font-medium">
                 <FileText className="w-3 h-3 text-muted" />
                 Page {item.source_page}
               </span>
             )}
           </div>
-          <p className="text-ink italic font-mono text-[11px] leading-relaxed">
+          <p className="text-ink italic text-xs leading-relaxed">
             "{item.source_excerpt}"
           </p>
         </div>

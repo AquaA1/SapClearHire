@@ -105,7 +105,7 @@ export const ReviewCaseDetailPage: React.FC = () => {
           </Link>
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-mono font-medium px-2 py-0.5 rounded-pill bg-elevated text-muted border border-subtle">
+              <span className="text-xs font-medium px-2 py-0.5 rounded-pill bg-elevated text-muted border border-subtle">
                 FLAG #{reviewCase.flag_id}
               </span>
               <StatusBadge status={reviewCase.flag_status} size="sm" />
@@ -164,7 +164,7 @@ export const ReviewCaseDetailPage: React.FC = () => {
               </div>
               <div>
                 <p className="text-[11px] text-muted font-medium">Reference</p>
-                <p className="text-xs font-mono text-muted">{reviewCase.application_id}</p>
+                <p className="text-xs font-medium text-muted">{reviewCase.application_id}</p>
               </div>
             </div>
 
@@ -197,7 +197,7 @@ export const ReviewCaseDetailPage: React.FC = () => {
               <div className="p-3 bg-elevated rounded-sm space-y-1.5 border border-subtle text-xs font-medium">
                 <div className="flex justify-between">
                   <span className="text-muted">Weight Multiplier:</span>
-                  <span className="font-mono text-ink">{reviewCase.criterion_weight}x</span>
+                  <span className="font-semibold text-ink">{reviewCase.criterion_weight}x</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted">Current State:</span>
@@ -224,7 +224,7 @@ export const ReviewCaseDetailPage: React.FC = () => {
                 <FileText className="w-4 h-4 text-accent" />
                 <h3 className="text-sm font-semibold text-ink">Grounded Evidence Verification</h3>
               </div>
-              <span className="text-xs font-mono font-medium px-2.5 py-0.5 bg-elevated rounded-pill text-muted border border-subtle">
+              <span className="text-xs font-medium px-2.5 py-0.5 bg-elevated rounded-pill text-muted border border-subtle">
                 Page {reviewCase.source_page || 1} • Verbatim
               </span>
             </div>
@@ -235,7 +235,7 @@ export const ReviewCaseDetailPage: React.FC = () => {
                 Verbatim Resume Citation
               </p>
               {reviewCase.source_excerpt ? (
-                <div className="p-4 rounded-sm bg-elevated border border-subtle font-mono text-xs text-ink leading-relaxed">
+                <div className="p-4 rounded-sm bg-elevated border border-subtle italic text-xs text-ink leading-relaxed font-normal">
                   "{reviewCase.source_excerpt}"
                 </div>
               ) : (
@@ -274,7 +274,7 @@ export const ReviewCaseDetailPage: React.FC = () => {
                   <span className="text-xs font-semibold text-accent flex items-center gap-1.5">
                     <MessageSquare className="w-3.5 h-3.5" /> Candidate Clarification Statement
                   </span>
-                  <span className="text-[10px] font-mono text-accent">Contested Proof</span>
+                  <span className="text-[10px] font-medium text-accent">Contested Proof</span>
                 </div>
                 <p className="text-xs text-ink italic bg-surface p-3 rounded-sm border border-subtle leading-relaxed font-medium">
                   "{reviewCase.clarifications[0].candidate_statement}"
@@ -286,7 +286,7 @@ export const ReviewCaseDetailPage: React.FC = () => {
             <div className="pt-2 grid grid-cols-2 gap-3 text-xs">
               <div className="p-3 rounded-sm bg-elevated border border-subtle font-medium">
                 <span className="text-muted block mb-1">OCR Parser Confidence</span>
-                <span className="font-semibold text-ink text-sm font-mono">
+                <span className="font-semibold text-ink text-sm">
                   {Math.round((reviewCase.ai_confidence || 0.72) * 100)}%
                 </span>
               </div>
@@ -361,7 +361,7 @@ export const ReviewCaseDetailPage: React.FC = () => {
                   <label className="text-xs font-semibold text-ink">
                     Auditable Rationale <span className="text-danger">*</span>
                   </label>
-                  <span className={`text-[11px] font-mono ${rationale.length >= 25 ? 'text-accent' : 'text-muted'}`}>
+                  <span className={`text-[11px] font-medium ${rationale.length >= 25 ? 'text-accent' : 'text-muted'}`}>
                     {rationale.length}/25 min chars
                   </span>
                 </div>

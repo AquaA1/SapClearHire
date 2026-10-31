@@ -33,7 +33,7 @@ export const NotFoundPage: React.FC = () => {
         </div>
 
         <div>
-          <span className="text-[11px] font-mono font-semibold text-warn uppercase tracking-wider">
+          <span className="text-[11px] font-semibold text-warn uppercase tracking-wider">
             HTTP 404 • NOT FOUND
           </span>
           <h1 className="text-xl sm:text-2xl font-semibold text-ink mt-1">Page Not Located</h1>

@@ -25,7 +25,7 @@ export const AccessDeniedPage: React.FC = () => {
         </div>
 
         <div>
-          <span className="text-[11px] font-mono font-semibold text-danger uppercase tracking-wider">
+          <span className="text-[11px] font-semibold text-danger uppercase tracking-wider">
             HTTP 403 • FORBIDDEN
           </span>
           <h1 className="text-xl sm:text-2xl font-semibold text-ink mt-1">Access Restricted</h1>

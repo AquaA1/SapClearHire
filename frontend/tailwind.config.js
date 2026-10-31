@@ -8,37 +8,46 @@ export default {
     extend: {
       colors: {
         /* ── Token-backed semantic names ──────────────── */
-        canvas:    'var(--canvas)',
-        surface:   'var(--surface)',
-        elevated:  'var(--elevated)',
-        ink:       'var(--ink)',
-        muted:     'var(--muted)',
-        accent:    'var(--accent)',
-        'accent-dim': 'var(--accent-dim)',
+        canvas:             'var(--canvas)',
+        sidebar:            'var(--sidebar)',
+        surface:            'var(--surface)',
+        elevated:           'var(--elevated)',
+        outer:              'var(--outer)',
+        ink:                'var(--ink)',
+        'ink-secondary':    'var(--ink-secondary)',
+        muted:              'var(--muted)',
+        'muted-dim':        'var(--muted-dim)',
+        accent:             'var(--accent)',
+        'accent-secondary': 'var(--accent-secondary)',
+        'accent-dim':       'var(--accent-dim)',
 
-        /* ── Status ───────────────────────────────────── */
-        success:  'var(--success)',
+        /* ── Restrained Coordinated Pastel Status ─────── */
+        success:       'var(--success)',
         'success-dim': 'var(--success-dim)',
-        warn:     'var(--warn)',
-        'warn-dim': 'var(--warn-dim)',
-        danger:   'var(--danger)',
-        'danger-dim': 'var(--danger-dim)',
+        info:          'var(--info)',
+        'info-dim':    'var(--info-dim)',
+        pending:       'var(--pending)',
+        'pending-dim': 'var(--pending-dim)',
+        warn:          'var(--warn)',
+        'warn-dim':    'var(--warn-dim)',
+        danger:        'var(--danger)',
+        'danger-dim':  'var(--danger-dim)',
 
         /* ── Border ───────────────────────────────────── */
-        subtle:      'var(--border)',
+        subtle:          'var(--border)',
         'subtle-strong': 'var(--border-strong)',
 
-        /* ── Evidence domain ─────────────────────────── */
+        /* ── Evidence domain (aligned to pastel palette) ─ */
         evidence: {
-          supported:    '#34D399',
-          supportedBg:  'rgba(52, 211, 153, 0.12)',
-          ambiguous:    '#F5A524',
-          ambiguousBg:  'rgba(245, 165, 36, 0.12)',
-          notfound:     '#F87171',
-          notfoundBg:   'rgba(248, 113, 113, 0.12)',
-          verified:     '#34D399',
-          clarified:    '#3ECFBF',
-          clarifiedBg:  'rgba(62, 207, 191, 0.12)',
+          supported:    '#A5EDE3',
+          supportedBg:  'rgba(165, 237, 227, 0.12)',
+          ambiguous:    '#C5D9E8',
+          ambiguousBg:  'rgba(197, 217, 232, 0.12)',
+          notfound:     '#D6B9CF',
+          notfoundBg:   'rgba(214, 185, 207, 0.12)',
+          verified:     '#A5EDE3',
+          clarified:    '#C8FFF5',
+          clarifiedBg:  'rgba(200, 255, 245, 0.12)',
         },
       },
 
@@ -48,15 +57,15 @@ export default {
       },
 
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'Cascadia Code', 'monospace'],
+        sans: ['Manrope', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        manrope: ['Manrope', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        mono: ['Manrope', 'monospace'],
       },
 
       borderRadius: {
-        card:  'var(--radius-card)',  /* 20px */
+        card:  'var(--radius-card)',  /* 22px */
         sm:    'var(--radius-sm)',    /* 10px */
         pill:  'var(--radius-pill)',  /* 9999px */
-        /* keep tailwind defaults: rounded-full, rounded-xl, rounded-lg, etc. */
       },
 
       boxShadow: {

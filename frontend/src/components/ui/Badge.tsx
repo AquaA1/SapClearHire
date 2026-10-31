@@ -31,23 +31,28 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     dotCls  = 'bg-success';
     pillCls = 'bg-success-dim text-success border-success/30 font-medium';
     label   = norm === 'active' ? 'Active' : norm === 'resolved' ? 'Resolved' : norm === 'supported' ? 'Supported' : 'Verified';
+  } else if (norm === 'pending' || norm === 'under_review') {
+    dotCls  = 'bg-pending';
+    pillCls = 'bg-pending-dim text-pending border-pending/30 font-medium';
+    label   = norm === 'pending' ? 'Pending' : 'Under Review';
   } else if (
     norm === EvidenceStatus.AMBIGUOUS ||
     norm === 'needs_review' ||
-    norm === 'under_review' ||
-    norm === 'pending'
+    norm === 'warning'
   ) {
     dotCls  = 'bg-warn';
     pillCls = 'bg-warn-dim text-warn border-warn/30 font-medium';
-    label   = norm === 'ambiguous' ? 'Ambiguous' : norm === 'pending' ? 'Pending' : norm === 'under_review' ? 'Under Review' : 'Needs Review';
+    label   = norm === 'ambiguous' ? 'Ambiguous' : 'Needs Review';
   } else if (
     norm === EvidenceStatus.NOT_FOUND ||
-    norm === VerificationState.HUMAN_REJECTED
+    norm === VerificationState.HUMAN_REJECTED ||
+    norm === 'rejected' ||
+    norm === 'failed'
   ) {
     dotCls  = 'bg-danger';
     pillCls = 'bg-danger-dim text-danger border-danger/30 font-medium';
     label   = norm === 'not_found' ? 'Not Found' : 'Rejected';
-  } else if (norm === VerificationState.CANDIDATE_CLARIFIED) {
+  } else if (norm === VerificationState.CANDIDATE_CLARIFIED || norm === 'clarified') {
     dotCls  = 'bg-accent';
     pillCls = 'bg-accent-dim text-accent border-accent/30 font-medium';
     label   = 'Clarified';
@@ -55,6 +60,10 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     dotCls  = 'bg-success';
     pillCls = 'bg-success-dim text-success border-success/30 font-medium';
     label   = norm === 'reviewed' ? 'Reviewed' : 'Screening';
+  } else if (norm === 'info') {
+    dotCls  = 'bg-info';
+    pillCls = 'bg-info-dim text-info border-info/30 font-medium';
+    label   = 'Information';
   } else {
     // Submitted or default state
     dotCls  = 'bg-muted';
@@ -75,7 +84,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 };
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant?: 'default' | 'success' | 'warn' | 'danger' | 'accent' | 'outline';
+  variant?: 'default' | 'success' | 'info' | 'pending' | 'warn' | 'danger' | 'accent' | 'outline';
   size?: 'sm' | 'md';
   dot?: boolean;
 }
@@ -93,6 +102,8 @@ export const Badge: React.FC<BadgeProps> = ({
   const variantClass: Record<string, string> = {
     default: 'bg-elevated text-ink border-subtle',
     success: 'bg-success-dim text-success border-success/30 font-medium',
+    info:    'bg-info-dim text-info border-info/30 font-medium',
+    pending: 'bg-pending-dim text-pending border-pending/30 font-medium',
     warn:    'bg-warn-dim text-warn border-warn/30 font-medium',
     danger:  'bg-danger-dim text-danger border-danger/30 font-medium',
     accent:  'bg-accent-dim text-accent border-accent/30 font-medium',
@@ -102,6 +113,8 @@ export const Badge: React.FC<BadgeProps> = ({
   const dotClass: Record<string, string> = {
     default: 'bg-muted',
     success: 'bg-success',
+    info:    'bg-info',
+    pending: 'bg-pending',
     warn:    'bg-warn',
     danger:  'bg-danger',
     accent:  'bg-accent',

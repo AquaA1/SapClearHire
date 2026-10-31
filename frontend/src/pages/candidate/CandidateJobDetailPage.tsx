@@ -145,7 +145,7 @@ export const CandidateJobDetailPage: React.FC = () => {
         <div className="lg:col-span-5 bg-surface rounded-card p-6 md:p-8 border border-subtle shadow-card space-y-4">
           <div className="flex items-center justify-between pb-2 border-b border-subtle">
             <h3 className="text-base font-semibold text-ink tracking-tight">Screening Criteria</h3>
-            <span className="text-[11px] font-mono text-muted bg-elevated px-2.5 py-1 rounded-pill border border-subtle">
+            <span className="text-[11px] font-medium text-muted bg-elevated px-2.5 py-1 rounded-pill border border-subtle">
               v1.0 Immutable
             </span>
           </div>
@@ -157,7 +157,7 @@ export const CandidateJobDetailPage: React.FC = () => {
             {job.criteria.map((c, i) => (
               <div key={c.id} className="p-3.5 rounded-sm border border-subtle bg-elevated space-y-1">
                 <div className="flex items-center justify-between gap-2 mb-1">
-                  <span className="text-[10px] font-mono text-muted">#0{i + 1}</span>
+                  <span className="text-[10px] font-medium text-muted">#0{i + 1}</span>
                   <span
                     className={`text-[9px] font-semibold px-2 py-0.5 rounded-pill uppercase tracking-wider ${
                       c.category === 'required'

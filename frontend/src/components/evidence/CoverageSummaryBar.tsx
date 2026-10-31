@@ -62,9 +62,9 @@ export const CoverageSummaryBar: React.FC<CoverageSummaryBarProps> = ({ coverage
         />
       </div>
 
-      <div className="flex items-center justify-between text-[11px] text-muted">
+      <div className="flex items-center justify-between text-xs text-muted">
         <span>Criteria Evaluated: {coverage.total_criteria} Total</span>
-        <span className="font-mono text-ink">{supportedPercent}% Grounded</span>
+        <span className="font-semibold text-ink">{supportedPercent}% Grounded</span>
       </div>
     </div>
   );

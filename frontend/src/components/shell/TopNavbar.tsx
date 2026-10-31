@@ -38,7 +38,7 @@ export const TopNavbar: React.FC = () => {
         <div className="flex items-center gap-2 text-xs text-muted font-medium">
           <span>Friday, 31 Oct</span>
           <span className="text-muted/60">•</span>
-          <span className="flex items-center gap-1.5 text-accent text-[11px] font-mono font-medium">
+          <span className="flex items-center gap-1.5 text-accent text-xs font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-accent" />
             Ledger Active
           </span>
@@ -115,7 +115,7 @@ export const TopNavbar: React.FC = () => {
         {/* Primary Action Button */}
         <button
           onClick={handlePrimaryAction}
-          className="hidden sm:flex items-center gap-1.5 px-4 py-2 bg-surface hover:bg-elevated text-ink text-xs font-semibold rounded-pill border border-subtle transition-all cursor-pointer shadow-sm"
+          className="hidden sm:flex items-center gap-1.5 px-4 py-2 bg-accent hover:bg-accent-secondary text-canvas text-xs font-semibold rounded-pill transition-all cursor-pointer shadow-sm"
         >
           <span>{getPrimaryActionLabel()}</span>
         </button>

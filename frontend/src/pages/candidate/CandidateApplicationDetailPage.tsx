@@ -110,7 +110,7 @@ export const CandidateApplicationDetailPage: React.FC = () => {
               <Clock className="w-3.5 h-3.5" />
               <span>Submitted on {new Date(application.submitted_at).toLocaleDateString()}</span>
               <span>•</span>
-              <span className="font-mono">App #{application.id.slice(0, 8)}</span>
+              <span className="font-medium">App #{application.id.slice(0, 8)}</span>
             </p>
           </div>
 
@@ -166,7 +166,7 @@ export const CandidateApplicationDetailPage: React.FC = () => {
               Each requirement is matched strictly against citations in your resume. Click "Contest with clarification" to submit proof.
             </p>
           </div>
-          <span className="text-xs font-mono text-muted bg-elevated border border-subtle px-3 py-1 rounded-pill">
+          <span className="text-xs font-medium text-muted bg-elevated border border-subtle px-3 py-1 rounded-pill">
             {evaluation.criteria_evaluations.length} Criteria Evaluated
           </span>
         </div>

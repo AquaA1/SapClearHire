@@ -113,7 +113,7 @@ export const EmployerJobsPage: React.FC = () => {
 
         <Button
           onClick={() => setIsCreateModalOpen(true)}
-          variant="white"
+          variant="primary"
           size="sm"
           leftIcon={<Plus className="w-4 h-4" />}
           className="shrink-0 self-start sm:self-auto cursor-pointer font-semibold shadow-sm"
@@ -155,7 +155,7 @@ export const EmployerJobsPage: React.FC = () => {
                   >
                     <TableCell>
                       <div className="font-semibold text-ink text-xs">{job.title}</div>
-                      <div className="text-[11px] text-muted font-mono mt-0.5">REQ #{job.id.slice(0, 8)}</div>
+                      <div className="text-[11px] text-muted font-medium mt-0.5">REQ #{job.id.slice(0, 8)}</div>
                     </TableCell>
                     <TableCell>
                       <span className="text-xs font-medium text-ink">
@@ -202,7 +202,7 @@ export const EmployerJobsPage: React.FC = () => {
                   </span>
                   <h3 className="text-base font-semibold text-ink mt-0.5">{selectedJob.title}</h3>
                 </div>
-                <span className="text-xs font-mono text-muted bg-elevated px-2.5 py-0.5 rounded-pill border border-subtle">
+                <span className="text-xs font-medium text-muted bg-elevated px-2.5 py-0.5 rounded-pill border border-subtle">
                   v1.0 Immutable
                 </span>
               </div>
@@ -220,7 +220,7 @@ export const EmployerJobsPage: React.FC = () => {
                   {selectedJob.criteria.map((c, i) => (
                     <div key={c.id || i} className="p-3.5 rounded-sm border border-subtle bg-elevated space-y-1">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] font-mono text-muted">#0{i + 1}</span>
+                        <span className="text-[10px] font-medium text-muted">#0{i + 1}</span>
                         <span
                           className={`text-[9px] font-semibold px-2 py-0.5 rounded-pill uppercase tracking-wider ${
                             c.category === 'required'
