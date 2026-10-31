@@ -1,6 +1,7 @@
 from enum import Enum
+from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class EvidenceStatus(str, Enum):
@@ -32,10 +33,17 @@ class ExtractedSkill(BaseModel):
     years_of_experience: float | None = Field(
         default=None, ge=0.0, description="Estimated years of experience if mentioned"
     )
-    confidence: float = Field(
+    confidence: float | None = Field(
         default=1.0, ge=0.0, le=1.0, description="Model extraction confidence score"
     )
     source_quote: SourceQuote = Field(..., description="Exact quote grounding this skill")
+
+    @field_validator("confidence", mode="before")
+    @classmethod
+    def _default_none_confidence(cls, v: Any) -> Any:
+        if v is None or v == "":
+            return 1.0
+        return v
 
 
 class ExtractedExperience(BaseModel):
@@ -57,6 +65,13 @@ class ExtractedExperience(BaseModel):
     )
     source_quote: SourceQuote = Field(..., description="Exact quote grounding this experience")
 
+    @field_validator("responsibilities", mode="before")
+    @classmethod
+    def _default_none_responsibilities(cls, v: Any) -> Any:
+        if v is None:
+            return []
+        return v
+
 
 class ExtractedProject(BaseModel):
     """Structured project or portfolio claim."""
@@ -69,6 +84,13 @@ class ExtractedProject(BaseModel):
         default_factory=list, description="Tools or languages used in the project"
     )
     source_quote: SourceQuote = Field(..., description="Exact quote grounding this project")
+
+    @field_validator("technologies", mode="before")
+    @classmethod
+    def _default_none_technologies(cls, v: Any) -> Any:
+        if v is None:
+            return []
+        return v
 
 
 class ExtractedEducation(BaseModel):
@@ -118,6 +140,21 @@ class ExtractedResumeProfile(BaseModel):
         default_factory=list,
         description="Any internal contradictions or anomalies detected by model",
     )
+
+    @field_validator(
+        "skills",
+        "experiences",
+        "projects",
+        "education",
+        "certifications",
+        "detected_conflicts",
+        mode="before",
+    )
+    @classmethod
+    def _default_none_lists(cls, v: Any) -> Any:
+        if v is None:
+            return []
+        return v
 
 
 class CandidateClaim(BaseModel):

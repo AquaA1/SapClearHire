@@ -1,7 +1,9 @@
 import re
 import uuid
 
+from app.core.exceptions import ValidationError
 from app.integrations.llm.base import BaseLLMProvider
+from app.integrations.llm.normalization import parse_and_normalize_llm_json
 from app.integrations.llm.schemas import (
     CandidateClaim,
     EvidenceStatus,
@@ -28,11 +30,16 @@ class FakeLLMProvider(BaseLLMProvider):
         model_name: str = "deterministic-stub-v1",
         custom_profile_override: ExtractedResumeProfile | None = None,
         simulate_error: Exception | None = None,
+        raw_json_override: str | None = None,
+        correction_response_raw: str | None = None,
     ):
         self.provider_name = provider_name
         self.model_name = model_name
         self.custom_profile_override = custom_profile_override
         self.simulate_error = simulate_error
+        self.raw_json_override = raw_json_override
+        self.correction_response_raw = correction_response_raw
+        self.correction_attempt_called: bool = False
 
     async def extract_resume_profile(
         self,
@@ -45,6 +52,24 @@ class FakeLLMProvider(BaseLLMProvider):
         """
         if self.simulate_error:
             raise self.simulate_error
+
+        if self.raw_json_override is not None:
+            try:
+                normalized = parse_and_normalize_llm_json(self.raw_json_override)
+                return ExtractedResumeProfile.model_validate(normalized)
+            except Exception as initial_error:
+                if self.correction_response_raw is not None:
+                    self.correction_attempt_called = True
+                    try:
+                        corr_norm = parse_and_normalize_llm_json(self.correction_response_raw)
+                        return ExtractedResumeProfile.model_validate(corr_norm)
+                    except Exception as corr_error:
+                        raise ValidationError(
+                            f"LLM output violated profile schema: {str(corr_error)}"
+                        ) from corr_error
+                raise ValidationError(
+                    f"LLM output violated profile schema: {str(initial_error)}"
+                ) from initial_error
 
         if self.custom_profile_override is not None:
             return self.custom_profile_override

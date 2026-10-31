@@ -119,3 +119,51 @@ Remember:
 }}
 """
     return prompt
+
+
+def build_correction_prompt(
+    resume_pages: dict[int, str],
+    previous_raw_output: str,
+    validation_error: str,
+) -> str:
+    """
+    Builds a targeted correction prompt when the initial LLM output fails JSON parsing or schema validation.
+    Provides the validation error details and the untrusted resume text.
+    Instructs the model to correct the JSON without hallucinating or inventing missing information.
+    """
+    formatted_pages: list[str] = []
+    for page_num in sorted(resume_pages.keys()):
+        text = resume_pages[page_num]
+        formatted_pages.append(f"--- PAGE {page_num} ---\n{text}\n--- END PAGE {page_num} ---")
+
+    all_pages_text = "\n\n".join(formatted_pages)
+
+    # Sanitize and truncate previous output if excessively long
+    sanitized_prev_output = previous_raw_output.strip()
+    if len(sanitized_prev_output) > 4000:
+        sanitized_prev_output = sanitized_prev_output[:4000] + "... [TRUNCATED]"
+
+    prompt = f"""Your previous structured extraction output could not be validated due to the following error:
+
+<validation_error>
+{validation_error}
+</validation_error>
+
+Your previous output was:
+<previous_output>
+{sanitized_prev_output}
+</previous_output>
+
+Please correct the JSON output using strictly the resume text below.
+
+<untrusted_candidate_resume_content>
+{all_pages_text}
+</untrusted_candidate_resume_content>
+
+CRITICAL INSTRUCTIONS:
+1. Fix the error by strictly conforming to the requested schema.
+2. If any field (e.g. institution, degree, field_of_study, graduation_date, job_title, company, dates) is not explicitly present in the resume text, set it to null. NEVER invent or fabricate missing details.
+3. Every extracted item must have an `exact_excerpt` copied verbatim from the specified `page_number`.
+4. Output ONLY valid JSON with no markdown fences, commentary, or extra text.
+"""
+    return prompt
