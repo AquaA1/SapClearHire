@@ -34,11 +34,20 @@ def test_settings() -> Settings:
 @pytest.fixture
 async def test_engine() -> AsyncGenerator[AsyncEngine, None]:
     """Provides an isolated in-memory SQLite async engine for tests."""
+    from sqlalchemy import event
+
     engine = create_async_engine(
         "sqlite+aiosqlite:///:memory:",
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+
+    @event.listens_for(engine.sync_engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 

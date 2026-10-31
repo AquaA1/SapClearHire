@@ -25,12 +25,20 @@ def get_engine() -> AsyncEngine:
         # Configure pool args based on dialect
         connect_args = {}
         if uri.startswith("sqlite"):
+            from sqlalchemy import event
+
             connect_args["check_same_thread"] = False
             _engine = create_async_engine(
                 uri,
                 connect_args=connect_args,
                 echo=settings.DEBUG,
             )
+
+            @event.listens_for(_engine.sync_engine, "connect")
+            def set_sqlite_pragma(dbapi_connection, connection_record):
+                cursor = dbapi_connection.cursor()
+                cursor.execute("PRAGMA foreign_keys=ON")
+                cursor.close()
         else:
             _engine = create_async_engine(
                 uri,
