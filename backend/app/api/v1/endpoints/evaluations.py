@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AuthorizationError, NotFoundError
-from app.core.security import CurrentUser, UserRole, get_current_user
+from app.core.security import CurrentUser, UserRole, get_current_user, require_roles
 from app.db.session import get_db_session
 from app.repositories.domain import EvaluationRepository
 from app.schemas.evaluation import EvaluationCreateRequest, EvaluationResponse
@@ -25,7 +25,13 @@ router = APIRouter(prefix="/evaluations", tags=["Evaluations"])
 )
 async def evaluate_application(
     request: EvaluationCreateRequest,
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(
+        require_roles(
+            UserRole.EMPLOYER_ADMIN,
+            UserRole.REVIEWER,
+            UserRole.SYSTEM_AUDITOR,
+        )
+    ),
     db: AsyncSession = Depends(get_db_session),
 ) -> EvaluationResponse:
     eval_service = EvaluationService()
@@ -33,6 +39,7 @@ async def evaluate_application(
         application_id=request.application_id,
         session=db,
         actor_id=current_user.id,
+        current_user=current_user,
     )
     await db.commit()
 
@@ -60,5 +67,22 @@ async def get_evaluation(
             raise AuthorizationError(
                 "Candidates may only view evaluations of their own applications."
             )
+    elif current_user.role in (UserRole.EMPLOYER_ADMIN, UserRole.REVIEWER):
+        if evaluation.application and evaluation.application.job:
+            job = evaluation.application.job
+            is_creator = str(job.employer_id) == current_user.id
+            org_matches = bool(
+                current_user.employer_id
+                and job.creator
+                and job.creator.employer_id == current_user.employer_id
+            )
+            if not (is_creator or org_matches):
+                raise AuthorizationError(
+                    "You are not authorized to view evaluations for this job requisition."
+                )
+    elif current_user.role == UserRole.SYSTEM_AUDITOR:
+        pass
+    else:
+        raise AuthorizationError("You are not authorized to view this evaluation.")
 
     return EvaluationService.build_evaluation_response(evaluation)

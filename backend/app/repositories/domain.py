@@ -139,6 +139,17 @@ class ApplicationRepository(BaseRepository[Application]):
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
 
+    async def get_with_job(self, application_id: uuid.UUID) -> Application | None:
+        query = (
+            select(Application)
+            .where(Application.id == application_id)
+            .options(
+                selectinload(Application.job).selectinload(Job.creator),
+            )
+        )
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
+
 
 class EvaluationRepository(BaseRepository[Evaluation]):
     def __init__(self, session: AsyncSession):
@@ -234,6 +245,9 @@ class EvaluationRepository(BaseRepository[Evaluation]):
             select(Evaluation)
             .where(Evaluation.id == evaluation_id)
             .options(
+                selectinload(Evaluation.application)
+                .selectinload(Application.job)
+                .selectinload(Job.creator),
                 selectinload(Evaluation.criterion_evidence_items).selectinload(
                     CriterionEvidence.criterion
                 ),
@@ -410,7 +424,9 @@ class ReviewFlagRepository(BaseRepository[ReviewFlag]):
             .where(ReviewFlag.id == flag_id)
             .options(
                 selectinload(ReviewFlag.application).selectinload(Application.candidate),
-                selectinload(ReviewFlag.application).selectinload(Application.job),
+                selectinload(ReviewFlag.application)
+                .selectinload(Application.job)
+                .selectinload(Job.creator),
                 selectinload(ReviewFlag.criterion_evidence).selectinload(
                     CriterionEvidence.criterion
                 ),

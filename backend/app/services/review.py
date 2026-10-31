@@ -16,12 +16,16 @@ from app.db.models.enums import (
     VerificationState,
 )
 from app.db.models.evaluation import CriterionEvidence, Evaluation
+from app.db.models.job import Job
+from app.db.models.user import User
 from app.repositories.audit import AuditEventRepository
 from app.repositories.domain import (
+    ApplicationRepository,
     CorrectionRequestRepository,
     DocumentRepository,
     ReviewDecisionRepository,
     ReviewFlagRepository,
+    UserRepository,
 )
 from app.schemas.review import (
     CandidateClarificationItem,
@@ -55,6 +59,7 @@ class ReviewWorkflowService:
         assigned_to_user_id: uuid.UUID | None = None,
         actor_id: str | None = None,
         actor_role: str | None = None,
+        current_user: CurrentUser | None = None,
     ) -> list[ReviewFlagResponse]:
         """
         Creates review flags for an application.
@@ -72,7 +77,7 @@ class ReviewWorkflowService:
                 .selectinload(Evaluation.criterion_evidence_items)
                 .selectinload(CriterionEvidence.criterion),
                 selectinload(Application.candidate),
-                selectinload(Application.job),
+                selectinload(Application.job).selectinload(Job.creator),
             )
         )
         app_res = await session.execute(app_query)
@@ -80,13 +85,38 @@ class ReviewWorkflowService:
         if not application:
             raise NotFoundError(f"Application {application_id} not found.")
 
+        # Check tenant authorization if current_user is provided
+        if current_user is not None:
+            if current_user.role == UserRole.CANDIDATE:
+                raise AuthorizationError("Candidates are not authorized to create review flags.")
+            elif current_user.role in (UserRole.EMPLOYER_ADMIN, UserRole.REVIEWER):
+                if not application.job:
+                    raise NotFoundError(f"Job for application {application_id} not found.")
+                is_creator = str(application.job.employer_id) == current_user.id
+                org_matches = bool(
+                    current_user.employer_id
+                    and application.job.creator
+                    and application.job.creator.employer_id == current_user.employer_id
+                )
+                if not (is_creator or org_matches):
+                    raise AuthorizationError(
+                        "You are not authorized to create review flags for this job requisition."
+                    )
+            elif current_user.role == UserRole.SYSTEM_AUDITOR:
+                pass
+            else:
+                raise AuthorizationError("You are not authorized to create review flags.")
+
         if not application.evaluations:
             raise ValidationError(
                 f"Application {application_id} has no evaluations to flag. Run evaluation first."
             )
 
-        # Get latest evaluation
-        latest_eval = application.evaluations[0]
+        # Get latest evaluation (prefer is_latest, fallback to highest version)
+        latest_eval = next(
+            (e for e in application.evaluations if e.is_latest),
+            sorted(application.evaluations, key=lambda e: e.version, reverse=True)[0],
+        )
 
         # 2. Determine which criterion evidence items to flag
         items_to_flag: list[CriterionEvidence] = []
@@ -127,6 +157,20 @@ class ReviewWorkflowService:
             for f in existing_flags
             if f.status in (ReviewFlagStatus.PENDING, ReviewFlagStatus.UNDER_REVIEW)
         }
+
+        # Ensure assigned user exists for foreign key integrity
+        if assigned_to_user_id:
+            user_repo = UserRepository(session)
+            assigned_user = await user_repo.get_by_id(assigned_to_user_id)
+            if not assigned_user:
+                assigned_user = User(
+                    id=assigned_to_user_id,
+                    email=f"reviewer_{str(assigned_to_user_id)[:8]}@clearhire.internal",
+                    full_name="Assigned Reviewer",
+                    role=UserRole.REVIEWER,
+                )
+                session.add(assigned_user)
+                await session.flush()
 
         created_flags: list[ReviewFlagResponse] = []
         for ce in items_to_flag:
@@ -267,6 +311,19 @@ class ReviewWorkflowService:
         if current_user.role == UserRole.REVIEWER:
             if flag.assigned_to_user_id != uuid.UUID(current_user.id):
                 raise AuthorizationError("Reviewers may only access review cases assigned to them.")
+        elif current_user.role == UserRole.EMPLOYER_ADMIN:
+            if flag.application and flag.application.job:
+                job = flag.application.job
+                is_creator = str(job.employer_id) == current_user.id
+                org_matches = bool(
+                    current_user.employer_id
+                    and job.creator
+                    and job.creator.employer_id == current_user.employer_id
+                )
+                if not (is_creator or org_matches):
+                    raise AuthorizationError(
+                        "You are not authorized to view review cases for this job requisition."
+                    )
 
         app = flag.application
         cand = app.candidate if app else None
@@ -353,6 +410,19 @@ class ReviewWorkflowService:
                 raise AuthorizationError(
                     "Reviewers may only record decisions for review cases assigned to them."
                 )
+        elif current_user.role == UserRole.EMPLOYER_ADMIN:
+            if flag.application and flag.application.job:
+                job = flag.application.job
+                is_creator = str(job.employer_id) == current_user.id
+                org_matches = bool(
+                    current_user.employer_id
+                    and job.creator
+                    and job.creator.employer_id == current_user.employer_id
+                )
+                if not (is_creator or org_matches):
+                    raise AuthorizationError(
+                        "You are not authorized to record decisions for this job requisition."
+                    )
 
         if not flag.criterion_evidence_id:
             raise ValidationError(
@@ -360,6 +430,18 @@ class ReviewWorkflowService:
             )
 
         reviewer_id = uuid.UUID(current_user.id)
+        user_repo = UserRepository(session)
+        reviewer_user = await user_repo.get_by_id(reviewer_id)
+        if not reviewer_user:
+            reviewer_user = User(
+                id=reviewer_id,
+                email=current_user.email,
+                full_name=current_user.email.split("@")[0],
+                role=current_user.role,
+                employer_id=current_user.employer_id,
+            )
+            session.add(reviewer_user)
+            await session.flush()
 
         # Determine target state and flag lifecycle
         if decision == ReviewDecisionType.ACCEPTED:
@@ -436,16 +518,18 @@ class ReviewWorkflowService:
         if not clean_statement:
             raise ValidationError("Candidate clarification statement cannot be empty.")
 
-        candidate_id = uuid.UUID(candidate.id)
+        if candidate.role != UserRole.CANDIDATE:
+            raise AuthorizationError("Only candidates may submit clarifications.")
+
+        candidate_id = uuid.UUID(str(candidate.id))
 
         # 1. Fetch application and verify ownership
-        app_query = select(Application).where(Application.id == application_id)
-        app_res = await session.execute(app_query)
-        application = app_res.scalar_one_or_none()
+        app_repo = ApplicationRepository(session)
+        application = await app_repo.get_with_job(application_id)
         if not application:
             raise NotFoundError(f"Application {application_id} not found.")
 
-        if candidate.role == UserRole.CANDIDATE and application.candidate_id != candidate_id:
+        if str(application.candidate_id) != str(candidate.id):
             raise AuthorizationError(
                 "Candidates may only submit clarifications for their own applications."
             )
@@ -456,13 +540,20 @@ class ReviewWorkflowService:
             doc = await doc_repo.get_by_id(additional_document_id)
             if not doc:
                 raise NotFoundError(f"Additional document {additional_document_id} not found.")
-            if candidate.role == UserRole.CANDIDATE and doc.candidate_id != candidate_id:
+            if str(doc.candidate_id) != str(candidate.id):
                 raise AuthorizationError(
                     "Additional document must belong to the submitting candidate."
                 )
 
-        # 3. Fetch criterion evidence
-        ce_query = select(CriterionEvidence).where(CriterionEvidence.id == criterion_evidence_id)
+        # 3. Fetch criterion evidence and verify it belongs to this application
+        ce_query = (
+            select(CriterionEvidence)
+            .join(Evaluation, CriterionEvidence.evaluation_id == Evaluation.id)
+            .where(
+                CriterionEvidence.id == criterion_evidence_id,
+                Evaluation.application_id == application_id,
+            )
+        )
         ce_res = await session.execute(ce_query)
         ce = ce_res.scalar_one_or_none()
         if not ce:

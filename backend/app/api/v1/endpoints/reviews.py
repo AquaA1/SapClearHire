@@ -55,6 +55,7 @@ async def create_review_flags(
         assigned_to_user_id=request.assigned_to_user_id,
         actor_id=current_user.id,
         actor_role=current_user.role.value,
+        current_user=current_user,
     )
     await db.commit()
 
@@ -177,7 +178,7 @@ async def submit_candidate_clarification_on_application(
     id: uuid.UUID,
     clarification_request: CandidateClarificationRequest,
     req: Request,
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_roles(UserRole.CANDIDATE)),
     db: AsyncSession = Depends(get_db_session),
 ) -> CandidateClarificationResponse:
     client_ip = req.client.host if req.client else None
@@ -206,7 +207,7 @@ async def submit_candidate_clarification_on_review(
     id: uuid.UUID,
     clarification_request: CandidateClarificationRequest,
     req: Request,
-    current_user: CurrentUser = Depends(get_current_user),
+    current_user: CurrentUser = Depends(require_roles(UserRole.CANDIDATE)),
     db: AsyncSession = Depends(get_db_session),
 ) -> CandidateClarificationResponse:
     flag_repo = ReviewFlagRepository(db)

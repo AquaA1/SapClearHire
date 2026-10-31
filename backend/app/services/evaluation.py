@@ -6,7 +6,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
 
-from app.core.exceptions import NotFoundError, ValidationError
+from app.core.exceptions import AuthorizationError, NotFoundError, ValidationError
+from app.core.security import CurrentUser, UserRole
 from app.db.models.application import Application
 from app.db.models.document import CandidateSkill, EvidenceItem
 from app.db.models.enums import (
@@ -16,7 +17,7 @@ from app.db.models.enums import (
     VerificationState,
 )
 from app.db.models.evaluation import Evaluation
-from app.db.models.job import JobCriterion
+from app.db.models.job import Job, JobCriterion
 from app.db.session import get_session_factory
 from app.repositories.domain import EvaluationRepository, ExtractionRepository, JobRepository
 from app.schemas.evaluation import (
@@ -131,23 +132,29 @@ class EvaluationService:
         application_id: uuid.UUID,
         session: AsyncSession | None = None,
         actor_id: str | None = None,
+        current_user: CurrentUser | None = None,
     ) -> Evaluation:
         """
         Evaluates an application against active job criteria.
         Creates an immutable, versioned Evaluation record with factual evidence links.
         """
         if session is not None:
-            return await self._evaluate_with_session(session, application_id, actor_id)
+            return await self._evaluate_with_session(
+                session, application_id, actor_id, current_user
+            )
 
         async with self.session_factory() as local_session:
             async with local_session.begin():
-                return await self._evaluate_with_session(local_session, application_id, actor_id)
+                return await self._evaluate_with_session(
+                    local_session, application_id, actor_id, current_user
+                )
 
     async def _evaluate_with_session(
         self,
         session: AsyncSession,
         application_id: uuid.UUID,
         actor_id: str | None,
+        current_user: CurrentUser | None = None,
     ) -> Evaluation:
         job_repo = JobRepository(session)
         eval_repo = EvaluationRepository(session)
@@ -158,7 +165,7 @@ class EvaluationService:
             select(Application)
             .where(Application.id == application_id)
             .options(
-                selectinload(Application.job),
+                selectinload(Application.job).selectinload(Job.creator),
                 selectinload(Application.primary_document),
             )
         )
@@ -166,6 +173,28 @@ class EvaluationService:
         application = app_result.scalar_one_or_none()
         if not application:
             raise NotFoundError(f"Application {application_id} not found.")
+
+        # Check tenant authorization if current_user is provided
+        if current_user is not None:
+            if current_user.role == UserRole.CANDIDATE:
+                raise AuthorizationError("Candidates are not authorized to evaluate applications.")
+            elif current_user.role in (UserRole.EMPLOYER_ADMIN, UserRole.REVIEWER):
+                if not application.job:
+                    raise NotFoundError(f"Job for application {application_id} not found.")
+                is_creator = str(application.job.employer_id) == current_user.id
+                org_matches = bool(
+                    current_user.employer_id
+                    and application.job.creator
+                    and application.job.creator.employer_id == current_user.employer_id
+                )
+                if not (is_creator or org_matches):
+                    raise AuthorizationError(
+                        "You are not authorized to evaluate applications for this job requisition."
+                    )
+            elif current_user.role == UserRole.SYSTEM_AUDITOR:
+                pass
+            else:
+                raise AuthorizationError("You are not authorized to evaluate applications.")
 
         # 2. Fetch latest extraction run for primary document
         extraction_run = await extraction_repo.get_latest_run_for_document(
