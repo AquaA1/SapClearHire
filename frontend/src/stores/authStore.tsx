@@ -1,50 +1,111 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User } from '../contracts/models';
 import { UserRole } from '../contracts/enums';
-import { mockService } from '../services/mock/mockService';
+import { authService } from '../services/api/authService';
+import { getStoredToken, setStoredToken, removeStoredToken } from '../services/api/client';
 
-interface AuthContextType {
-  user: User;
-  role: UserRole;
+export interface AuthContextType {
+  user: User | null;
+  role: UserRole | null;
   isAuthenticated: boolean;
-  login: (email: string, role?: UserRole) => Promise<void>;
+  isLoading: boolean;
+  isInitializing: boolean;
+  login: (email: string, password?: string) => Promise<User>;
+  register: (fullName: string, email: string, password?: string) => Promise<User>;
   logout: () => void;
-  switchRole: (role: UserRole) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User>(() => mockService.getActiveUser());
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isInitializing, setIsInitializing] = useState<boolean>(true);
 
-  const switchRole = (newRole: UserRole) => {
-    const updatedUser = mockService.setActiveRole(newRole);
-    setUser(updatedUser);
-  };
-
-  const login = async (email: string, role?: UserRole) => {
-    if (role) {
-      mockService.setActiveRole(role);
-    }
-    const res = await mockService.login(email);
-    setUser(res.user);
-    setIsAuthenticated(true);
-  };
-
-  const logout = () => {
+  const logout = useCallback(() => {
+    removeStoredToken();
+    setUser(null);
     setIsAuthenticated(false);
+  }, []);
+
+  // Hydrate session from localStorage on application start
+  useEffect(() => {
+    const hydrateSession = async () => {
+      const token = getStoredToken();
+      if (!token) {
+        setIsInitializing(false);
+        return;
+      }
+
+      try {
+        const currentUser = await authService.getMe();
+        setUser(currentUser);
+        setIsAuthenticated(true);
+      } catch (err) {
+        console.warn('Session hydration failed (expired or invalid token):', err);
+        logout();
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    hydrateSession();
+
+    // Listen for unauthorized events emitted by apiClient
+    const handleUnauthorized = () => {
+      logout();
+    };
+
+    window.addEventListener('clearhire:unauthorized', handleUnauthorized);
+    return () => {
+      window.removeEventListener('clearhire:unauthorized', handleUnauthorized);
+    };
+  }, [logout]);
+
+  const login = async (email: string, password = ''): Promise<User> => {
+    setIsLoading(true);
+    try {
+      const tokenRes = await authService.login({ email, password });
+      setStoredToken(tokenRes.access_token);
+      const currentUser = await authService.getMe();
+      setUser(currentUser);
+      setIsAuthenticated(true);
+      return currentUser;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const register = async (fullName: string, email: string, password = ''): Promise<User> => {
+    setIsLoading(true);
+    try {
+      // 1. Create candidate user in backend
+      await authService.register({ full_name: fullName, email, password });
+      // 2. Authenticate to obtain Bearer JWT
+      const tokenRes = await authService.login({ email, password });
+      setStoredToken(tokenRes.access_token);
+      // 3. Hydrate user identity
+      const currentUser = await authService.getMe();
+      setUser(currentUser);
+      setIsAuthenticated(true);
+      return currentUser;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        role: user.role,
+        role: user?.role || null,
         isAuthenticated,
+        isLoading,
+        isInitializing,
         login,
+        register,
         logout,
-        switchRole,
       }}
     >
       {children}

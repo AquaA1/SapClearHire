@@ -1,6 +1,8 @@
 import React from 'react';
-import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { DashboardLayout } from '../layouts/DashboardLayout';
+import { ProtectedRoute } from './ProtectedRoute';
+import { UserRole } from '../contracts/enums';
 
 // Public Pages
 import { LandingPage } from '../pages/public/LandingPage';
@@ -20,6 +22,7 @@ import { CandidateApplicationDetailPage } from '../pages/candidate/CandidateAppl
 import { EmployerDashboardPage } from '../pages/employer/EmployerDashboardPage';
 import { EmployerJobsPage } from '../pages/employer/EmployerJobsPage';
 import { EmployerApplicationDetailPage } from '../pages/employer/EmployerApplicationDetailPage';
+import { EmployerReviewQueuePage } from '../pages/employer/EmployerReviewQueuePage';
 
 // Reviewer Pages
 import { ReviewerQueuePage } from '../pages/reviewer/ReviewerQueuePage';
@@ -44,96 +47,123 @@ export const router = createBrowserRouter([
     element: <AccessDeniedPage />
   },
 
-  // Authenticated Portal Routes wrapped in DashboardLayout
+  // Authenticated Portal Routes wrapped in ProtectedRoute & DashboardLayout
   {
-    element: <DashboardLayout />,
+    element: <ProtectedRoute />,
     children: [
-      // Candidate Routes
       {
-        path: '/candidate/dashboard',
-        element: <CandidateDashboardPage />
-      },
-      {
-        path: '/candidate/jobs',
-        element: <CandidateJobsPage />
-      },
-      {
-        path: '/candidate/jobs/:jobId',
-        element: <CandidateJobDetailPage />
-      },
-      {
-        path: '/candidate/applications',
-        element: <CandidateApplicationsPage />
-      },
-      {
-        path: '/candidate/applications/:id',
-        element: <CandidateApplicationDetailPage />
-      },
-      {
-        path: '/candidate/profile',
-        element: <Navigate to="/candidate/dashboard" replace />
-      },
+        element: <DashboardLayout />,
+        children: [
+          // Candidate Routes
+          {
+            element: <ProtectedRoute allowedRoles={[UserRole.CANDIDATE]} />,
+            children: [
+              {
+                path: '/candidate/dashboard',
+                element: <CandidateDashboardPage />
+              },
+              {
+                path: '/candidate/jobs',
+                element: <CandidateJobsPage />
+              },
+              {
+                path: '/candidate/jobs/:jobId',
+                element: <CandidateJobDetailPage />
+              },
+              {
+                path: '/candidate/applications',
+                element: <CandidateApplicationsPage />
+              },
+              {
+                path: '/candidate/applications/:id',
+                element: <CandidateApplicationDetailPage />
+              },
+              {
+                path: '/candidate/profile',
+                element: <Navigate to="/candidate/dashboard" replace />
+              },
+            ]
+          },
 
-      // Employer Routes
-      {
-        path: '/employer/dashboard',
-        element: <EmployerDashboardPage />
-      },
-      {
-        path: '/employer/jobs',
-        element: <EmployerJobsPage />
-      },
-      {
-        path: '/employer/jobs/new',
-        element: <Navigate to="/employer/jobs" replace />
-      },
-      {
-        path: '/employer/jobs/:jobId',
-        element: <Navigate to="/employer/jobs" replace />
-      },
-      {
-        path: '/employer/applications',
-        element: <Navigate to="/employer/applications/app-001" replace />
-      },
-      {
-        path: '/employer/applications/:id',
-        element: <EmployerApplicationDetailPage />
-      },
+          // Employer Routes
+          {
+            element: <ProtectedRoute allowedRoles={[UserRole.EMPLOYER_ADMIN]} />,
+            children: [
+              {
+                path: '/employer/dashboard',
+                element: <EmployerDashboardPage />
+              },
+              {
+                path: '/employer/jobs',
+                element: <EmployerJobsPage />
+              },
+              {
+                path: '/employer/jobs/new',
+                element: <Navigate to="/employer/jobs" replace />
+              },
+              {
+                path: '/employer/jobs/:jobId',
+                element: <Navigate to="/employer/jobs" replace />
+              },
+              {
+                path: '/employer/applications',
+                element: <EmployerApplicationDetailPage />
+              },
+              {
+                path: '/employer/applications/:id',
+                element: <EmployerApplicationDetailPage />
+              },
+              {
+                path: '/employer/reviews',
+                element: <EmployerReviewQueuePage />
+              },
+              {
+                path: '/employer/reviews/:caseId',
+                element: <ReviewCaseDetailPage />
+              },
+            ]
+          },
 
-      // Reviewer Routes
-      {
-        path: '/reviewer/dashboard',
-        element: <Navigate to="/reviewer/queue" replace />
-      },
-      {
-        path: '/reviewer/queue',
-        element: <ReviewerQueuePage />
-      },
-      {
-        path: '/reviewer/case/:caseId',
-        element: <ReviewCaseDetailPage />
-      },
-
-      // Auditor & Benchmark Graceful Redirects
-      {
-        path: '/auditor/chain',
-        element: <Navigate to="/reviewer/queue" replace />
-      },
-      {
-        path: '/auditor/events',
-        element: <Navigate to="/reviewer/queue" replace />
-      },
-      {
-        path: '/auditor/dashboard',
-        element: <Navigate to="/reviewer/queue" replace />
-      },
-      {
-        path: '/auditor/*',
-        element: <Navigate to="/reviewer/queue" replace />
-      },
-      {
-        path: '/benchmark',
-        element: <Navigate to="/employer/jobs" replace />
+          // Reviewer & Auditor Routes
+          {
+            element: <ProtectedRoute allowedRoles={[UserRole.REVIEWER, UserRole.SYSTEM_AUDITOR]} />,
+            children: [
+              {
+                path: '/reviewer/dashboard',
+                element: <Navigate to="/reviewer/queue" replace />
+              },
+              {
+                path: '/reviewer/queue',
+                element: <ReviewerQueuePage />
+              },
+              {
+                path: '/reviewer/case/:caseId',
+                element: <ReviewCaseDetailPage />
+              },
+              // Auditor & Benchmark Graceful Redirects
+              {
+                path: '/auditor/chain',
+                element: <Navigate to="/reviewer/queue" replace />
+              },
+              {
+                path: '/auditor/events',
+                element: <Navigate to="/reviewer/queue" replace />
+              },
+              {
+                path: '/auditor/dashboard',
+                element: <Navigate to="/reviewer/queue" replace />
+              },
+              {
+                path: '/auditor/*',
+                element: <Navigate to="/reviewer/queue" replace />
+              },
+              {
+                path: '/benchmark',
+                element: <Navigate to="/employer/jobs" replace />
+              }
+            ]
+          }
+        ]
       }
     ]
   },

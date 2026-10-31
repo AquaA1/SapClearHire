@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Eye, EyeOff, Check } from 'lucide-react';
+import { Eye, EyeOff, Check, AlertCircle } from 'lucide-react';
 import { InteractiveCharacters } from '../../components/auth/InteractiveCharacters';
 import { useAuth } from '../../stores/authStore';
 import { UserRole } from '../../contracts/enums';
@@ -10,31 +10,38 @@ export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const [email, setEmail] = useState('cody.fisher@example.com');
-  const [password, setPassword] = useState('777G555A888');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState<UserRole>(UserRole.CANDIDATE);
 
   const handleRolePreset = (role: UserRole) => {
     setSelectedRole(role);
+    setErrorMessage(null);
     if (role === UserRole.CANDIDATE) {
-      setEmail('cody.fisher@example.com');
+      setEmail('alex.morgan@test.com');
+      setPassword('ValidPassword123!');
     } else if (role === UserRole.EMPLOYER_ADMIN) {
-      setEmail('bagus.fikri@fikristudio.com');
+      setEmail('employer.admin@clearhire.dev');
+      setPassword('AdminPassword123!');
     } else if (role === UserRole.REVIEWER) {
-      setEmail('andri.herdiansyah@fikristudio.com');
+      setEmail('senior.reviewer@clearhire.dev');
+      setPassword('ReviewerPass123!');
     } else if (role === UserRole.SYSTEM_AUDITOR) {
-      setEmail('kathryn.murphy@auditgov.org');
+      setEmail('auditor@clearhire.dev');
+      setPassword('AuditorPass123!');
     }
   };
 
   const handleTyping = (setter: React.Dispatch<React.SetStateAction<string>>, val: string) => {
     setter(val);
+    if (errorMessage) setErrorMessage(null);
     setIsTyping(true);
     const timeout = setTimeout(() => setIsTyping(false), 200);
     return () => clearTimeout(timeout);
@@ -43,22 +50,26 @@ export const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorMessage(null);
 
     try {
-      await login(email, selectedRole);
+      const authenticatedUser = await login(email, password);
       setIsSuccess(true);
 
       setTimeout(() => {
-        if (selectedRole === UserRole.CANDIDATE) {
+        if (authenticatedUser.role === UserRole.CANDIDATE) {
           navigate('/candidate/dashboard');
-        } else if (selectedRole === UserRole.EMPLOYER_ADMIN) {
+        } else if (authenticatedUser.role === UserRole.EMPLOYER_ADMIN) {
           navigate('/employer/dashboard');
-        } else if (selectedRole === UserRole.REVIEWER) {
+        } else if (authenticatedUser.role === UserRole.REVIEWER || authenticatedUser.role === UserRole.SYSTEM_AUDITOR) {
           navigate('/reviewer/queue');
-        } else if (selectedRole === UserRole.SYSTEM_AUDITOR) {
-          navigate('/reviewer/queue');
+        } else {
+          navigate('/candidate/dashboard');
         }
       }, 700);
+    } catch (err: unknown) {
+      const errObj = err as { message?: string };
+      setErrorMessage(errObj.message || 'Authentication failed. Please verify your email and password.');
     } finally {
       setIsLoading(false);
     }
@@ -119,6 +130,14 @@ export const LoginPage: React.FC = () => {
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Error Banner */}
+              {errorMessage && (
+                <div className="p-3 rounded-card bg-danger/10 border border-danger/30 text-danger text-xs font-medium flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span className="leading-snug">{errorMessage}</span>
+                </div>
+              )}
+
               {/* Email Field */}
               <div className="text-left space-y-1">
                 <label className="block text-xs font-semibold text-muted">
@@ -198,10 +217,10 @@ export const LoginPage: React.FC = () => {
               </Button>
             </form>
 
-            {/* Demo Persona Quick Switch */}
+            {/* Demo Credential Quick Fill */}
             <div className="pt-4 border-t border-subtle">
               <span className="text-[10px] font-semibold text-muted uppercase tracking-wider block mb-2 text-center">
-                Instant Demo Persona Select
+                Quick-Fill Test Credentials
               </span>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                 {[

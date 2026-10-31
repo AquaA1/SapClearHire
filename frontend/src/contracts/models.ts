@@ -22,6 +22,23 @@ export interface User {
   created_at: string;
 }
 
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+}
+
+export interface CandidateRegisterRequest {
+  email: string;
+  password: string;
+  full_name: string;
+}
+
 export interface JobCriterion {
   id: string;
   job_id: string;
@@ -45,6 +62,27 @@ export interface Job {
   created_at: string;
   updated_at: string;
   applicants_count?: number;
+}
+
+export interface JobCriterionCreate {
+  name: string;
+  description?: string | null;
+  category: CriterionCategory | string;
+  weight: number;
+}
+
+export interface JobCreateRequest {
+  title: string;
+  description?: string | null;
+  department?: string | null;
+  criteria: JobCriterionCreate[];
+}
+
+export interface JobListParams {
+  status?: JobStatus;
+  department?: string;
+  limit?: number;
+  offset?: number;
 }
 
 export interface Application {

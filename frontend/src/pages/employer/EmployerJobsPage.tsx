@@ -1,10 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mockService } from '../../services/mock/mockService';
-import { Job } from '../../contracts/models';
+import { jobService } from '../../services/api/jobService';
+import { Job, JobCreateRequest } from '../../contracts/models';
 import { CriterionCategory } from '../../contracts/enums';
 import { StatusBadge } from '../../components/ui/Badge';
-import { Plus, ChevronRight, Layers, X, Sparkles, Trash2, Users, ShieldCheck } from 'lucide-react';
+import {
+  Plus,
+  ChevronRight,
+  Layers,
+  X,
+  Sparkles,
+  Trash2,
+  Users,
+  AlertCircle,
+  RefreshCw,
+  CheckCircle2,
+} from 'lucide-react';
 import {
   Button,
   Table,
@@ -26,9 +37,11 @@ export const EmployerJobsPage: React.FC = () => {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // New Requisition Form State
+  // Modal and creation state
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [department, setDepartment] = useState('Core Infrastructure');
   const [description, setDescription] = useState('');
@@ -47,13 +60,42 @@ export const EmployerJobsPage: React.FC = () => {
     },
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
+
+  const fetchJobs = async (skipCache = false) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const list = await jobService.listJobs(undefined, skipCache);
+      setJobs(list);
+      if (list.length > 0) {
+        setSelectedJob(list[0]);
+      } else {
+        setSelectedJob(null);
+      }
+    } catch (err: unknown) {
+      const errObj = err as { message?: string };
+      setError(errObj.message || 'Failed to retrieve job requisitions from server.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    mockService.listJobs().then((list) => {
-      setJobs(list);
-      if (list.length > 0) setSelectedJob(list[0]);
-    });
+    fetchJobs();
   }, []);
+
+  const handleSelectJob = async (job: Job) => {
+    setSelectedJob(job);
+    try {
+      // Fetch full requisition details to ensure complete criteria freshness
+      const fullJob = await jobService.getJob(job.id);
+      setSelectedJob(fullJob);
+    } catch {
+      // Keep selected job from list if individual fetch fails
+    }
+  };
 
   const handleAddCriterion = () => {
     setCriteria([
@@ -71,7 +113,7 @@ export const EmployerJobsPage: React.FC = () => {
     setCriteria(criteria.filter((_, i) => i !== index));
   };
 
-  const handleUpdateCriterion = (index: number, field: keyof CriterionInput, val: any) => {
+  const handleUpdateCriterion = (index: number, field: keyof CriterionInput, val: unknown) => {
     const updated = [...criteria];
     updated[index] = { ...updated[index], [field]: val };
     setCriteria(updated);
@@ -79,22 +121,61 @@ export const EmployerJobsPage: React.FC = () => {
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || criteria.length === 0) return;
+    setCreateError(null);
+
+    // Client-side validation
+    if (!title.trim()) {
+      setCreateError('Position title is required.');
+      return;
+    }
+
+    if (criteria.length === 0) {
+      setCreateError('At least one screening criterion benchmark must be defined.');
+      return;
+    }
+
+    const invalidCriterion = criteria.find((c) => !c.name.trim());
+    if (invalidCriterion) {
+      setCreateError('All criteria benchmarks must have a valid name.');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
-      const created = await mockService.createJob({
-        title,
-        department,
-        description,
-        criteria,
-      });
+      const payload: JobCreateRequest = {
+        title: title.trim(),
+        department: department.trim() || undefined,
+        description: description.trim() || undefined,
+        criteria: criteria.map((c) => ({
+          name: c.name.trim(),
+          description: c.description.trim() || null,
+          category: c.category,
+          weight: Number(c.weight) || 1.0,
+        })),
+      };
+
+      const created = await jobService.createJob(payload);
+
+      // Invalidate and reload
       setJobs([created, ...jobs]);
       setSelectedJob(created);
       setIsCreateModalOpen(false);
+      setFeedbackNotice(`Requisition "${created.title}" successfully created and activated.`);
+
       // Reset form
       setTitle('');
       setDescription('');
+      setCriteria([
+        {
+          name: 'Core System Requirement',
+          description: 'Key qualification benchmark',
+          category: CriterionCategory.REQUIRED,
+          weight: 1.0,
+        },
+      ]);
+    } catch (err: unknown) {
+      const errObj = err as { message?: string };
+      setCreateError(errObj.message || 'Failed to publish job requisition. Please verify your inputs.');
     } finally {
       setIsSubmitting(false);
     }
@@ -111,16 +192,66 @@ export const EmployerJobsPage: React.FC = () => {
           </p>
         </div>
 
-        <Button
-          onClick={() => setIsCreateModalOpen(true)}
-          variant="primary"
-          size="sm"
-          leftIcon={<Plus className="w-4 h-4" />}
-          className="shrink-0 self-start sm:self-auto cursor-pointer font-semibold shadow-sm"
-        >
-          New Requisition
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => fetchJobs(true)}
+            variant="secondary"
+            size="sm"
+            leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />}
+            className="cursor-pointer font-medium"
+            title="Refresh Requisitions"
+          >
+            Refresh
+          </Button>
+
+          <Button
+            onClick={() => {
+              setCreateError(null);
+              setIsCreateModalOpen(true);
+            }}
+            variant="primary"
+            size="sm"
+            leftIcon={<Plus className="w-4 h-4" />}
+            className="shrink-0 self-start sm:self-auto cursor-pointer font-semibold shadow-sm"
+          >
+            New Requisition
+          </Button>
+        </div>
       </div>
+
+      {/* Global Success / Feedback Notice */}
+      {feedbackNotice && (
+        <div className="p-3.5 rounded-card bg-success-dim border border-success/30 text-success text-xs font-medium flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>{feedbackNotice}</span>
+          </div>
+          <button
+            onClick={() => setFeedbackNotice(null)}
+            className="text-success hover:text-ink transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Global Error Banner */}
+      {error && (
+        <div className="p-4 rounded-card bg-danger/10 border border-danger/30 text-danger text-xs font-medium flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => fetchJobs(true)}
+            className="text-xs"
+          >
+            Retry
+          </Button>
+        </div>
+      )}
 
       {/* ── 2-Column Consolidated Management: Table on Left, Criteria Drawer on Right ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -128,67 +259,96 @@ export const EmployerJobsPage: React.FC = () => {
         {/* Left: Requisitions Table (7 cols) */}
         <div className="lg:col-span-7 bg-surface rounded-card p-6 border border-subtle shadow-card space-y-4">
           <div className="flex items-center justify-between pb-2 border-b border-subtle">
-            <h3 className="text-sm font-semibold text-ink">Active Postings ({jobs.length})</h3>
+            <h3 className="text-sm font-semibold text-ink">
+              Organization Postings ({jobs.length})
+            </h3>
             <span className="text-xs text-muted font-medium">Click row to preview criteria</span>
           </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Position Title</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Criteria</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Dossier</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {jobs.map((job) => {
-                const isSelected = selectedJob?.id === job.id;
-                return (
-                  <TableRow
-                    key={job.id}
-                    onClick={() => setSelectedJob(job)}
-                    className={`cursor-pointer transition-colors ${
-                      isSelected ? 'bg-elevated border-l-2 border-l-accent' : ''
-                    }`}
-                  >
-                    <TableCell>
-                      <div className="font-semibold text-ink text-xs">{job.title}</div>
-                      <div className="text-[11px] text-muted font-medium mt-0.5">REQ #{job.id.slice(0, 8)}</div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-xs font-medium text-ink">
-                        {job.department || 'Engineering'}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center gap-1.5 font-medium text-ink bg-elevated border border-subtle px-2.5 py-0.5 rounded-pill text-[11px]">
-                        <Layers className="w-3 h-3 text-accent" />
-                        {job.criteria.length}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={job.status || 'active'} size="sm" />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate('/employer/applications/app-001');
-                        }}
-                        className="text-xs font-semibold text-accent hover:underline inline-flex items-center gap-1 cursor-pointer"
-                        title="View candidate dossier"
-                      >
-                        <Users className="w-3.5 h-3.5" />
-                        <span>Applicants</span>
-                      </button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+          {isLoading ? (
+            <div className="space-y-3 py-6">
+              {[1, 2, 3].map((n) => (
+                <div key={n} className="h-14 rounded-sm bg-elevated/60 animate-pulse" />
+              ))}
+            </div>
+          ) : jobs.length === 0 ? (
+            <div className="text-center py-12 px-4 space-y-3">
+              <div className="w-10 h-10 rounded-full bg-elevated border border-subtle text-muted flex items-center justify-center mx-auto">
+                <Layers className="w-5 h-5" />
+              </div>
+              <h4 className="text-xs font-semibold text-ink">No Job Requisitions Found</h4>
+              <p className="text-xs text-muted max-w-sm mx-auto font-medium leading-relaxed">
+                No active or draft requisitions exist in this organization. Click "New Requisition" to publish your first benchmarked position.
+              </p>
+              <Button
+                variant="primary"
+                size="sm"
+                leftIcon={<Plus className="w-4 h-4" />}
+                onClick={() => setIsCreateModalOpen(true)}
+                className="mt-2"
+              >
+                Create Requisition
+              </Button>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Position Title</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Criteria</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Dossier</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {jobs.map((job) => {
+                  const isSelected = selectedJob?.id === job.id;
+                  return (
+                    <TableRow
+                      key={job.id}
+                      onClick={() => handleSelectJob(job)}
+                      className={`cursor-pointer transition-colors ${
+                        isSelected ? 'bg-elevated border-l-2 border-l-accent' : ''
+                      }`}
+                    >
+                      <TableCell>
+                        <div className="font-semibold text-ink text-xs">{job.title}</div>
+                        <div className="text-[11px] text-muted font-medium mt-0.5">REQ #{job.id.slice(0, 8)}</div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs font-medium text-ink">
+                          {job.department || 'General'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center gap-1.5 font-medium text-ink bg-elevated border border-subtle px-2.5 py-0.5 rounded-pill text-[11px]">
+                          <Layers className="w-3 h-3 text-accent" />
+                          {job.criteria ? job.criteria.length : 0}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={job.status || 'active'} size="sm" />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate('/employer/applications');
+                          }}
+                          className="text-xs font-semibold text-accent hover:underline inline-flex items-center gap-1 cursor-pointer"
+                          title="View candidate dossier"
+                        >
+                          <Users className="w-3.5 h-3.5" />
+                          <span>Applicants</span>
+                        </button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
         </div>
 
         {/* Right: Selected Job Criteria Inspector (5 cols) */}
@@ -213,37 +373,43 @@ export const EmployerJobsPage: React.FC = () => {
 
               <div className="pt-2 border-t border-subtle space-y-3">
                 <span className="text-xs font-semibold text-ink uppercase tracking-wider block">
-                  Configured Criteria ({selectedJob.criteria.length})
+                  Configured Criteria ({selectedJob.criteria ? selectedJob.criteria.length : 0})
                 </span>
 
                 <div className="space-y-2.5 max-h-[460px] overflow-y-auto pr-1">
-                  {selectedJob.criteria.map((c, i) => (
-                    <div key={c.id || i} className="p-3.5 rounded-sm border border-subtle bg-elevated space-y-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] font-medium text-muted">#0{i + 1}</span>
-                        <span
-                          className={`text-[9px] font-semibold px-2 py-0.5 rounded-pill uppercase tracking-wider ${
-                            c.category === 'required'
-                              ? 'bg-accent-dim text-accent border border-accent/30'
-                              : 'bg-surface text-muted border border-subtle'
-                          }`}
-                        >
-                          {c.category}
-                        </span>
+                  {selectedJob.criteria && selectedJob.criteria.length > 0 ? (
+                    selectedJob.criteria.map((c, i) => (
+                      <div key={c.id || i} className="p-3.5 rounded-sm border border-subtle bg-elevated space-y-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] font-medium text-muted">#0{i + 1}</span>
+                          <span
+                            className={`text-[9px] font-semibold px-2 py-0.5 rounded-pill uppercase tracking-wider ${
+                              c.category === 'required'
+                                ? 'bg-accent-dim text-accent border border-accent/30'
+                                : 'bg-surface text-muted border border-subtle'
+                            }`}
+                          >
+                            {c.category}
+                          </span>
+                        </div>
+                        <h4 className="text-xs font-semibold text-ink">{c.name}</h4>
+                        {c.description && (
+                          <p className="text-[11px] text-muted leading-relaxed font-medium">{c.description}</p>
+                        )}
                       </div>
-                      <h4 className="text-xs font-semibold text-ink">{c.name}</h4>
-                      {c.description && (
-                        <p className="text-[11px] text-muted leading-relaxed font-medium">{c.description}</p>
-                      )}
+                    ))
+                  ) : (
+                    <div className="text-xs text-muted py-4 text-center">
+                      No criteria defined on this requisition.
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
 
               <div className="pt-3 border-t border-subtle flex justify-between items-center">
                 <span className="text-xs text-muted font-medium">Screen candidates for this role</span>
                 <Button
-                  onClick={() => navigate('/employer/applications/app-001')}
+                  onClick={() => navigate('/employer/applications')}
                   variant="primary"
                   size="sm"
                   rightIcon={<ChevronRight className="w-3.5 h-3.5" />}
@@ -254,7 +420,7 @@ export const EmployerJobsPage: React.FC = () => {
               </div>
             </>
           ) : (
-            <div className="text-center py-12 text-muted">
+            <div className="text-center py-12 text-muted text-xs font-medium">
               Select a requisition on the left to inspect its criteria benchmarks.
             </div>
           )}
@@ -281,6 +447,13 @@ export const EmployerJobsPage: React.FC = () => {
               </button>
             </div>
 
+            {createError && (
+              <div className="p-3.5 rounded-card bg-danger/10 border border-danger/30 text-danger text-xs font-medium flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{createError}</span>
+              </div>
+            )}
+
             <form onSubmit={handleCreateSubmit} className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -291,7 +464,10 @@ export const EmployerJobsPage: React.FC = () => {
                     type="text"
                     required
                     value={title}
-                    onChange={(e) => setTitle(e.target.value)}
+                    onChange={(e) => {
+                      setTitle(e.target.value);
+                      if (createError) setCreateError(null);
+                    }}
                     placeholder="e.g. Senior Backend Engineer"
                     className="w-full px-3.5 py-2 rounded-sm border border-subtle text-ink bg-elevated placeholder:text-muted focus:border-accent focus:outline-none text-xs font-medium"
                   />

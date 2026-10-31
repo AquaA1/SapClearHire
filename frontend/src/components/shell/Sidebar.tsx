@@ -5,8 +5,6 @@ import {
   Briefcase,
   Users,
   CheckSquare,
-  FileSearch,
-  BarChart3,
   ShieldCheck,
   Settings,
   LogOut,
@@ -27,18 +25,17 @@ export const Sidebar: React.FC = () => {
     ];
     if (role === UserRole.REVIEWER) return [
       { to: '/reviewer/queue',      icon: CheckSquare,     label: 'Review Queue', badge: true },
-      { to: '/reviewer/case/flag-001', icon: FileSearch,   label: 'Decision Studio' },
     ];
     if (role === UserRole.SYSTEM_AUDITOR) return [
       { to: '/reviewer/queue',      icon: ShieldCheck,     label: 'Audit Queue', badge: true },
-      { to: '/employer/applications/app-001', icon: Users, label: 'Candidate Dossiers' },
+      { to: '/employer/applications', icon: Users,         label: 'Candidate Dossiers' },
       { to: '/employer/jobs',       icon: Briefcase,       label: 'Requisitions' },
     ];
     return [
       { to: '/employer/dashboard',  icon: LayoutDashboard, label: 'Dashboard' },
       { to: '/employer/jobs',       icon: Briefcase,       label: 'Requisitions' },
-      { to: '/employer/applications/app-001', icon: Users, label: 'Candidates', badge: true },
-      { to: '/reviewer/queue',      icon: CheckSquare,     label: 'Review Queue' },
+      { to: '/employer/applications', icon: Users,         label: 'Candidates', badge: true },
+      { to: '/employer/reviews',      icon: CheckSquare,     label: 'Review Triage' },
     ];
   };
 

@@ -1,20 +1,24 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldAlert, ArrowLeft } from 'lucide-react';
+import { ShieldAlert, ArrowLeft, LogOut } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { UserRole } from '../../contracts/enums';
 import { Button } from '../../components/ui';
 
 export const AccessDeniedPage: React.FC = () => {
-  const { user, switchRole } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const navigate = useNavigate();
 
-  const handleSwitchAndRedirect = (role: UserRole) => {
-    switchRole(role);
-    if (role === UserRole.CANDIDATE) navigate('/candidate/dashboard');
-    else if (role === UserRole.EMPLOYER_ADMIN) navigate('/employer/dashboard');
-    else if (role === UserRole.REVIEWER) navigate('/reviewer/queue');
-    else if (role === UserRole.SYSTEM_AUDITOR) navigate('/reviewer/queue');
+  const handleReturnToDashboard = () => {
+    if (user?.role === UserRole.CANDIDATE) navigate('/candidate/dashboard');
+    else if (user?.role === UserRole.EMPLOYER_ADMIN) navigate('/employer/dashboard');
+    else if (user?.role === UserRole.REVIEWER || user?.role === UserRole.SYSTEM_AUDITOR) navigate('/reviewer/queue');
+    else navigate('/login');
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
   };
 
   return (
@@ -30,42 +34,29 @@ export const AccessDeniedPage: React.FC = () => {
           </span>
           <h1 className="text-xl sm:text-2xl font-semibold text-ink mt-1">Access Restricted</h1>
           <p className="text-xs text-muted mt-2 leading-relaxed font-medium">
-            Your current authenticated persona (<strong className="text-ink">{user?.role}</strong>) does not have authorization to view this endpoint or resource.
+            Your current authenticated account (<strong className="text-ink">{user?.role ? user.role.replace('_', ' ') : 'Guest'}</strong>) does not have authorization to view this endpoint or resource.
           </p>
         </div>
 
-        {/* Switch Persona Shortcuts */}
-        <div className="p-4 bg-elevated rounded-card border border-subtle text-left space-y-2.5">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted block">
-            Quick Persona Switch
-          </span>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { role: UserRole.EMPLOYER_ADMIN, label: 'Employer Admin' },
-              { role: UserRole.REVIEWER, label: 'Reviewer' },
-              { role: UserRole.SYSTEM_AUDITOR, label: 'System Auditor' },
-              { role: UserRole.CANDIDATE, label: 'Candidate' },
-            ].map(({ role, label }) => (
-              <button
-                key={role}
-                onClick={() => handleSwitchAndRedirect(role)}
-                className="px-3 py-2 bg-surface hover:bg-elevated/80 rounded-pill border border-subtle text-xs font-semibold text-ink transition-colors cursor-pointer"
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex justify-center">
+        <div className="space-y-3 pt-2">
           <Button
-            onClick={() => navigate('/login')}
+            onClick={handleReturnToDashboard}
             variant="primary"
             size="md"
             leftIcon={<ArrowLeft className="w-4 h-4" />}
             className="w-full justify-center font-semibold"
           >
-            Return to Login
+            Return to My Console
+          </Button>
+
+          <Button
+            onClick={handleLogout}
+            variant="secondary"
+            size="md"
+            leftIcon={<LogOut className="w-4 h-4" />}
+            className="w-full justify-center font-semibold"
+          >
+            Sign Out to Switch Accounts
           </Button>
         </div>
       </div>

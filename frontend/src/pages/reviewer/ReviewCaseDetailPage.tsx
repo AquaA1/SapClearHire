@@ -1,24 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { 
   ArrowLeft, CheckCircle2, AlertTriangle, ShieldCheck, 
   FileText, ExternalLink, User,
-  MessageSquare, Sparkles, Check, AlertOctagon
+  MessageSquare, Sparkles, AlertOctagon
 } from 'lucide-react';
-import { mockService } from '../../services/mock/mockService';
+import { reviewService } from '../../services/api/reviewService';
 import { ReviewCaseDetail } from '../../contracts/models';
 import { StatusBadge } from '../../components/ui/Badge';
-import { ReviewDecisionType } from '../../contracts/enums';
-import { useAuthStore } from '../../stores/authStore';
+import { ReviewDecisionType, UserRole } from '../../contracts/enums';
+import { useAuth } from '../../stores/authStore';
 import { Button, LoadingSpinner } from '../../components/ui';
 
 export const ReviewCaseDetailPage: React.FC = () => {
   const { caseId } = useParams<{ caseId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const location = useLocation();
+  const { user } = useAuth();
+
+  const isEmployerRoute = location.pathname.startsWith('/employer') || user?.role === UserRole.EMPLOYER_ADMIN;
+  const queueRoute = isEmployerRoute ? '/employer/reviews' : '/reviewer/queue';
 
   const [reviewCase, setReviewCase] = useState<ReviewCaseDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
 
@@ -29,13 +34,21 @@ export const ReviewCaseDetailPage: React.FC = () => {
   const [rationaleError, setRationaleError] = useState('');
 
   useEffect(() => {
+    if (!caseId) {
+      setError('No review case identifier specified.');
+      setLoading(false);
+      return;
+    }
+
     const fetchCaseData = async () => {
       setLoading(true);
+      setError(null);
       try {
-        const found = await mockService.getReviewCase(caseId || 'flag-001');
+        const found = await reviewService.getReviewCase(caseId);
         setReviewCase(found);
-      } catch (err) {
-        console.error('Failed to load review case:', err);
+      } catch (err: unknown) {
+        const errObj = err as { message?: string };
+        setError(errObj.message || 'Review case not located or unauthorized.');
       } finally {
         setLoading(false);
       }
@@ -52,14 +65,16 @@ export const ReviewCaseDetailPage: React.FC = () => {
     );
   }
 
-  if (!reviewCase) {
+  if (error || !reviewCase) {
     return (
-      <div className="bg-surface rounded-card border border-subtle p-12 text-center max-w-lg mx-auto mt-12 space-y-4">
+      <div className="bg-surface rounded-card border border-subtle p-12 text-center max-w-lg mx-auto mt-12 space-y-4 shadow-card">
         <AlertTriangle className="w-12 h-12 text-warn mx-auto mb-2" />
-        <h3 className="text-lg font-semibold text-ink">Review Case Not Located</h3>
-        <p className="text-xs text-muted">The requested review case could not be located or has been archived.</p>
-        <Button onClick={() => navigate('/reviewer/queue')} variant="secondary" size="sm">
-          <ArrowLeft className="w-4 h-4 mr-1" /> Back to Queue
+        <h3 className="text-base font-semibold text-ink">Review Case Not Located</h3>
+        <p className="text-xs text-muted max-w-sm mx-auto leading-relaxed">
+          {error || 'The requested review case could not be located in your assigned queue or has already been resolved.'}
+        </p>
+        <Button onClick={() => navigate(queueRoute)} variant="secondary" size="sm">
+          <ArrowLeft className="w-4 h-4 mr-1.5" /> Return to Queue
         </Button>
       </div>
     );
@@ -79,10 +94,10 @@ export const ReviewCaseDetailPage: React.FC = () => {
         ? `${rationale.trim()} [Internal Notes: ${notes.trim()}]`
         : rationale.trim();
 
-      await mockService.recordReviewDecision(reviewCase.flag_id, decision, fullRationale);
+      await reviewService.recordReviewDecision(reviewCase.flag_id, decision, fullRationale);
       setSubmittedSuccess(true);
       setTimeout(() => {
-        navigate('/reviewer/queue');
+        navigate(queueRoute);
       }, 1800);
     } catch (err) {
       console.error('Failed to submit decision:', err);
@@ -97,7 +112,7 @@ export const ReviewCaseDetailPage: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface p-6 rounded-card border border-subtle shadow-card">
         <div className="flex items-center gap-4">
           <Link
-            to="/reviewer/queue"
+            to={queueRoute}
             className="p-2.5 rounded-sm bg-elevated border border-subtle text-muted hover:text-ink transition-colors cursor-pointer"
             title="Return to triage queue"
           >
@@ -106,11 +121,13 @@ export const ReviewCaseDetailPage: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xs font-medium px-2 py-0.5 rounded-pill bg-elevated text-muted border border-subtle">
-                FLAG #{reviewCase.flag_id}
+                FLAG #{reviewCase.flag_id.slice(0, 8)}
               </span>
               <StatusBadge status={reviewCase.flag_status} size="sm" />
               <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-pill uppercase tracking-wider ${
-                reviewCase.priority === 'HIGH' ? 'bg-danger-dim text-danger border border-danger/30' : 'bg-warn-dim text-warn border border-warn/30'
+                reviewCase.priority?.toLowerCase() === 'high'
+                  ? 'bg-danger-dim text-danger border border-danger/30'
+                  : 'bg-warn-dim text-warn border border-warn/30'
               }`}>
                 {reviewCase.priority} PRIORITY
               </span>
@@ -124,10 +141,14 @@ export const ReviewCaseDetailPage: React.FC = () => {
         <div className="flex items-center gap-3">
           <div className="text-right">
             <p className="text-xs text-muted font-medium">Assigned Candidate</p>
-            <p className="text-sm font-semibold text-ink">{reviewCase.candidate_name}</p>
+            <p className="text-sm font-semibold text-ink">
+              {reviewCase.candidate_name || `Candidate #${reviewCase.candidate_id.slice(0, 8)}`}
+            </p>
           </div>
           <div className="w-10 h-10 rounded-pill bg-elevated border border-subtle text-accent flex items-center justify-center font-semibold text-xs">
-            {reviewCase.candidate_name.split(' ').map((n: string) => n[0]).join('')}
+            {reviewCase.candidate_name
+              ? reviewCase.candidate_name.split(' ').map((n: string) => n[0]).join('')
+              : 'C'}
           </div>
         </div>
       </div>
@@ -144,7 +165,6 @@ export const ReviewCaseDetailPage: React.FC = () => {
 
       {/* ── 3-Panel Decision Studio Grid ──────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
         {/* PANEL 1 (LEFT): Candidate Context & Rubric (3 Cols) */}
         <div className="lg:col-span-3 space-y-5">
           {/* Candidate Dossier Mini-card */}
@@ -156,7 +176,9 @@ export const ReviewCaseDetailPage: React.FC = () => {
             <div className="space-y-2">
               <div>
                 <p className="text-[11px] text-muted font-medium">Full Name</p>
-                <p className="text-sm font-semibold text-ink">{reviewCase.candidate_name}</p>
+                <p className="text-sm font-semibold text-ink">
+                  {reviewCase.candidate_name || `Candidate #${reviewCase.candidate_id.slice(0, 8)}`}
+                </p>
               </div>
               <div>
                 <p className="text-[11px] text-muted font-medium">Target Requisition</p>
@@ -164,19 +186,20 @@ export const ReviewCaseDetailPage: React.FC = () => {
               </div>
               <div>
                 <p className="text-[11px] text-muted font-medium">Reference</p>
-                <p className="text-xs font-medium text-muted">{reviewCase.application_id}</p>
+                <p className="text-xs font-medium text-muted truncate">App #{reviewCase.application_id.slice(0, 8)}</p>
               </div>
             </div>
 
-            <div className="pt-2 border-t border-subtle">
-              <Link 
-                to={`/employer/applications/${reviewCase.application_id}`}
-                target="_blank"
-                className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-elevated hover:bg-elevated/80 text-ink rounded-pill text-xs font-semibold border border-subtle transition-colors"
-              >
-                <ExternalLink className="w-3.5 h-3.5" /> Full Dossier
-              </Link>
-            </div>
+            {isEmployerRoute && (
+              <div className="pt-2 border-t border-subtle">
+                <Link 
+                  to={`/employer/applications/${reviewCase.application_id}`}
+                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-elevated hover:bg-elevated/80 text-ink rounded-pill text-xs font-semibold border border-subtle transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" /> Full Application Dossier
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Benchmark Rubric */}
@@ -191,7 +214,7 @@ export const ReviewCaseDetailPage: React.FC = () => {
                   {reviewCase.criterion_category}
                 </span>
                 <h4 className="text-sm font-semibold text-ink mt-2">{reviewCase.criterion_name}</h4>
-                <p className="text-xs text-muted mt-1 leading-relaxed font-medium">{reviewCase.criterion_description}</p>
+                <p className="text-xs text-muted mt-1 leading-relaxed font-medium">{reviewCase.criterion_description || 'No description specified'}</p>
               </div>
 
               <div className="p-3 bg-elevated rounded-sm space-y-1.5 border border-subtle text-xs font-medium">
@@ -391,7 +414,7 @@ export const ReviewCaseDetailPage: React.FC = () => {
                   type="text"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="e.g. Consulted hiring manager regarding Kafka scale"
+                  placeholder="e.g. Consulted hiring manager regarding qualification scale"
                   className="w-full text-xs p-3 rounded-sm border border-subtle bg-elevated focus:outline-none focus:border-accent text-ink placeholder:text-muted font-medium"
                 />
               </div>
@@ -420,7 +443,6 @@ export const ReviewCaseDetailPage: React.FC = () => {
             </form>
           </div>
         </div>
-
       </div>
     </div>
   );

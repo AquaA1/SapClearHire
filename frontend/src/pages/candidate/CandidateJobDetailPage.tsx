@@ -1,17 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { mockService } from '../../services/mock/mockService';
+import { jobService } from '../../services/api/jobService';
 import { Job } from '../../contracts/models';
 import {
-  Briefcase,
   Layers,
   ArrowLeft,
   UploadCloud,
-  CheckCircle2,
-  FileText,
   X,
   ShieldCheck,
   Sparkles,
+  AlertCircle,
+  Clock,
 } from 'lucide-react';
 import { Button } from '../../components/ui';
 
@@ -20,52 +19,74 @@ export const CandidateJobDetailPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [job, setJob] = useState<Job | null>(null);
-  const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploadStep, setUploadStep] = useState<'idle' | 'uploading' | 'extracting' | 'complete'>('idle');
-  const [progressText, setProgressText] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isApplyNoticeOpen, setIsApplyNoticeOpen] = useState(false);
 
   useEffect(() => {
-    if (jobId) {
-      mockService.getJob(jobId).then((j) => setJob(j || mockService['jobs'][0]));
+    if (!jobId) {
+      setError('No requisition identifier specified.');
+      setIsLoading(false);
+      return;
     }
+
+    const fetchJobDetail = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const found = await jobService.getJob(jobId);
+        setJob(found);
+      } catch (err: unknown) {
+        const errObj = err as { message?: string; status?: number };
+        if (errObj.status === 404) {
+          setError(`Job requisition "${jobId}" was not found or is no longer available.`);
+        } else {
+          setError(errObj.message || 'Failed to retrieve requisition details from server.');
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchJobDetail();
   }, [jobId]);
 
-  if (!job) {
+  if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto py-12 text-center text-muted font-medium">
-        Loading requisition details...
+      <div className="max-w-7xl mx-auto space-y-6 select-none animate-pulse">
+        <div className="h-4 w-32 bg-surface rounded-pill" />
+        <div className="bg-surface rounded-card p-8 border border-subtle shadow-card space-y-4">
+          <div className="h-6 w-1/4 bg-elevated rounded-pill" />
+          <div className="h-10 w-1/2 bg-elevated rounded-sm" />
+          <div className="h-4 w-1/3 bg-elevated rounded-sm" />
+        </div>
       </div>
     );
   }
 
-  const handleFileDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setSelectedFile(e.dataTransfer.files[0]);
-    }
-  };
-
-  const handleApplySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setUploadStep('uploading');
-    setProgressText('Uploading PDF resume & verifying structure...');
-
-    setTimeout(() => {
-      setUploadStep('extracting');
-      setProgressText('Extracting grounded claims & parsing criteria matches...');
-
-      setTimeout(async () => {
-        const app = await mockService.submitApplication(job.id, selectedFile?.name || 'resume.pdf');
-        setUploadStep('complete');
-        setProgressText('Application registered successfully!');
-
-        setTimeout(() => {
-          navigate(`/candidate/applications/${app.id}`);
-        }, 800);
-      }, 1100);
-    }, 900);
-  };
+  if (error || !job) {
+    return (
+      <div className="max-w-xl mx-auto py-16 px-4 text-center select-none space-y-4">
+        <div className="w-12 h-12 rounded-full bg-danger-dim border border-danger/30 text-danger flex items-center justify-center mx-auto">
+          <AlertCircle className="w-6 h-6" />
+        </div>
+        <h2 className="text-lg font-semibold text-ink tracking-tight">Requisition Unavailable</h2>
+        <p className="text-xs text-muted max-w-sm mx-auto font-medium leading-relaxed">
+          {error || 'The requested job posting could not be found.'}
+        </p>
+        <div className="pt-2">
+          <Button
+            onClick={() => navigate('/candidate/jobs')}
+            variant="secondary"
+            size="sm"
+            leftIcon={<ArrowLeft className="w-4 h-4" />}
+          >
+            Back to Open Requisitions
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 select-none">
@@ -84,7 +105,7 @@ export const CandidateJobDetailPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 mb-2">
             <span className="text-xs font-medium px-3 py-1 rounded-pill bg-elevated text-muted border border-subtle">
-              {job.department}
+              {job.department || 'General'}
             </span>
             <span className="text-xs font-medium px-3 py-1 rounded-pill bg-success-dim text-success border border-success/30">
               Active Opening
@@ -101,11 +122,11 @@ export const CandidateJobDetailPage: React.FC = () => {
         </div>
 
         <Button
-          onClick={() => setIsApplyModalOpen(true)}
+          onClick={() => setIsApplyNoticeOpen(true)}
           variant="primary"
           size="md"
           rightIcon={<UploadCloud className="w-4 h-4" />}
-          className="font-semibold shadow-sm"
+          className="font-semibold shadow-sm shrink-0"
         >
           Apply with Resume
         </Button>
@@ -118,7 +139,7 @@ export const CandidateJobDetailPage: React.FC = () => {
           <div>
             <h2 className="text-base font-semibold text-ink tracking-tight mb-2">Position Overview</h2>
             <p className="text-xs text-muted leading-relaxed whitespace-pre-line font-medium">
-              {job.description}
+              {job.description || 'This position is evaluated objectively against verified resume excerpts.'}
             </p>
           </div>
 
@@ -128,7 +149,7 @@ export const CandidateJobDetailPage: React.FC = () => {
               <div className="flex items-start gap-2.5">
                 <ShieldCheck className="w-4 h-4 text-accent shrink-0 mt-0.5" />
                 <span>
-                  <strong className="text-ink font-semibold">No silent rejections:</strong> Every criterion listed on this page is evaluated strictly against citations in your resume.
+                  <strong className="text-ink font-semibold">No silent rejections:</strong> Every criterion listed on this page is evaluated strictly against verbatim citations in your resume.
                 </span>
               </div>
               <div className="flex items-start gap-2.5">
@@ -154,117 +175,72 @@ export const CandidateJobDetailPage: React.FC = () => {
           </p>
 
           <div className="space-y-3">
-            {job.criteria.map((c, i) => (
-              <div key={c.id} className="p-3.5 rounded-sm border border-subtle bg-elevated space-y-1">
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <span className="text-[10px] font-medium text-muted">#0{i + 1}</span>
-                  <span
-                    className={`text-[9px] font-semibold px-2 py-0.5 rounded-pill uppercase tracking-wider ${
-                      c.category === 'required'
-                        ? 'bg-accent-dim text-accent border border-accent/30'
-                        : 'bg-surface text-muted border border-subtle'
-                    }`}
-                  >
-                    {c.category}
-                  </span>
+            {job.criteria && job.criteria.length > 0 ? (
+              job.criteria.map((c, i) => (
+                <div key={c.id || i} className="p-3.5 rounded-sm border border-subtle bg-elevated space-y-1">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="text-[10px] font-medium text-muted">#0{i + 1}</span>
+                    <span
+                      className={`text-[9px] font-semibold px-2 py-0.5 rounded-pill uppercase tracking-wider ${
+                        c.category === 'required'
+                          ? 'bg-accent-dim text-accent border border-accent/30'
+                          : 'bg-surface text-muted border border-subtle'
+                      }`}
+                    >
+                      {c.category}
+                    </span>
+                  </div>
+                  <h4 className="text-xs font-semibold text-ink">{c.name}</h4>
+                  {c.description && (
+                    <p className="text-[11px] text-muted leading-relaxed font-medium">{c.description}</p>
+                  )}
                 </div>
-                <h4 className="text-xs font-semibold text-ink">{c.name}</h4>
-                {c.description && (
-                  <p className="text-[11px] text-muted leading-relaxed font-medium">{c.description}</p>
-                )}
+              ))
+            ) : (
+              <div className="text-xs text-muted py-6 text-center">
+                No criteria defined on this requisition.
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>
 
-      {/* ── Apply Modal (Token Styled) ────────────────────────── */}
-      {isApplyModalOpen && (
+      {/* ── Application Pipeline Integration Modal ─────────────────── */}
+      {isApplyNoticeOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
-          <div className="bg-surface rounded-card max-w-lg w-full p-6 sm:p-8 shadow-modal border border-subtle relative">
+          <div className="bg-surface rounded-card max-w-md w-full p-6 sm:p-8 shadow-modal border border-subtle relative space-y-5">
             <button
-              onClick={() => {
-                if (uploadStep === 'idle') setIsApplyModalOpen(false);
-              }}
-              disabled={uploadStep !== 'idle'}
-              className="absolute right-5 top-5 p-1.5 rounded-full text-muted hover:text-ink transition-colors disabled:opacity-30 cursor-pointer"
+              onClick={() => setIsApplyNoticeOpen(false)}
+              className="absolute right-5 top-5 p-1.5 rounded-full text-muted hover:text-ink transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="text-center mb-6">
+            <div className="text-center">
               <div className="w-12 h-12 rounded-card bg-accent-dim text-accent mx-auto flex items-center justify-center border border-accent/30 mb-3">
-                <UploadCloud className="w-6 h-6" />
+                <Clock className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-semibold text-ink">Submit Application</h3>
-              <p className="text-xs text-muted mt-1 font-medium">Applying for: {job.title}</p>
+              <h3 className="text-lg font-semibold text-ink">Application Pipeline</h3>
+              <p className="text-xs text-muted mt-1 font-medium">Feature 3 Integration Milestone</p>
             </div>
 
-            {uploadStep !== 'idle' ? (
-              <div className="py-8 text-center space-y-4">
-                <div className="w-10 h-10 border-2 border-subtle border-t-accent rounded-full animate-spin mx-auto" />
-                <div>
-                  <h4 className="text-sm font-semibold text-ink">{progressText}</h4>
-                  <span className="text-xs text-muted mt-1 block font-medium">
-                    {uploadStep === 'uploading'
-                      ? 'Step 1 of 3: PDF Processing'
-                      : uploadStep === 'extracting'
-                      ? 'Step 2 of 3: AI Evidence Grounding'
-                      : 'Step 3 of 3: Complete'}
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <form onSubmit={handleApplySubmit} className="space-y-4">
-                {/* Dropzone */}
-                <div
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={handleFileDrop}
-                  className="border-2 border-dashed border-subtle rounded-sm p-6 text-center hover:border-subtle-strong bg-elevated/40 transition-all cursor-pointer relative"
-                >
-                  <input
-                    type="file"
-                    accept=".pdf"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        setSelectedFile(e.target.files[0]);
-                      }
-                    }}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                  />
-                  {selectedFile ? (
-                    <div className="flex items-center justify-center gap-2 text-ink font-semibold text-xs">
-                      <FileText className="w-5 h-5 text-accent" />
-                      <span>{selectedFile.name}</span>
-                    </div>
-                  ) : (
-                    <div>
-                      <UploadCloud className="w-8 h-8 text-muted mx-auto mb-2" />
-                      <span className="block text-xs font-semibold text-ink">
-                        Click or drag & drop your resume PDF
-                      </span>
-                      <span className="block text-[11px] text-muted mt-1">
-                        Only PDF format supported (Max. 10MB)
-                      </span>
-                    </div>
-                  )}
-                </div>
+            <div className="p-4 rounded-sm bg-elevated border border-subtle text-xs text-ink/90 leading-relaxed font-medium space-y-2">
+              <p>
+                Resume PDF upload, background document extraction, and grounded AI evidence evaluations are scheduled for integration in the upcoming <strong className="text-accent">Feature 3: Candidate Application & Resume Upload</strong>.
+              </p>
+              <p className="text-muted text-[11px]">
+                Requisition <strong>{job.title}</strong> has <strong>{job.criteria.length} active criteria</strong> configured and ready for evidence mapping.
+              </p>
+            </div>
 
-                <div className="text-[11px] text-muted leading-relaxed bg-elevated p-3 rounded-sm border border-subtle font-medium">
-                  By applying, ClearHire will extract verifiable claims and map them directly to this requisition's {job.criteria.length} versioned criteria.
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={!selectedFile}
-                  variant="primary"
-                  size="md"
-                  className="w-full justify-center font-semibold"
-                >
-                  Submit & Run Evidence Extraction
-                </Button>
-              </form>
-            )}
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => setIsApplyNoticeOpen(false)}
+              className="w-full justify-center font-semibold"
+            >
+              Close
+            </Button>
           </div>
         </div>
       )}

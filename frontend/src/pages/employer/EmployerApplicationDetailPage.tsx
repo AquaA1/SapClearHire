@@ -1,17 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { mockService } from '../../services/mock/mockService';
+import { applicationService } from '../../services/api/applicationService';
+import { evaluationService } from '../../services/api/evaluationService';
+import { reviewService } from '../../services/api/reviewService';
 import { Application, Evaluation } from '../../contracts/models';
 import { StatusBadge } from '../../components/ui/Badge';
 import { CoverageSummaryBar } from '../../components/evidence/CoverageSummaryBar';
 import { CriterionEvidenceCard } from '../../components/evidence/CriterionEvidenceCard';
 import {
-  Mail,
-  Plus,
+  Users,
   Play,
   Flag,
   Clock,
-  Check,
+  ArrowLeft,
+  FileText,
+  AlertCircle,
+  Briefcase,
+  CheckCircle2,
 } from 'lucide-react';
 import { Button, LoadingSpinner } from '../../components/ui';
 
@@ -25,55 +30,75 @@ export const EmployerApplicationDetailPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'DETAILS' | 'RESUME' | 'HIRING PIPELINE' | 'EVIDENCE'>('DETAILS');
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [isFlagging, setIsFlagging] = useState(false);
-  const [notes, setNotes] = useState<Array<{ id: string; author: string; time: string; text: string; role: string }>>([
-    {
-      id: 'n1',
-      author: 'Sarah Jenkins',
-      role: 'Employer Admin',
-      time: '31 Oct 2026 • 04:23 PM',
-      text: 'Candidate demonstrated strong distributed systems background. Flagged Kafka requirement for human reviewer verification due to ambiguous bullet point citation.',
-    },
-    {
-      id: 'n2',
-      author: 'Marcus Vance',
-      role: 'Lead Reviewer',
-      time: '31 Oct 2026 • 05:00 PM',
-      text: 'Reviewed candidate clarification statement regarding Apache Kafka cluster throughput on Page 2, lines 18-24. Prepared for signoff.',
-    },
-  ]);
+  const [loading, setLoading] = useState(true);
+  const [notes, setNotes] = useState<Array<{ id: string; author: string; time: string; text: string; role: string }>>([]);
   const [newNoteText, setNewNoteText] = useState('');
   const [showAddNote, setShowAddNote] = useState(false);
 
   useEffect(() => {
-    mockService.listApplications().then((apps) => {
-      setAllApps(apps);
-      const current = apps.find((a) => a.id === id) || apps[0];
-      setActiveApp(current);
-      if (current) {
-        mockService.getEvaluation(current.id).then(setEvaluation);
+    const loadDossiers = async () => {
+      setLoading(true);
+      try {
+        const apps = await applicationService.listApplications();
+        setAllApps(apps);
+
+        if (apps.length > 0) {
+          const current = (id ? apps.find((a) => a.id === id) : null) || apps[0];
+          setActiveApp(current);
+
+          if (current) {
+            try {
+              const ev = await evaluationService.getEvaluation(current.id);
+              setEvaluation(ev);
+            } catch {
+              setEvaluation(null);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load application dossiers:', err);
+      } finally {
+        setLoading(false);
       }
-    });
+    };
+
+    loadDossiers();
   }, [id]);
 
-  const handleSelectApp = (app: Application) => {
+  const handleSelectApp = async (app: Application) => {
     setActiveApp(app);
-    mockService.getEvaluation(app.id).then(setEvaluation);
+    try {
+      const ev = await evaluationService.getEvaluation(app.id);
+      setEvaluation(ev);
+    } catch {
+      setEvaluation(null);
+    }
   };
 
   const handleTriggerEvaluation = async () => {
     if (!activeApp) return;
     setIsEvaluating(true);
-    const updated = await mockService.evaluateApplication(activeApp.id);
-    setEvaluation(updated);
-    setIsEvaluating(false);
+    try {
+      const updated = await evaluationService.evaluateApplication(activeApp.id);
+      setEvaluation(updated);
+    } catch (err) {
+      console.error('Failed to trigger evaluation:', err);
+    } finally {
+      setIsEvaluating(false);
+    }
   };
 
   const handleAutoFlag = async () => {
     if (!activeApp) return;
     setIsFlagging(true);
-    await mockService.createReviewFlags(activeApp.id);
-    setIsFlagging(false);
-    navigate('/reviewer/queue');
+    try {
+      await reviewService.createReviewFlags({ application_id: activeApp.id });
+      navigate('/employer/reviews');
+    } catch (err) {
+      console.error('Failed to flag review cases:', err);
+    } finally {
+      setIsFlagging(false);
+    }
   };
 
   const handleAddNote = () => {
@@ -82,7 +107,7 @@ export const EmployerApplicationDetailPage: React.FC = () => {
       ...notes,
       {
         id: `note-${Date.now()}`,
-        author: 'Sarah Jenkins',
+        author: 'Administrator',
         role: 'Employer Admin',
         time: 'Just now',
         text: newNoteText.trim(),
@@ -92,10 +117,26 @@ export const EmployerApplicationDetailPage: React.FC = () => {
     setShowAddNote(false);
   };
 
-  if (!activeApp) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[500px]">
-        <LoadingSpinner size="lg" label="Loading candidate dossier..." />
+        <LoadingSpinner size="lg" label="Loading candidate dossiers..." />
+      </div>
+    );
+  }
+
+  // Honest empty state when no applications exist
+  if (allApps.length === 0 || !activeApp) {
+    return (
+      <div className="bg-surface rounded-card border border-subtle p-12 text-center max-w-lg mx-auto mt-12 space-y-4 shadow-card">
+        <Users className="w-12 h-12 text-muted mx-auto opacity-50" />
+        <h3 className="text-base font-semibold text-ink">No Candidate Applications Submitted</h3>
+        <p className="text-xs text-muted max-w-sm mx-auto leading-relaxed">
+          Candidates who apply to your active job requisitions will appear here with extracted resumes, evidence grounding, and verification benchmarks.
+        </p>
+        <Button onClick={() => navigate('/employer/jobs')} variant="secondary" size="sm">
+          <Briefcase className="w-4 h-4 mr-1.5" /> Manage Requisitions
+        </Button>
       </div>
     );
   }
@@ -104,7 +145,6 @@ export const EmployerApplicationDetailPage: React.FC = () => {
     <div className="max-w-7xl mx-auto space-y-6 select-none">
       {/* ── 2-Column Split Dossier Layout ──────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
         {/* Left Column: Candidate Roster (4 Cols) */}
         <div className="lg:col-span-4 bg-surface rounded-card border border-subtle p-5 shadow-card space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-subtle">
@@ -132,13 +172,15 @@ export const EmployerApplicationDetailPage: React.FC = () => {
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-pill bg-surface border border-subtle text-accent font-semibold flex items-center justify-center text-xs shrink-0">
                         {app.candidate_name
-                          ?.split(' ')
-                          .map((n) => n[0])
-                          .join('') || 'C'}
+                          ? app.candidate_name
+                              .split(' ')
+                              .map((n) => n[0])
+                              .join('')
+                          : 'C'}
                       </div>
                       <div className="min-w-0">
                         <h4 className="font-semibold text-ink text-xs truncate">
-                          {app.candidate_name || 'Candidate'}
+                          {app.candidate_name || `Applicant #${app.candidate_id.slice(0, 8)}`}
                         </h4>
                         <p className="text-[11px] text-muted font-medium truncate mt-0.5">
                           {app.job_title}
@@ -167,21 +209,25 @@ export const EmployerApplicationDetailPage: React.FC = () => {
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-card bg-elevated border border-subtle text-accent font-semibold text-lg flex items-center justify-center">
                   {activeApp.candidate_name
-                    ?.split(' ')
-                    .map((n) => n[0])
-                    .join('') || 'C'}
+                    ? activeApp.candidate_name
+                        .split(' ')
+                        .map((n) => n[0])
+                        .join('')
+                    : 'C'}
                 </div>
                 <div>
                   <div className="flex items-center gap-2.5 mb-1">
                     <h2 className="text-xl font-semibold text-ink tracking-tight">
-                      {activeApp.candidate_name}
+                      {activeApp.candidate_name || `Applicant #${activeApp.candidate_id.slice(0, 8)}`}
                     </h2>
                     <StatusBadge status={activeApp.status} size="sm" />
                   </div>
                   <div className="flex items-center gap-2.5 text-xs text-muted font-medium">
                     <span>{activeApp.job_title}</span>
                     <span>•</span>
-                    <span className="font-medium text-ink">{activeApp.candidate_email}</span>
+                    <span className="font-medium text-ink">
+                      App #{activeApp.id.slice(0, 8)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -197,7 +243,7 @@ export const EmployerApplicationDetailPage: React.FC = () => {
                   leftIcon={<Play className="w-3.5 h-3.5 fill-current" />}
                   className="font-semibold"
                 >
-                  <span>Re-Screen Evidence</span>
+                  <span>{evaluation ? 'Re-Screen Evidence' : 'Screen Evidence'}</span>
                 </Button>
 
                 <Button
@@ -216,8 +262,8 @@ export const EmployerApplicationDetailPage: React.FC = () => {
             {/* Pipeline Steps */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-subtle text-center text-xs">
               {[
-                { label: '1. Screening', active: true },
-                { label: '2. Evidence Grounded', active: true },
+                { label: '1. Submitted', active: true },
+                { label: '2. Evidence Grounded', active: !!evaluation },
                 { label: '3. Review Pending', active: activeApp.status === 'needs_review' },
                 { label: '4. Decision Finalized', active: activeApp.status === 'reviewed' },
               ].map((step, idx) => (
@@ -253,114 +299,125 @@ export const EmployerApplicationDetailPage: React.FC = () => {
           </div>
 
           {/* Tab Content: DETAILS & EVIDENCE */}
-          {(activeTab === 'DETAILS' || activeTab === 'EVIDENCE') && evaluation && (
+          {(activeTab === 'DETAILS' || activeTab === 'EVIDENCE') && (
             <div className="space-y-6">
-              {/* Coverage Summary Bar */}
-              <CoverageSummaryBar coverage={evaluation.coverage} />
+              {evaluation ? (
+                <>
+                  {/* Coverage Summary Bar */}
+                  <CoverageSummaryBar coverage={evaluation.coverage} />
 
-              {/* Criteria Evidence Cards List */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between pb-2 border-b border-subtle">
-                  <h3 className="font-semibold text-ink text-sm">
-                    Grounded Criteria Evaluations ({evaluation.criteria_evaluations.length})
-                  </h3>
-                  <span className="text-[11px] font-medium text-muted">
-                    Run #{evaluation.extraction_run_id}
-                  </span>
-                </div>
+                  {/* Criteria Evidence Cards List */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-subtle">
+                      <h3 className="font-semibold text-ink text-sm">
+                        Grounded Criteria Evaluations ({evaluation.criteria_evaluations.length})
+                      </h3>
+                      <span className="text-[11px] font-medium text-muted">
+                        Extraction Run #{evaluation.extraction_run_id?.slice(0, 8)}
+                      </span>
+                    </div>
 
-                <div className="space-y-3">
-                  {evaluation.criteria_evaluations.map((item) => (
-                    <CriterionEvidenceCard key={item.criterion_id} item={item} />
-                  ))}
+                    <div className="space-y-3">
+                      {evaluation.criteria_evaluations.map((item) => (
+                        <CriterionEvidenceCard key={item.criterion_id} item={item} />
+                      ))}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="bg-surface rounded-card border border-subtle p-10 text-center shadow-card space-y-3">
+                  <FileText className="w-10 h-10 text-accent mx-auto opacity-70" />
+                  <h3 className="text-sm font-semibold text-ink">Screening Evaluation Pending</h3>
+                  <p className="text-xs text-muted max-w-md mx-auto leading-relaxed">
+                    This candidate application has not been evaluated against criteria benchmarks yet. Click "Screen Evidence" above to execute deterministic extraction.
+                  </p>
+                  <Button
+                    onClick={handleTriggerEvaluation}
+                    disabled={isEvaluating}
+                    isLoading={isEvaluating}
+                    variant="primary"
+                    size="sm"
+                    className="mt-2"
+                  >
+                    Execute Screening Evaluation
+                  </Button>
                 </div>
-              </div>
+              )}
 
               {/* Reviewer Notes Timeline */}
               <div className="bg-surface rounded-card border border-subtle p-6 shadow-card space-y-4">
-                <div className="flex items-center justify-between pb-2 border-b border-subtle">
+                <div className="flex items-center justify-between pb-3 border-b border-subtle">
                   <div>
-                    <h3 className="text-sm font-semibold text-ink">Reviewer Audit Timeline</h3>
-                    <p className="text-[11px] text-muted font-medium mt-0.5">Collaborative notes and determination records</p>
+                    <h3 className="font-semibold text-ink text-sm">Adjudication Notes</h3>
+                    <p className="text-xs text-muted font-medium mt-0.5">
+                      Internal reviewer determinations and rationale logs
+                    </p>
                   </div>
                   <Button
                     onClick={() => setShowAddNote(!showAddNote)}
                     variant="secondary"
                     size="sm"
-                    leftIcon={<Plus className="w-3.5 h-3.5" />}
+                    className="text-xs"
                   >
-                    Add Note
+                    {showAddNote ? 'Cancel' : '+ Add Note'}
                   </Button>
                 </div>
 
                 {showAddNote && (
                   <div className="p-4 rounded-sm bg-elevated border border-subtle space-y-3">
                     <textarea
-                      rows={3}
                       value={newNoteText}
                       onChange={(e) => setNewNoteText(e.target.value)}
-                      placeholder="Add an auditable note about this candidate's evidence..."
-                      className="w-full text-xs p-3 rounded-sm bg-surface border border-subtle text-ink placeholder:text-muted focus:border-accent focus:outline-none font-medium"
+                      placeholder="Add an internal reviewer note or observation regarding candidate evidence..."
+                      rows={3}
+                      className="w-full bg-surface border border-subtle rounded-sm p-3 text-xs text-ink placeholder:text-muted focus:outline-none focus:border-subtle-strong resize-none font-medium"
                     />
                     <div className="flex justify-end gap-2">
                       <Button
-                        variant="ghost"
-                        size="sm"
                         onClick={() => setShowAddNote(false)}
+                        variant="secondary"
+                        size="sm"
+                        className="text-xs"
                       >
                         Cancel
                       </Button>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={handleAddNote}
-                        className="font-semibold"
-                      >
+                      <Button onClick={handleAddNote} variant="primary" size="sm" className="text-xs">
                         Save Note
                       </Button>
                     </div>
                   </div>
                 )}
 
-                <div className="space-y-3 pt-1">
-                  {notes.map((note) => (
-                    <div key={note.id} className="p-4 rounded-sm bg-elevated border border-subtle space-y-1.5">
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="font-semibold text-ink">{note.author} ({note.role})</span>
-                        <span className="text-[10px] text-muted font-medium">{note.time}</span>
+                {notes.length === 0 ? (
+                  <div className="text-center py-6 text-muted text-xs font-medium">
+                    No reviewer notes recorded for this candidate dossier yet.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {notes.map((note) => (
+                      <div key={note.id} className="p-3.5 rounded-sm bg-elevated border border-subtle space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-semibold text-ink">{note.author}</span>
+                          <span className="text-[10px] text-muted font-medium">{note.time}</span>
+                        </div>
+                        <p className="text-xs text-ink/90 font-medium leading-relaxed">{note.text}</p>
                       </div>
-                      <p className="text-xs text-muted leading-relaxed font-medium">{note.text}</p>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
 
           {/* Tab Content: RESUME */}
           {activeTab === 'RESUME' && (
-            <div className="bg-surface rounded-card border border-subtle p-6 shadow-card space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-subtle">
-                <h3 className="font-semibold text-ink text-sm">Indexed Source Document</h3>
-                <span className="text-xs font-medium text-accent">OCR Parsed & Sealed</span>
-              </div>
-              <div className="p-6 rounded-sm bg-elevated border border-subtle text-xs text-ink space-y-4 leading-relaxed">
-                <div className="border-b border-subtle pb-2 font-semibold text-ink">
-                  Elena Rostova — Distributed Systems & Cloud Infrastructure Engineer
-                </div>
-                <p>
-                  <strong className="text-accent">WORK EXPERIENCE:</strong><br />
-                  Lead Cloud Infrastructure Architect | CloudMatrix Inc (2020 - Present)<br />
-                  • Architected high-throughput message bus processing 25,000 msg/sec using Apache Kafka across 4 regional Kubernetes clusters.<br />
-                  • Directed migration of legacy monolith to 65 microservices with zero downtime using Docker and Envoy service mesh.<br />
-                  • Implemented Raft consensus protocols for distributed key-value state replication in Go.
-                </p>
-                <p>
-                  <strong className="text-accent">TECHNICAL PROFICIENCIES:</strong><br />
-                  Languages: Go, Rust, Python, TypeScript, SQL<br />
-                  Distributed Systems: Apache Kafka, RabbitMQ, gRPC, Etcd, Redis<br />
-                  Orchestration: Kubernetes (EKS, GKE, Bare-Metal), Terraform, Docker
-                </p>
+            <div className="bg-surface rounded-card border border-subtle p-6 shadow-card space-y-3">
+              <h3 className="font-semibold text-ink text-sm">Attached Resume Document</h3>
+              <p className="text-xs text-muted font-medium">
+                Primary Document ID: <span className="font-mono text-ink">{activeApp.primary_document_id}</span>
+              </p>
+              <div className="p-8 rounded-sm bg-elevated/40 border border-subtle text-center text-muted text-xs">
+                Verbatim OCR coordinates verified. Resume citations are anchored directly to individual criteria cards.
               </div>
             </div>
           )}
@@ -368,40 +425,26 @@ export const EmployerApplicationDetailPage: React.FC = () => {
           {/* Tab Content: HIRING PIPELINE */}
           {activeTab === 'HIRING PIPELINE' && (
             <div className="bg-surface rounded-card border border-subtle p-6 shadow-card space-y-4">
-              <h3 className="font-semibold text-ink text-sm pb-2 border-b border-subtle">Pipeline Milestones</h3>
-              <div className="space-y-3">
-                <div className="p-4 rounded-sm bg-elevated border border-subtle flex items-center justify-between">
-                  <div>
-                    <span className="text-xs font-semibold text-ink block">Step 1: Application Ingestion</span>
-                    <span className="text-[11px] text-muted font-medium">Received via ClearHire Portal</span>
-                  </div>
-                  <span className="text-accent text-xs font-semibold flex items-center gap-1">
-                    <Check className="w-4 h-4" /> Completed
+              <h3 className="font-semibold text-ink text-sm">Hiring Workflow Status</h3>
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between py-2 border-b border-subtle">
+                  <span className="text-muted">Current Application Status:</span>
+                  <StatusBadge status={activeApp.status} size="sm" />
+                </div>
+                <div className="flex justify-between py-2 border-b border-subtle">
+                  <span className="text-muted">Submission Date:</span>
+                  <span className="text-ink font-medium">
+                    {new Date(activeApp.submitted_at || activeApp.created_at).toLocaleDateString()}
                   </span>
                 </div>
-                <div className="p-4 rounded-sm bg-elevated border border-subtle flex items-center justify-between">
-                  <div>
-                    <span className="text-xs font-semibold text-ink block">Step 2: Automated Evidence Grounding</span>
-                    <span className="text-[11px] text-muted font-medium">OCR text parsed with coordinate indexing</span>
-                  </div>
-                  <span className="text-accent text-xs font-semibold flex items-center gap-1">
-                    <Check className="w-4 h-4" /> 5/6 Verified
-                  </span>
-                </div>
-                <div className="p-4 rounded-sm bg-elevated border border-subtle flex items-center justify-between">
-                  <div>
-                    <span className="text-xs font-semibold text-ink block">Step 3: Human Oversight Review</span>
-                    <span className="text-[11px] text-muted font-medium">Triage of contested Kafka criterion</span>
-                  </div>
-                  <span className="text-warn text-xs font-semibold flex items-center gap-1">
-                    <Clock className="w-4 h-4" /> In Triage
-                  </span>
+                <div className="flex justify-between py-2">
+                  <span className="text-muted">Target Requisition:</span>
+                  <span className="text-ink font-medium">{activeApp.job_title}</span>
                 </div>
               </div>
             </div>
           )}
         </div>
-
       </div>
     </div>
   );

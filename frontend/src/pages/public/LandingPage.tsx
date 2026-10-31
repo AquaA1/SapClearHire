@@ -1,11 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ShieldCheck, User, ExternalLink, Sparkles } from 'lucide-react';
-import { useAuthStore } from '../../stores/authStore';
-import { UserRole } from '../../contracts/enums';
 
 export const LandingPage: React.FC = () => {
-  const { switchRole } = useAuthStore();
 
   return (
     <div className="min-h-screen h-screen w-screen overflow-hidden bg-[#080808] text-white flex flex-col justify-between p-3 sm:p-5 select-none relative font-sans">

@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mockService } from '../../services/mock/mockService';
+import { reviewService } from '../../services/api/reviewService';
 import { ReviewFlagSummary } from '../../contracts/models';
 import { ReviewFlagStatus } from '../../contracts/enums';
 import { StatusBadge } from '../../components/ui/Badge';
-import { ChevronRight, ShieldCheck, CheckSquare, Clock } from 'lucide-react';
+import { ChevronRight, ShieldCheck, CheckSquare, Clock, Inbox } from 'lucide-react';
 import { useAuth } from '../../stores/authStore';
 import {
   Table,
@@ -13,17 +13,39 @@ import {
   TableRow,
   TableHead,
   TableCell,
+  LoadingSpinner,
 } from '../../components/ui';
 
 export const ReviewerQueuePage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [flags, setFlags] = useState<ReviewFlagSummary[]>([]);
+  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<'ALL' | ReviewFlagStatus>('ALL');
 
   useEffect(() => {
-    mockService.listReviewCases().then(setFlags);
+    const fetchFlags = async () => {
+      setLoading(true);
+      try {
+        const data = await reviewService.listReviewFlags();
+        setFlags(data);
+      } catch (err) {
+        console.error('Failed to load review cases queue:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFlags();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[450px]">
+        <LoadingSpinner size="lg" label="Loading reviewer case queue..." />
+      </div>
+    );
+  }
 
   const pendingCount = flags.filter((f) => f.status === ReviewFlagStatus.PENDING).length;
   const underReviewCount = flags.filter((f) => f.status === ReviewFlagStatus.UNDER_REVIEW).length;
@@ -38,7 +60,9 @@ export const ReviewerQueuePage: React.FC = () => {
     <div className="max-w-7xl mx-auto space-y-6 select-none">
       {/* ── Header ────────────────────────────────────────────── */}
       <div className="pb-3 border-b border-subtle">
-        <h1 className="text-xl sm:text-2xl font-semibold text-ink tracking-tight">Review Cases Queue & Triage</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-ink tracking-tight">
+          Review Cases Queue & Triage
+        </h1>
         <p className="text-xs text-muted mt-1 font-medium">
           Triage ambiguous and disputed candidate criteria. Select any case to open the side-by-side Decision Studio.
         </p>
@@ -80,7 +104,7 @@ export const ReviewerQueuePage: React.FC = () => {
               <span className="w-1.5 h-1.5 rounded-full bg-accent" />
               <span className="text-[10px] text-accent uppercase font-semibold">Authorized Signer</span>
             </div>
-            <h4 className="text-xs font-semibold text-ink truncate">{user.full_name}</h4>
+            <h4 className="text-xs font-semibold text-ink truncate">{user?.full_name || 'Reviewer'}</h4>
             <span className="text-[11px] text-muted font-medium block mt-0.5">Human Reviewer Role</span>
           </div>
           <div className="w-10 h-10 rounded-xl bg-elevated border border-subtle text-accent flex items-center justify-center shrink-0">
@@ -147,53 +171,69 @@ export const ReviewerQueuePage: React.FC = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredFlags.map((flag) => (
-              <TableRow
-                key={flag.id}
-                onClick={() => navigate(`/reviewer/case/${flag.id}`)}
-                className="cursor-pointer group"
-              >
-                <TableCell>
-                  <div className="font-semibold text-ink text-xs group-hover:text-accent transition-colors">
-                    {flag.candidate_name}
+            {filteredFlags.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="py-16 text-center text-muted font-medium">
+                  <div className="max-w-xs mx-auto space-y-2">
+                    <Inbox className="w-10 h-10 text-muted mx-auto opacity-40" />
+                    <p className="text-sm font-semibold text-ink">Review Queue Empty</p>
+                    <p className="text-xs text-muted">
+                      No candidate criteria flags currently require adjudication.
+                    </p>
                   </div>
-                  <div className="text-[11px] text-muted font-medium mt-0.5">CASE #{flag.id.slice(0, 8)}</div>
-                </TableCell>
-                <TableCell>
-                  <span className="text-xs font-medium text-ink">
-                    {flag.job_title}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <span className="font-semibold text-ink text-xs block max-w-xs truncate">
-                    {flag.criterion_name}
-                  </span>
-                  <span className="text-[11px] text-muted block truncate max-w-xs font-medium">
-                    {flag.reason}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <span
-                    className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-pill uppercase tracking-wider ${
-                      flag.priority === 'high'
-                        ? 'bg-danger-dim text-danger border border-danger/30'
-                        : 'bg-elevated text-muted border border-subtle'
-                    }`}
-                  >
-                    {flag.priority}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <StatusBadge status={flag.status} size="sm" />
-                </TableCell>
-                <TableCell className="text-right">
-                  <span className="text-xs font-semibold text-accent group-hover:underline inline-flex items-center gap-1">
-                    <span>Open Studio</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </span>
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              filteredFlags.map((flag) => (
+                <TableRow
+                  key={flag.id}
+                  onClick={() => navigate(`/reviewer/case/${flag.id}`)}
+                  className="cursor-pointer group"
+                >
+                  <TableCell>
+                    <div className="font-semibold text-ink text-xs group-hover:text-accent transition-colors">
+                      {flag.candidate_name || `Candidate #${flag.candidate_id.slice(0, 8)}`}
+                    </div>
+                    <div className="text-[11px] text-muted font-medium mt-0.5">
+                      CASE #{flag.id.slice(0, 8)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <span className="text-xs font-medium text-ink">
+                      {flag.job_title}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="font-semibold text-ink text-xs block max-w-xs truncate">
+                      {flag.criterion_name}
+                    </span>
+                    <span className="text-[11px] text-muted block truncate max-w-xs font-medium">
+                      {flag.reason}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-pill uppercase tracking-wider ${
+                        flag.priority?.toLowerCase() === 'high'
+                          ? 'bg-danger-dim text-danger border border-danger/30'
+                          : 'bg-elevated text-muted border border-subtle'
+                      }`}
+                    >
+                      {flag.priority}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={flag.status} size="sm" />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <span className="text-xs font-semibold text-accent group-hover:underline inline-flex items-center gap-1">
+                      <span>Open Studio</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

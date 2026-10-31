@@ -5,109 +5,104 @@ import { UserRole } from '../../contracts/enums';
 import { useNavigate } from 'react-router-dom';
 
 export const TopNavbar: React.FC = () => {
-  const { user, role, switchRole } = useAuth();
+  const { user, role } = useAuth();
   const navigate = useNavigate();
 
-  const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newRole = e.target.value as UserRole;
-    switchRole(newRole);
-    if (newRole === UserRole.CANDIDATE) navigate('/candidate/dashboard');
-    else if (newRole === UserRole.EMPLOYER_ADMIN) navigate('/employer/dashboard');
-    else if (newRole === UserRole.REVIEWER) navigate('/reviewer/queue');
-    else if (newRole === UserRole.SYSTEM_AUDITOR) navigate('/reviewer/queue');
-  };
+  const formattedDate = new Intl.DateTimeFormat('en-US', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date());
 
   const getPrimaryActionLabel = () => {
     if (role === UserRole.EMPLOYER_ADMIN) return '+ Manage requisitions';
     if (role === UserRole.CANDIDATE) return 'Browse jobs';
     if (role === UserRole.REVIEWER) return 'Triage queue';
-    return 'Review queue';
+    if (role === UserRole.SYSTEM_AUDITOR) return 'Audit queue';
+    return 'Browse jobs';
   };
 
   const handlePrimaryAction = () => {
     if (role === UserRole.EMPLOYER_ADMIN) navigate('/employer/jobs');
     else if (role === UserRole.CANDIDATE) navigate('/candidate/jobs');
-    else if (role === UserRole.REVIEWER) navigate('/reviewer/queue');
-    else navigate('/reviewer/queue');
+    else if (role === UserRole.REVIEWER || role === UserRole.SYSTEM_AUDITOR) navigate('/reviewer/queue');
+    else navigate('/candidate/jobs');
   };
 
   return (
-    <header className="h-20 bg-canvas px-6 md:px-8 flex items-center justify-between sticky top-0 z-20 select-none border-b border-subtle">
-      {/* Left: Date & Context Header matching reference */}
-      <div className="flex flex-col">
-        <div className="flex items-center gap-2 text-xs text-muted font-medium">
-          <span>Friday, 31 Oct</span>
-          <span className="text-muted/60">•</span>
-          <span className="flex items-center gap-1.5 text-accent text-xs font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-            Ledger Active
-          </span>
-        </div>
-        <div className="text-lg font-semibold text-ink tracking-tight flex items-center gap-2 mt-0.5">
-          <span>ClearHire</span>
-          <span className="text-muted/60 text-sm font-normal">•</span>
-          <span className="text-sm font-medium text-ink/90 capitalize">
-            {role.replace('_', ' ')} Console
-          </span>
+    <header className="h-16 bg-canvas px-6 md:px-8 flex items-center justify-between sticky top-0 z-20 select-none border-b border-subtle">
+      {/* Left: Date & Context Header with seamless alignment */}
+      <div className="flex items-center gap-3">
+        <div className="flex flex-col justify-center">
+          <div className="flex items-center gap-2 text-[11px] text-muted font-medium leading-none">
+            <span>{formattedDate}</span>
+            <span className="text-muted/60">•</span>
+            <span className="flex items-center gap-1.5 text-accent font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+              Ledger Active
+            </span>
+          </div>
+          <div className="text-sm font-semibold text-ink tracking-tight flex items-center gap-1.5 mt-1 leading-tight">
+            <span>ClearHire</span>
+            <span className="text-muted/60 font-normal">•</span>
+            <span className="text-xs font-medium text-ink/90 capitalize">
+              {(role || UserRole.CANDIDATE).replace('_', ' ')} Console
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Center: Search pill with filter sliders icon */}
-      <div className="relative w-72 md:w-96 hidden md:block">
-        <Search className="w-4 h-4 text-muted absolute left-4 top-1/2 -translate-y-1/2" />
+      <div className="relative w-72 md:w-80 lg:w-96 hidden md:flex items-center">
+        <Search className="w-3.5 h-3.5 text-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
         <input
           type="text"
           placeholder="Search candidates, criteria, hashes..."
-          className="w-full bg-surface border border-subtle pl-10 pr-10 py-2 rounded-pill text-xs text-ink placeholder:text-muted/80 focus:outline-none focus:border-subtle-strong transition-all font-medium"
+          className="w-full h-9 bg-surface border border-subtle pl-9 pr-9 rounded-pill text-xs text-ink placeholder:text-muted focus:outline-none focus:border-subtle-strong transition-all font-medium"
         />
         <button
-          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted hover:text-ink cursor-pointer"
+          className="w-7 h-7 absolute right-1 top-1/2 -translate-y-1/2 rounded-full flex items-center justify-center text-muted hover:text-ink transition-colors cursor-pointer"
           title="Filter options"
         >
           <SlidersHorizontal className="w-3.5 h-3.5" />
         </button>
       </div>
 
-      {/* Right: Role Switcher, Notification, Profile, Action Button */}
-      <div className="flex items-center gap-3">
-        {/* Persona Switcher */}
-        <div className="flex items-center gap-1.5 bg-surface border border-subtle px-3.5 py-1.5 rounded-pill text-xs">
-          <Shield className="w-3.5 h-3.5 text-accent" />
-          <select
-            value={role}
-            onChange={handleRoleChange}
-            className="text-xs font-semibold text-ink bg-transparent border-none focus:outline-none cursor-pointer pr-1"
-          >
-            <option value={UserRole.EMPLOYER_ADMIN} className="bg-surface text-ink">Employer Admin</option>
-            <option value={UserRole.REVIEWER} className="bg-surface text-ink">Reviewer</option>
-            <option value={UserRole.CANDIDATE} className="bg-surface text-ink">Candidate</option>
-            <option value={UserRole.SYSTEM_AUDITOR} className="bg-surface text-ink">System Auditor</option>
-          </select>
+      {/* Right: Role Badge, Notification, Profile, Action Button (all matching h-9) */}
+      <div className="flex items-center gap-2.5 sm:gap-3">
+        {/* Authenticated Role Badge */}
+        <div className="hidden sm:flex items-center gap-1.5 h-9 bg-surface border border-subtle px-3 rounded-pill text-xs">
+          <Shield className="w-3.5 h-3.5 text-accent shrink-0" />
+          <span className="text-xs font-semibold text-ink capitalize">
+            {(role || UserRole.CANDIDATE).replace('_', ' ')}
+          </span>
         </div>
 
         {/* Notifications Icon Button */}
         <button
-          className="w-9 h-9 rounded-full bg-surface border border-subtle text-ink/80 hover:text-ink flex items-center justify-center relative transition-colors cursor-pointer"
+          className="w-9 h-9 rounded-full bg-surface border border-subtle text-ink/80 hover:text-ink flex items-center justify-center relative transition-colors cursor-pointer shrink-0"
           title="Notifications"
         >
           <Bell className="w-4 h-4" />
-          <span className="w-1.5 h-1.5 rounded-full bg-accent absolute top-2.5 right-2.5" />
+          <span className="w-1.5 h-1.5 rounded-full bg-accent absolute top-2 right-2" />
         </button>
 
         {/* User Profile Info */}
-        <div className="flex items-center gap-2.5 pl-1">
-          <div className="w-9 h-9 rounded-full bg-elevated border border-subtle text-ink flex items-center justify-center font-semibold text-xs">
-            {user.full_name
-              .split(' ')
-              .map((n) => n[0])
-              .join('')}
+        <div className="flex items-center gap-2 pl-0.5">
+          <div className="w-9 h-9 rounded-full bg-elevated border border-subtle text-ink flex items-center justify-center font-semibold text-xs shrink-0">
+            {user?.full_name
+              ? user.full_name
+                  .split(' ')
+                  .map((n) => n[0])
+                  .join('')
+              : 'U'}
           </div>
           <div className="text-left hidden xl:block">
-            <span className="block text-xs font-semibold text-ink leading-tight">
-              {user.full_name}
+            <span className="block text-xs font-semibold text-ink leading-tight truncate max-w-[120px]">
+              {user?.full_name || 'ClearHire User'}
             </span>
-            <span className="text-[10px] text-muted font-medium capitalize">
-              {role.replace('_', ' ')}
+            <span className="text-[10px] text-muted font-medium capitalize block mt-0.5">
+              {(role || UserRole.CANDIDATE).replace('_', ' ')}
             </span>
           </div>
         </div>
@@ -115,7 +110,7 @@ export const TopNavbar: React.FC = () => {
         {/* Primary Action Button */}
         <button
           onClick={handlePrimaryAction}
-          className="hidden sm:flex items-center gap-1.5 px-4 py-2 bg-accent hover:bg-accent-secondary text-canvas text-xs font-semibold rounded-pill transition-all cursor-pointer shadow-sm"
+          className="hidden sm:flex items-center gap-1.5 h-9 px-4 bg-accent hover:bg-accent-secondary text-canvas text-xs font-semibold rounded-pill transition-all cursor-pointer shadow-sm shrink-0"
         >
           <span>{getPrimaryActionLabel()}</span>
         </button>
