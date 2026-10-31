@@ -1,13 +1,15 @@
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.exceptions import AuthorizationError, NotFoundError
 from app.core.security import CurrentUser, UserRole, get_current_user, require_roles
 from app.db.models.application import Application
 from app.db.models.document import Document
+from app.db.models.job import Job
 from app.db.models.review import ReviewDecision, ReviewFlag
 from app.db.session import get_db_session
 from app.repositories.audit import AuditEventRepository
@@ -53,6 +55,230 @@ def _safe_uuid(val: object) -> uuid.UUID | None:
         return uuid.UUID(str(val))
     except (ValueError, TypeError):
         return None
+
+
+async def _verify_employer_resource_ownership(
+    resource_type: str | None,
+    resource_id: str,
+    current_user: CurrentUser,
+    db: AsyncSession,
+) -> bool:
+    """Verifies that a given resource belongs to the employer administrator's organization."""
+    res_uuid = _safe_uuid(resource_id)
+    if not res_uuid:
+        return False
+
+    if resource_type == "job":
+        res = await db.execute(
+            select(Job).options(selectinload(Job.creator)).where(Job.id == res_uuid)
+        )
+        job = res.scalar_one_or_none()
+        if job:
+            is_creator = str(job.employer_id) == current_user.id
+            org_matches = bool(
+                current_user.employer_id
+                and job.creator
+                and job.creator.employer_id == current_user.employer_id
+            )
+            return is_creator or org_matches
+        return False
+
+    if resource_type == "application":
+        res = await db.execute(
+            select(Application)
+            .options(selectinload(Application.job).selectinload(Job.creator))
+            .where(Application.id == res_uuid)
+        )
+        app = res.scalar_one_or_none()
+        if app and app.job:
+            is_creator = str(app.job.employer_id) == current_user.id
+            org_matches = bool(
+                current_user.employer_id
+                and app.job.creator
+                and app.job.creator.employer_id == current_user.employer_id
+            )
+            return is_creator or org_matches
+        return False
+
+    if resource_type == "document":
+        res = await db.execute(
+            select(Application)
+            .options(selectinload(Application.job).selectinload(Job.creator))
+            .where(Application.primary_document_id == res_uuid)
+        )
+        apps = res.scalars().all()
+        for app in apps:
+            if app.job:
+                is_creator = str(app.job.employer_id) == current_user.id
+                org_matches = bool(
+                    current_user.employer_id
+                    and app.job.creator
+                    and app.job.creator.employer_id == current_user.employer_id
+                )
+                if is_creator or org_matches:
+                    return True
+        return False
+
+    if resource_type in ("review_flag", "review_case"):
+        res = await db.execute(
+            select(ReviewFlag)
+            .options(
+                selectinload(ReviewFlag.application)
+                .selectinload(Application.job)
+                .selectinload(Job.creator)
+            )
+            .where(ReviewFlag.id == res_uuid)
+        )
+        flag = res.scalar_one_or_none()
+        if flag and flag.application and flag.application.job:
+            job = flag.application.job
+            is_creator = str(job.employer_id) == current_user.id
+            org_matches = bool(
+                current_user.employer_id
+                and job.creator
+                and job.creator.employer_id == current_user.employer_id
+            )
+            return is_creator or org_matches
+        return False
+
+    if resource_type == "review_decision":
+        res = await db.execute(
+            select(ReviewDecision)
+            .options(
+                selectinload(ReviewDecision.review_flag)
+                .selectinload(ReviewFlag.application)
+                .selectinload(Application.job)
+                .selectinload(Job.creator)
+            )
+            .where(ReviewDecision.id == res_uuid)
+        )
+        decision = res.scalar_one_or_none()
+        if (
+            decision
+            and decision.review_flag
+            and decision.review_flag.application
+            and decision.review_flag.application.job
+        ):
+            job = decision.review_flag.application.job
+            is_creator = str(job.employer_id) == current_user.id
+            org_matches = bool(
+                current_user.employer_id
+                and job.creator
+                and job.creator.employer_id == current_user.employer_id
+            )
+            return is_creator or org_matches
+        return False
+
+    return False
+
+
+@router.get(
+    "",
+    response_model=list[AuditEventDetailResponse],
+    summary="Query Resource Audit Events",
+    description=(
+        "Retrieves paginated, cryptographically verifiable audit events filtered by resource_type, "
+        "resource_id, and actor_id. Accessible to system auditors and employer admins."
+    ),
+)
+async def list_audit_events(
+    resource_type: str | None = Query(default=None, description="Filter by resource type"),
+    resource_id: str | None = Query(default=None, description="Filter by resource ID"),
+    actor_id: str | None = Query(default=None, description="Filter by actor ID"),
+    limit: int = Query(default=50, ge=1, le=200, description="Max records to return"),
+    offset: int = Query(default=0, ge=0, description="Records offset"),
+    current_user: CurrentUser = Depends(
+        require_roles(UserRole.SYSTEM_AUDITOR, UserRole.EMPLOYER_ADMIN)
+    ),
+    db: AsyncSession = Depends(get_db_session),
+) -> list[AuditEventDetailResponse]:
+    repo = AuditEventRepository(db)
+
+    if current_user.role == UserRole.EMPLOYER_ADMIN:
+        if resource_id:
+            authorized = await _verify_employer_resource_ownership(
+                resource_type, resource_id, current_user, db
+            )
+            if not authorized:
+                raise AuthorizationError(
+                    "You are not authorized to query audit events for resources outside your organization."
+                )
+            events = await repo.query_events(
+                resource_type=resource_type,
+                resource_id=resource_id,
+                actor_id=actor_id,
+                limit=limit,
+                offset=offset,
+            )
+        else:
+            raw_events = await repo.query_events(
+                resource_type=resource_type,
+                resource_id=None,
+                actor_id=actor_id,
+                limit=limit * 2,
+                offset=offset,
+            )
+            events = []
+            for ev in raw_events:
+                if ev.actor_id == current_user.id or (
+                    ev.details and ev.details.get("employer_id") == current_user.employer_id
+                ):
+                    events.append(ev)
+                elif ev.resource_id and await _verify_employer_resource_ownership(
+                    ev.resource_type, ev.resource_id, current_user, db
+                ):
+                    events.append(ev)
+                if len(events) >= limit:
+                    break
+    else:
+        # SYSTEM_AUDITOR has unrestricted query capability
+        events = await repo.query_events(
+            resource_type=resource_type,
+            resource_id=resource_id,
+            actor_id=actor_id,
+            limit=limit,
+            offset=offset,
+        )
+
+    responses = []
+    for event in events:
+        canonical_bytes = canonicalize_audit_payload(
+            sequence_number=event.sequence_number,
+            timestamp=event.timestamp,
+            actor_id=event.actor_id,
+            actor_role=event.actor_role,
+            action=event.action,
+            resource_type=event.resource_type,
+            resource_id=event.resource_id,
+            entity_version=event.entity_version,
+            prior_state=event.prior_state,
+            new_state=event.new_state,
+            details=event.details,
+            previous_hash=event.previous_hash,
+        )
+        is_verified = compute_audit_hash(canonical_bytes) == event.event_hash
+        responses.append(
+            AuditEventDetailResponse(
+                id=event.id,
+                sequence_number=event.sequence_number,
+                timestamp=event.timestamp,
+                actor_id=event.actor_id,
+                actor_role=event.actor_role,
+                action=event.action,
+                resource_type=event.resource_type,
+                resource_id=event.resource_id,
+                entity_version=event.entity_version,
+                prior_state=event.prior_state,
+                new_state=event.new_state,
+                details=event.details,
+                ip_address=event.ip_address,
+                previous_hash=event.previous_hash,
+                event_hash=event.event_hash,
+                is_verified=is_verified,
+            )
+        )
+
+    return responses
 
 
 @router.get(

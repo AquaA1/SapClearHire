@@ -115,3 +115,23 @@ class AuditEventRepository(BaseRepository[AuditEvent]):
         )
         result = await self.session.execute(query)
         return result.scalars().all()
+
+    async def query_events(
+        self,
+        resource_type: str | None = None,
+        resource_id: str | None = None,
+        actor_id: str | None = None,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> Sequence[AuditEvent]:
+        """Returns paginated, filtered audit events ordered by sequence number descending."""
+        query = select(AuditEvent)
+        if resource_type:
+            query = query.where(AuditEvent.resource_type == resource_type)
+        if resource_id:
+            query = query.where(AuditEvent.resource_id == str(resource_id))
+        if actor_id:
+            query = query.where(AuditEvent.actor_id == str(actor_id))
+        query = query.order_by(AuditEvent.sequence_number.desc()).limit(limit).offset(offset)
+        result = await self.session.execute(query)
+        return result.scalars().all()

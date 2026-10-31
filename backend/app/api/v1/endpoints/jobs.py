@@ -1,10 +1,13 @@
 import uuid
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
-from app.core.exceptions import NotFoundError
+from app.core.exceptions import AuthorizationError, NotFoundError
 from app.core.security import CurrentUser, UserRole, get_current_user, require_roles
+from app.db.models.enums import JobStatus
 from app.db.models.job import Job
 from app.db.models.user import User
 from app.db.session import get_db_session
@@ -12,6 +15,65 @@ from app.repositories.domain import JobRepository, UserRepository
 from app.schemas.evaluation import JobCreateRequest, JobCriterionResponse, JobResponse
 
 router = APIRouter(prefix="/jobs", tags=["Jobs & Criteria"])
+
+
+@router.get(
+    "",
+    response_model=list[JobResponse],
+    summary="List Job Requisitions",
+    description="Retrieves a paginated list of job requisitions with criteria, subject to role and tenant isolation.",
+)
+async def list_jobs(
+    status_filter: JobStatus | None = Query(
+        default=None, alias="status", description="Filter by job status"
+    ),
+    department: str | None = Query(default=None, description="Filter by department"),
+    limit: int = Query(default=50, ge=1, le=200, description="Max jobs to return"),
+    offset: int = Query(default=0, ge=0, description="Records offset"),
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+) -> list[JobResponse]:
+    stmt = select(Job).options(selectinload(Job.criteria), selectinload(Job.creator))
+
+    if department:
+        stmt = stmt.where(Job.department == department)
+
+    if current_user.role == UserRole.CANDIDATE:
+        stmt = stmt.where(Job.status == JobStatus.ACTIVE)
+    elif current_user.role in (UserRole.EMPLOYER_ADMIN, UserRole.REVIEWER):
+        curr_uuid = uuid.UUID(current_user.id)
+        if current_user.employer_id:
+            stmt = stmt.outerjoin(Job.creator).where(
+                (Job.employer_id == curr_uuid) | (User.employer_id == current_user.employer_id)
+            )
+        else:
+            stmt = stmt.where(Job.employer_id == curr_uuid)
+        if status_filter:
+            stmt = stmt.where(Job.status == status_filter)
+    elif current_user.role == UserRole.SYSTEM_AUDITOR:
+        if status_filter:
+            stmt = stmt.where(Job.status == status_filter)
+    else:
+        raise AuthorizationError("You are not authorized to view jobs.")
+
+    stmt = stmt.order_by(Job.created_at.desc()).limit(limit).offset(offset)
+    result = await db.execute(stmt)
+    jobs = result.scalars().all()
+
+    return [
+        JobResponse(
+            id=j.id,
+            employer_id=j.employer_id,
+            title=j.title,
+            description=j.description,
+            department=j.department,
+            status=j.status,
+            criteria=[JobCriterionResponse.model_validate(c) for c in j.criteria],
+            created_at=j.created_at,
+            updated_at=j.updated_at,
+        )
+        for j in jobs
+    ]
 
 
 @router.post(
