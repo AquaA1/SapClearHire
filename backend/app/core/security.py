@@ -39,6 +39,7 @@ def create_access_token(
     subject: str,
     role: UserRole,
     employer_id: str | None = None,
+    email: str | None = None,
     expires_delta: timedelta | None = None,
 ) -> str:
     """Generates a cryptographically signed JWT access token."""
@@ -50,7 +51,7 @@ def create_access_token(
         else timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
-    payload = {
+    payload: dict[str, Any] = {
         "sub": subject,
         "role": role.value,
         "employer_id": employer_id,
@@ -58,6 +59,8 @@ def create_access_token(
         "exp": int(expire.timestamp()),
         "iss": "clearhire-auth",
     }
+    if email:
+        payload["email"] = email
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 

@@ -26,8 +26,10 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         index=True,
     )
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     employer_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    email_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Relationships
     documents: Mapped[list["Document"]] = relationship(

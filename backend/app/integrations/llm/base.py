@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 from app.integrations.llm.schemas import ExtractedResumeProfile, ExtractionResult
 
@@ -38,3 +39,14 @@ class BaseLLMProvider(ABC):
         Extract structured profile (skills, experiences, education, projects) from page-labelled resume text.
         """
         pass
+
+    async def generate_simple_completion(
+        self,
+        user_prompt: str,
+        system_prompt: str = "You are a helpful structured JSON extractor. Always output valid JSON.",
+        max_tokens: int = 256,
+    ) -> dict[str, Any]:
+        """
+        Generate a single structured JSON completion for health checks and smoke testing.
+        """
+        raise NotImplementedError

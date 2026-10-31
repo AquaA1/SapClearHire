@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.exceptions import ValidationError
+from app.core.security import UserRole
 from app.db.models.application import Application
 from app.db.models.document import CandidateSkill, Document, EvidenceItem, ExtractionRun
 from app.db.models.enums import (
@@ -28,10 +29,40 @@ class UserRepository(BaseRepository[User]):
     def __init__(self, session: AsyncSession):
         super().__init__(User, session)
 
+    @staticmethod
+    def normalize_email(email: str) -> str:
+        return email.strip().lower()
+
     async def get_by_email(self, email: str) -> User | None:
-        query = select(User).where(User.email == email)
+        normalized = self.normalize_email(email)
+        query = select(User).where(User.email == normalized)
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
+
+    async def create_user_with_credentials(
+        self,
+        email: str,
+        full_name: str,
+        password_hash: str | None,
+        role: UserRole = UserRole.CANDIDATE,
+        employer_id: str | None = None,
+        email_verified: bool = False,
+        is_active: bool = True,
+        user_id: uuid.UUID | None = None,
+    ) -> User:
+        user = User(
+            id=user_id or uuid.uuid4(),
+            email=self.normalize_email(email),
+            full_name=full_name.strip(),
+            password_hash=password_hash,
+            role=role,
+            employer_id=employer_id,
+            email_verified=email_verified,
+            is_active=is_active,
+        )
+        self.session.add(user)
+        await self.session.flush()
+        return user
 
 
 class JobRepository(BaseRepository[Job]):

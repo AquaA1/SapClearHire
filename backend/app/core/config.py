@@ -60,6 +60,7 @@ class Settings(BaseSettings):
     )
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    PASSWORD_MIN_LENGTH: int = 8
 
     # LLM Provider
     LLM_PROVIDER: Literal["fake", "openai", "anthropic", "gemini"] = "fake"
