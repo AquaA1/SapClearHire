@@ -306,3 +306,43 @@ export interface BenchmarkReport {
   clearhire_findings: string[];
   extraction_limitations: string[];
 }
+
+export interface DocumentUploadResponse {
+  id: string;
+  file_name: string;
+  file_hash: string;
+  file_size_bytes: number;
+  processing_status: DocumentProcessingStatus;
+  created_at: string;
+}
+
+export interface DocumentProcessingError {
+  code: string;
+  message: string;
+  details?: Record<string, unknown>;
+}
+
+export interface DocumentStatusResponse {
+  id: string;
+  file_name: string;
+  processing_status: DocumentProcessingStatus;
+  page_count: number | null;
+  extracted_text_by_page: Record<string, string>;
+  processing_error: DocumentProcessingError | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExtractionRunResponse {
+  id: string;
+  document_id: string;
+  run_number: number;
+  provider: string;
+  model_name: string;
+  status: DocumentProcessingStatus;
+  error_message: string | null;
+  skills: CandidateSkill[];
+  evidence_items: EvidenceItem[];
+  started_at: string;
+  completed_at: string | null;
+}

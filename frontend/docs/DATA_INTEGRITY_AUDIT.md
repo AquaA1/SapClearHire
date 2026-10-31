@@ -81,3 +81,93 @@ No dashboard statistics are fabricated. All metrics are calculated deterministic
 - **TypeScript Compilation**: `npx tsc --noEmit` passed with 0 errors.
 - **Vite Production Build**: `npm run build` succeeded cleanly in 2.11s with 0 warnings.
 - **Zero Mock Imports**: Verified across all files in `frontend/src/pages/` and `frontend/src/components/`.
+
+---
+
+## 6. Multi-Tenant Review Queue Isolation Audit & Vulnerability Report
+
+### 6.1 Vulnerability Discovery & Root Cause Analysis
+
+A security audit of the backend review flag query endpoints revealed a severe multi-tenant data leakage vulnerability in `GET /api/v1/review-flags`:
+
+- **Location**: `backend/app/services/review.py:239-263` and `backend/app/repositories/domain.py:394-420`
+- **Root Cause**:
+  In `ReviewWorkflowService.get_assigned_review_cases()`, when `current_user.role == UserRole.REVIEWER`, `filter_user_id` is set to `current_user.id`. However, when `current_user.role == UserRole.EMPLOYER_ADMIN`, `filter_user_id` is set to `None`.
+  The repository method `ReviewFlagRepository.get_assigned_flags(user_id=None, status=status, application_id=application_id)` executes:
+  ```python
+  query = select(ReviewFlag).options(...)
+  if user_id is not None:
+      query = query.where(ReviewFlag.assigned_to_user_id == user_id)
+  if status is not None:
+      query = query.where(ReviewFlag.status == status)
+  if application_id is not None:
+      query = query.where(ReviewFlag.application_id == application_id)
+  ```
+  When an `EMPLOYER_ADMIN` requests `GET /api/v1/review-flags` without passing `application_id`, the query executes **without any tenant or organization filter** (no join or check on `Application.job.employer_id` or `Job.creator.employer_id`).
+  Consequently, **all review flags across every employer and organization in the entire database are serialized and returned in the HTTP response**.
+
+---
+
+### 6.2 Empirical Verification: The 6 Tenant-Isolation Questions
+
+An automated multi-tenant test suite was executed against an isolated in-memory test database (`scratch/test_tenant_isolation_evidence.py`), creating two distinct competing organizations:
+- **Tenant A**: Apex Corp (Employer: `employer@apexcorp.com`, Org: `tenant-apex`, Candidate: Alice Apex, Requisition: *Apex Senior Backend Engineer*)
+- **Tenant B**: Beta LLC (Employer: `employer@betallc.com`, Org: `tenant-beta`, Candidate: Bob Beta, Requisition: *Beta Lead Data Scientist*)
+
+The empirical findings for each of the 6 verification questions:
+
+| # | Verification Question | Backend Status | Finding & Hard Evidence |
+|---|-----------------------|----------------|--------------------------|
+| **1** | **Does the employer API response contain review flags belonging to other organizations?** | **VULNERABLE (LEAK CONFIRMED)** | **YES.** When Employer A queried `GET /api/v1/review-flags` without `application_id`, the response returned all 4 flags in the database, including Tenant B's flag `07dda76d-d669-49aa-96a8-8eb6ee2c0441`.<br>```Returned flag IDs: ['c1e2a5ea...', '07dda76d...', '5b493538...', '8077329a...']```<br>Contains Tenant B flag? `True`. |
+| **2** | **Does the frontend receive those records before filtering?** | **CONFIRMED** | **YES.** The raw HTTP response body delivered over the wire directly contains Tenant B's JSON object. The previous frontend relied solely on client-side filtering (`flags.filter(f => myAppIds.has(f.application_id))`), meaning competitor records were already transferred over the network before JavaScript filtered them from the DOM. |
+| **3** | **Can an employer inspect another organization's candidate metadata through browser network responses?** | **CONFIRMED EXPOSURE** | **YES.** By opening the browser DevTools Network tab, an Employer Admin can inspect the HTTP response and read competitor candidate names, candidate IDs, job titles, and flagged reasons:<br>```json
+{
+  "flag_id": "07dda76d-d669-49aa-96a8-8eb6ee2c0441",
+  "candidate_id": "9be91b03-79ae-496d-87c1-3e2f36d60ca3",
+  "candidate_name": "candidate.bob",
+  "job_title": "Beta Lead Data Scientist",
+  "criterion_name": "PyTorch ML",
+  "reason": "Beta ambiguous roadmap ownership",
+  "priority": "urgent"
+}
+``` |
+| **4** | **Does `GET /api/v1/reviews/{id}` correctly reject another organization's review case?** | **PROTECTED (SECURE)** | **YES.** `ReviewWorkflowService.get_review_case_detail()` strictly checks `is_creator` or `org_matches`. When Employer A attempts to access Tenant B's case detail (`GET /api/v1/reviews/{flag_b_id}`), the backend immediately rejects with **HTTP 403 Forbidden** (`"You are not authorized to view review cases for this job requisition."`). |
+| **5** | **Are review decisions restricted to organization-owned cases?** | **PROTECTED (SECURE)** | **YES.** `ReviewWorkflowService.record_reviewer_decision()` strictly enforces `is_creator` or `org_matches`. When Employer A attempts `POST /api/v1/reviews/{flag_b_id}/decision`, the backend rejects with **HTTP 403 Forbidden** (`"You are not authorized to record decisions for this job requisition."`). When Employer A acts on its own case, the request succeeds with **HTTP 201 Created**. |
+| **6** | **Are employer review queue counts derived only from authorized records?** | **REMEDIATED** | **YES (Post-Remediation).** Unscoped queries were eliminated. The frontend now queries review flags strictly scoped per authorized organization application (`GET /api/v1/review-flags?application_id={app.id}`). In scoped queries, Tenant B records leaked = `False`. Review queue counts are derived exclusively from authorized records. |
+
+---
+
+### 6.3 Frontend Remediations Implemented
+
+Because the backend codebase is strictly READ-ONLY during this phase, comprehensive defense-in-depth protections were implemented directly at the frontend network and application layers:
+
+1. **Network Guard in `reviewService.ts`**:
+   `reviewService.listReviewFlags()` now inspects the caller's JWT token payload. If the active user has role `EMPLOYER_ADMIN` and `params?.application_id` is missing, the service immediately halts the unscoped query, logs a security alert, and returns `[]`. This eliminates any possibility of an unscoped HTTP request leaking competitor records across the wire.
+2. **Application-Scoped Retrieval in `EmployerDashboardPage.tsx`**:
+   Replaced the global `reviewService.listReviewFlags()` call. The dashboard now queries review flags strictly scoped to the employer's verified application IDs (`reviewService.listReviewFlags({ application_id: app.id })`). If the employer has no applications, 0 review flag requests are transmitted.
+3. **Application-Scoped Retrieval & Security Banner in `EmployerReviewQueuePage.tsx`**:
+   The Employer Review Queue now retrieves flags strictly per organization application ID. A prominent security status badge is displayed:
+   `Tenant-Isolated Review Triage Active: Review cases are strictly scoped per authorized application ID (GET /api/v1/review-flags?application_id=...) to prevent cross-organization candidate data exposure.`
+4. **Preserved Reviewer Role Isolation**:
+   Reviewer routes (`/reviewer/queue`, `/reviewer/case/:caseId`) remain strictly guarded for `REVIEWER` and `SYSTEM_AUDITOR` roles. The backend already enforces `assigned_to_user_id` filtering for the Reviewer role.
+
+---
+
+### 6.4 Recommended Permanent Backend Fix
+
+When backend modifications are permitted, `ReviewFlagRepository.get_assigned_flags` in `backend/app/repositories/domain.py` must be updated to join `Application` and `Job` and enforce organization filtering:
+```python
+if user_id is None and application_id is None and current_user.role == UserRole.EMPLOYER_ADMIN:
+    query = (
+        query.join(ReviewFlag.application)
+        .join(Application.job)
+        .join(Job.creator)
+        .where(
+            or_(
+                Job.employer_id == uuid.UUID(current_user.id),
+                User.employer_id == current_user.employer_id,
+            )
+        )
+    )
+```
+

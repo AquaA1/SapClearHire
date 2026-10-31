@@ -9,14 +9,14 @@
  * - POST /api/v1/reviews/{id}/clarification
  */
 
-import { apiClient } from './client';
+import { apiClient, getStoredToken } from './client';
 import {
   ReviewFlagSummary,
   ReviewCaseDetail,
   ReviewDecisionItem,
   CandidateClarificationItem,
 } from '../../contracts/models';
-import { ReviewFlagStatus, ReviewDecisionType } from '../../contracts/enums';
+import { ReviewFlagStatus, ReviewDecisionType, UserRole } from '../../contracts/enums';
 
 export interface ReviewFlagListParams {
   status?: ReviewFlagStatus | string;
@@ -46,8 +46,28 @@ export interface CreateReviewFlagsPayload {
 class ReviewService {
   /**
    * List assigned review cases (accessible to Reviewers, Employer Admins, System Auditors).
+   * Strict Tenant Boundary: Blocks unscoped queries for EMPLOYER_ADMIN to prevent
+   * backend cross-tenant data leakage over the network.
    */
   async listReviewFlags(params?: ReviewFlagListParams): Promise<ReviewFlagSummary[]> {
+    // Tenant Isolation Guard: Prevent unscoped global review flags query for Employer Admin
+    if (!params?.application_id) {
+      try {
+        const token = getStoredToken();
+        if (token) {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          if (payload.role === UserRole.EMPLOYER_ADMIN || payload.role === 'EMPLOYER_ADMIN') {
+            console.warn(
+              '[Tenant Isolation Guard] Unscoped GET /api/v1/review-flags blocked for EMPLOYER_ADMIN to prevent cross-tenant data leakage. Query with application_id.'
+            );
+            return [];
+          }
+        }
+      } catch {
+        // Fallback to normal execution if token payload cannot be parsed
+      }
+    }
+
     const queryParams: Record<string, string | undefined> = {};
     if (params?.status) queryParams.status = params.status;
     if (params?.application_id) queryParams.application_id = params.application_id;

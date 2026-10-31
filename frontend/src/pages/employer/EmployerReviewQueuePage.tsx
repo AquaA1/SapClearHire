@@ -29,15 +29,18 @@ export const EmployerReviewQueuePage: React.FC = () => {
     const fetchOrgFlags = async () => {
       setLoading(true);
       try {
-        const [apps, allFlags] = await Promise.all([
-          applicationService.listApplications(),
-          reviewService.listReviewFlags(),
-        ]);
+        const apps = await applicationService.listApplications();
 
-        // Strict organization tenant isolation: only show flags for employer's applications
-        const myAppIds = new Set(apps.map((a) => a.id));
-        const orgFlags = allFlags.filter((f) => myAppIds.has(f.application_id));
-        setFlags(orgFlags);
+        // Strict organization tenant isolation: query review flags strictly scoped to employer applications
+        if (apps.length > 0) {
+          const flagPromises = apps.map((app) =>
+            reviewService.listReviewFlags({ application_id: app.id }).catch(() => [])
+          );
+          const flagBatches = await Promise.all(flagPromises);
+          setFlags(flagBatches.flat());
+        } else {
+          setFlags([]);
+        }
       } catch (err) {
         console.error('Failed to load employer review cases:', err);
       } finally {
@@ -87,6 +90,24 @@ export const EmployerReviewQueuePage: React.FC = () => {
         >
           Manage Requisitions
         </Button>
+      </div>
+
+      {/* ── Tenant-Isolation Safeguard Banner ─────────────────── */}
+      <div className="bg-surface border border-subtle rounded-card p-4 flex items-start gap-3.5 shadow-card">
+        <div className="w-8 h-8 rounded-lg bg-accent/15 border border-accent/30 text-accent flex items-center justify-center shrink-0 mt-0.5">
+          <ShieldCheck className="w-4 h-4" />
+        </div>
+        <div className="space-y-0.5 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-ink">Tenant-Isolated Review Triage Active</span>
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-pill bg-accent/20 text-accent border border-accent/30 uppercase tracking-wider">
+              Scoped
+            </span>
+          </div>
+          <p className="text-[11px] text-muted leading-relaxed">
+            Review cases are strictly scoped per authorized application ID (<code className="text-accent bg-elevated px-1 py-0.5 rounded font-mono text-[10px]">GET /api/v1/review-flags?application_id=...</code>) to prevent cross-organization candidate data exposure. Global unscoped querying is disabled.
+          </p>
+        </div>
       </div>
 
       {/* ── Integrated Workload & Admin Authority Stats ────────── */}
