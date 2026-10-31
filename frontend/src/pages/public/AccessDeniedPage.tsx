@@ -13,8 +13,8 @@ export const AccessDeniedPage: React.FC = () => {
     switchRole(role);
     if (role === UserRole.CANDIDATE) navigate('/candidate/dashboard');
     else if (role === UserRole.EMPLOYER_ADMIN) navigate('/employer/dashboard');
-    else if (role === UserRole.REVIEWER) navigate('/reviewer/dashboard');
-    else if (role === UserRole.SYSTEM_AUDITOR) navigate('/auditor/chain');
+    else if (role === UserRole.REVIEWER) navigate('/reviewer/queue');
+    else if (role === UserRole.SYSTEM_AUDITOR) navigate('/reviewer/queue');
   };
 
   return (

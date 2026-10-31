@@ -78,13 +78,13 @@ export const EmployerDashboardPage: React.FC = () => {
         </div>
 
         <Button
-          onClick={() => navigate('/employer/jobs/new')}
+          onClick={() => navigate('/employer/jobs')}
           variant="white"
           size="sm"
           leftIcon={<Plus className="w-4 h-4" />}
           className="shrink-0 self-start sm:self-auto cursor-pointer font-semibold shadow-sm"
         >
-          New Requisition
+          Manage Requisitions
         </Button>
       </div>
 
@@ -180,7 +180,7 @@ export const EmployerDashboardPage: React.FC = () => {
                 <p className="text-xs text-muted font-medium mt-0.5">Applicants and evidence verification states</p>
               </div>
               <Link
-                to="/employer/applications"
+                to="/employer/applications/app-001"
                 className="text-xs font-semibold text-muted hover:text-ink flex items-center gap-1 transition-colors"
               >
                 <span>View All</span>
@@ -246,7 +246,7 @@ export const EmployerDashboardPage: React.FC = () => {
                 {jobs.slice(0, 3).map((job) => (
                   <div
                     key={job.id}
-                    onClick={() => navigate(`/employer/jobs/${job.id}`)}
+                    onClick={() => navigate('/employer/jobs')}
                     className="p-3.5 rounded-sm bg-elevated hover:bg-elevated/80 border border-subtle cursor-pointer transition-colors space-y-1.5"
                   >
                     <div className="flex items-start justify-between">
@@ -273,7 +273,7 @@ export const EmployerDashboardPage: React.FC = () => {
 
               <div className="space-y-2">
                 <button
-                  onClick={() => navigate('/employer/jobs/new')}
+                  onClick={() => navigate('/employer/jobs')}
                   className="w-full p-3 rounded-sm bg-elevated hover:bg-elevated/80 border border-subtle text-left transition-colors flex items-center justify-between cursor-pointer group"
                 >
                   <div className="flex items-center gap-2.5">
@@ -287,28 +287,28 @@ export const EmployerDashboardPage: React.FC = () => {
                 </button>
 
                 <button
-                  onClick={() => navigate('/auditor/chain')}
+                  onClick={() => navigate('/reviewer/queue')}
                   className="w-full p-3 rounded-sm bg-elevated hover:bg-elevated/80 border border-subtle text-left transition-colors flex items-center justify-between cursor-pointer group"
                 >
                   <div className="flex items-center gap-2.5">
-                    <ShieldCheck className="w-4 h-4 text-accent shrink-0" />
+                    <CheckSquare className="w-4 h-4 text-accent shrink-0" />
                     <div>
-                      <span className="text-xs font-semibold text-ink block">Verify Audit Chain</span>
-                      <span className="text-[11px] text-muted font-medium">Cryptographic SHA-256 proof</span>
+                      <span className="text-xs font-semibold text-ink block">Triage Review Cases</span>
+                      <span className="text-[11px] text-muted font-medium">Adjudicate ungrounded claims</span>
                     </div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-muted group-hover:text-ink transition-colors" />
                 </button>
 
                 <button
-                  onClick={() => navigate('/benchmark')}
+                  onClick={() => navigate('/employer/applications/app-001')}
                   className="w-full p-3 rounded-sm bg-elevated hover:bg-elevated/80 border border-subtle text-left transition-colors flex items-center justify-between cursor-pointer group"
                 >
                   <div className="flex items-center gap-2.5">
-                    <BarChart3 className="w-4 h-4 text-accent shrink-0" />
+                    <Users className="w-4 h-4 text-accent shrink-0" />
                     <div>
-                      <span className="text-xs font-semibold text-ink block">Run ATS Benchmark</span>
-                      <span className="text-[11px] text-muted font-medium">Compare evidence vs keyword scoring</span>
+                      <span className="text-xs font-semibold text-ink block">Candidate Dossiers</span>
+                      <span className="text-[11px] text-muted font-medium">Inspect OCR citations & scores</span>
                     </div>
                   </div>
                   <ChevronRight className="w-4 h-4 text-muted group-hover:text-ink transition-colors" />

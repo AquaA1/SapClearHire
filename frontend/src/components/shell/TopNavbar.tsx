@@ -13,22 +13,22 @@ export const TopNavbar: React.FC = () => {
     switchRole(newRole);
     if (newRole === UserRole.CANDIDATE) navigate('/candidate/dashboard');
     else if (newRole === UserRole.EMPLOYER_ADMIN) navigate('/employer/dashboard');
-    else if (newRole === UserRole.REVIEWER) navigate('/reviewer/dashboard');
-    else if (newRole === UserRole.SYSTEM_AUDITOR) navigate('/auditor/chain');
+    else if (newRole === UserRole.REVIEWER) navigate('/reviewer/queue');
+    else if (newRole === UserRole.SYSTEM_AUDITOR) navigate('/reviewer/queue');
   };
 
   const getPrimaryActionLabel = () => {
-    if (role === UserRole.EMPLOYER_ADMIN) return '+ Add requisition';
+    if (role === UserRole.EMPLOYER_ADMIN) return '+ Manage requisitions';
     if (role === UserRole.CANDIDATE) return 'Browse jobs';
     if (role === UserRole.REVIEWER) return 'Triage queue';
-    return 'Scan ledger';
+    return 'Review queue';
   };
 
   const handlePrimaryAction = () => {
-    if (role === UserRole.EMPLOYER_ADMIN) navigate('/employer/jobs/new');
+    if (role === UserRole.EMPLOYER_ADMIN) navigate('/employer/jobs');
     else if (role === UserRole.CANDIDATE) navigate('/candidate/jobs');
     else if (role === UserRole.REVIEWER) navigate('/reviewer/queue');
-    else navigate('/auditor/chain');
+    else navigate('/reviewer/queue');
   };
 
   return (

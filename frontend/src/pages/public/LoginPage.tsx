@@ -54,9 +54,9 @@ export const LoginPage: React.FC = () => {
         } else if (selectedRole === UserRole.EMPLOYER_ADMIN) {
           navigate('/employer/dashboard');
         } else if (selectedRole === UserRole.REVIEWER) {
-          navigate('/reviewer/dashboard');
+          navigate('/reviewer/queue');
         } else if (selectedRole === UserRole.SYSTEM_AUDITOR) {
-          navigate('/auditor/chain');
+          navigate('/reviewer/queue');
         }
       }, 700);
     } finally {

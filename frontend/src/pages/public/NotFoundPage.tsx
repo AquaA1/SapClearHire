@@ -17,9 +17,9 @@ export const NotFoundPage: React.FC = () => {
       case UserRole.EMPLOYER_ADMIN:
         return '/employer/dashboard';
       case UserRole.REVIEWER:
-        return '/reviewer/dashboard';
+        return '/reviewer/queue';
       case UserRole.SYSTEM_AUDITOR:
-        return '/auditor/chain';
+        return '/reviewer/queue';
       default:
         return '/';
     }

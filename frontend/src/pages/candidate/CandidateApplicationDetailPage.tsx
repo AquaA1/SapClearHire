@@ -15,7 +15,8 @@ import {
 import { VerificationState } from '../../contracts/enums';
 
 export const CandidateApplicationDetailPage: React.FC = () => {
-  const { applicationId } = useParams<{ applicationId: string }>();
+  const { id, applicationId } = useParams<{ id?: string; applicationId?: string }>();
+  const appId = id || applicationId || 'app-001';
   const navigate = useNavigate();
 
   const [application, setApplication] = useState<Application | null>(null);
@@ -24,16 +25,14 @@ export const CandidateApplicationDetailPage: React.FC = () => {
   const [showSuccessToast, setShowSuccessToast] = useState(false);
 
   useEffect(() => {
-    if (applicationId) {
-      Promise.all([
-        mockService.getApplication(applicationId),
-        mockService.getEvaluation(applicationId),
-      ]).then(([app, ev]) => {
-        setApplication(app || mockService['applications'][0]);
-        setEvaluation(ev);
-      });
-    }
-  }, [applicationId]);
+    Promise.all([
+      mockService.getApplication(appId),
+      mockService.getEvaluation(appId),
+    ]).then(([app, ev]) => {
+      setApplication(app || mockService['applications'][0]);
+      setEvaluation(ev);
+    });
+  }, [appId]);
 
   const handleClarificationSubmit = async (statement: string) => {
     await mockService.submitClarification(statement);

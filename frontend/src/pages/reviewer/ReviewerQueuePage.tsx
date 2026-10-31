@@ -4,7 +4,8 @@ import { mockService } from '../../services/mock/mockService';
 import { ReviewFlagSummary } from '../../contracts/models';
 import { ReviewFlagStatus } from '../../contracts/enums';
 import { StatusBadge } from '../../components/ui/Badge';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, ShieldCheck, CheckSquare, Clock } from 'lucide-react';
+import { useAuth } from '../../stores/authStore';
 import {
   Table,
   TableHeader,
@@ -16,12 +17,17 @@ import {
 
 export const ReviewerQueuePage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [flags, setFlags] = useState<ReviewFlagSummary[]>([]);
   const [statusFilter, setStatusFilter] = useState<'ALL' | ReviewFlagStatus>('ALL');
 
   useEffect(() => {
     mockService.listReviewCases().then(setFlags);
   }, []);
+
+  const pendingCount = flags.filter((f) => f.status === ReviewFlagStatus.PENDING).length;
+  const underReviewCount = flags.filter((f) => f.status === ReviewFlagStatus.UNDER_REVIEW).length;
+  const resolvedCount = flags.filter((f) => f.status === ReviewFlagStatus.RESOLVED).length;
 
   const filteredFlags =
     statusFilter === 'ALL'
@@ -32,10 +38,55 @@ export const ReviewerQueuePage: React.FC = () => {
     <div className="max-w-7xl mx-auto space-y-6 select-none">
       {/* ── Header ────────────────────────────────────────────── */}
       <div className="pb-3 border-b border-subtle">
-        <h1 className="text-xl sm:text-2xl font-semibold text-ink tracking-tight">Review Cases Queue</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-ink tracking-tight">Review Cases Queue & Triage</h1>
         <p className="text-xs text-muted mt-1 font-medium">
-          Triage ambiguous and disputed candidate criteria. Select a case to open the side-by-side Decision Studio.
+          Triage ambiguous and disputed candidate criteria. Select any case to open the side-by-side Decision Studio.
         </p>
+      </div>
+
+      {/* ── Integrated Workload & Specialist Authority Stats ──── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-surface border border-subtle rounded-card p-5 shadow-card flex items-center justify-between">
+          <div>
+            <span className="text-3xl font-semibold text-warn tracking-tight block">
+              {pendingCount}
+            </span>
+            <span className="text-xs text-muted mt-1 font-medium block">
+              Pending Adjudication
+            </span>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-warn-dim border border-warn/30 text-warn flex items-center justify-center">
+            <Clock className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="bg-surface border border-subtle rounded-card p-5 shadow-card flex items-center justify-between">
+          <div>
+            <span className="text-3xl font-semibold text-success tracking-tight block">
+              {resolvedCount}
+            </span>
+            <span className="text-xs text-muted mt-1 font-medium block">
+              Signed Off Determinations
+            </span>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-success-dim border border-success/30 text-success flex items-center justify-center">
+            <CheckSquare className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="bg-surface border border-subtle rounded-card p-5 shadow-card flex items-center justify-between">
+          <div className="min-w-0 pr-2">
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+              <span className="text-[10px] font-mono text-accent uppercase font-medium">Authorized Signer</span>
+            </div>
+            <h4 className="text-xs font-semibold text-ink truncate">{user.full_name}</h4>
+            <span className="text-[11px] text-muted font-mono block mt-0.5">Human Reviewer Role</span>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-elevated border border-subtle text-accent flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+        </div>
       </div>
 
       {/* ── Filter Tabs ───────────────────────────────────────── */}
@@ -58,7 +109,7 @@ export const ReviewerQueuePage: React.FC = () => {
               : 'text-muted hover:text-ink'
           }`}
         >
-          Pending Action ({flags.filter((f) => f.status === ReviewFlagStatus.PENDING).length})
+          Pending Action ({pendingCount})
         </button>
         <button
           onClick={() => setStatusFilter(ReviewFlagStatus.UNDER_REVIEW)}
@@ -68,7 +119,7 @@ export const ReviewerQueuePage: React.FC = () => {
               : 'text-muted hover:text-ink'
           }`}
         >
-          Under Review ({flags.filter((f) => f.status === ReviewFlagStatus.UNDER_REVIEW).length})
+          Under Review ({underReviewCount})
         </button>
         <button
           onClick={() => setStatusFilter(ReviewFlagStatus.RESOLVED)}
@@ -78,7 +129,7 @@ export const ReviewerQueuePage: React.FC = () => {
               : 'text-muted hover:text-ink'
           }`}
         >
-          Resolved ({flags.filter((f) => f.status === ReviewFlagStatus.RESOLVED).length})
+          Resolved ({resolvedCount})
         </button>
       </div>
 

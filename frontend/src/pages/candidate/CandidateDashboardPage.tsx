@@ -150,9 +150,9 @@ export const CandidateDashboardPage: React.FC = () => {
                 </span>
               </div>
               <Link
-                to="/candidate/profile"
+                to="/candidate/applications"
                 className="text-muted hover:text-ink p-1 transition-colors"
-                title="View verified skills inventory"
+                title="View verified application evidence"
               >
                 <ArrowUpRight className="w-4 h-4" />
               </Link>
@@ -295,8 +295,8 @@ export const CandidateDashboardPage: React.FC = () => {
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">Evidence Ledger</h3>
                   <p className="text-xs text-muted font-medium">Auditable events for your profile</p>
                 </div>
-                <Link to="/auditor/chain" className="text-xs font-semibold text-muted hover:text-ink">
-                  Ledger Chain
+                <Link to="/candidate/applications" className="text-xs font-semibold text-muted hover:text-ink">
+                  All Records
                 </Link>
               </div>
 

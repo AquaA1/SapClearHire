@@ -15,27 +15,15 @@ import { CandidateJobsPage } from '../pages/candidate/CandidateJobsPage';
 import { CandidateJobDetailPage } from '../pages/candidate/CandidateJobDetailPage';
 import { CandidateApplicationsPage } from '../pages/candidate/CandidateApplicationsPage';
 import { CandidateApplicationDetailPage } from '../pages/candidate/CandidateApplicationDetailPage';
-import { CandidateProfilePage } from '../pages/candidate/CandidateProfilePage';
 
 // Employer Pages
 import { EmployerDashboardPage } from '../pages/employer/EmployerDashboardPage';
 import { EmployerJobsPage } from '../pages/employer/EmployerJobsPage';
-import { EmployerJobCreatePage } from '../pages/employer/EmployerJobCreatePage';
-import { EmployerJobDetailPage } from '../pages/employer/EmployerJobDetailPage';
-import { EmployerApplicationsPage } from '../pages/employer/EmployerApplicationsPage';
 import { EmployerApplicationDetailPage } from '../pages/employer/EmployerApplicationDetailPage';
 
 // Reviewer Pages
-import { ReviewerDashboardPage } from '../pages/reviewer/ReviewerDashboardPage';
 import { ReviewerQueuePage } from '../pages/reviewer/ReviewerQueuePage';
 import { ReviewCaseDetailPage } from '../pages/reviewer/ReviewCaseDetailPage';
-
-// Auditor Pages
-import { AuditorChainVerificationPage } from '../pages/auditor/AuditorChainVerificationPage';
-import { AuditorEventsPage } from '../pages/auditor/AuditorEventsPage';
-
-// Benchmark Page
-import { BenchmarkExplorerPage } from '../pages/benchmark/BenchmarkExplorerPage';
 
 export const router = createBrowserRouter([
   // Public Root Routes
@@ -83,7 +71,7 @@ export const router = createBrowserRouter([
       },
       {
         path: '/candidate/profile',
-        element: <CandidateProfilePage />
+        element: <Navigate to="/candidate/dashboard" replace />
       },
 
       // Employer Routes
@@ -97,15 +85,15 @@ export const router = createBrowserRouter([
       },
       {
         path: '/employer/jobs/new',
-        element: <EmployerJobCreatePage />
+        element: <Navigate to="/employer/jobs" replace />
       },
       {
         path: '/employer/jobs/:jobId',
-        element: <EmployerJobDetailPage />
+        element: <Navigate to="/employer/jobs" replace />
       },
       {
         path: '/employer/applications',
-        element: <EmployerApplicationsPage />
+        element: <Navigate to="/employer/applications/app-001" replace />
       },
       {
         path: '/employer/applications/:id',
@@ -115,7 +103,7 @@ export const router = createBrowserRouter([
       // Reviewer Routes
       {
         path: '/reviewer/dashboard',
-        element: <ReviewerDashboardPage />
+        element: <Navigate to="/reviewer/queue" replace />
       },
       {
         path: '/reviewer/queue',
@@ -126,24 +114,26 @@ export const router = createBrowserRouter([
         element: <ReviewCaseDetailPage />
       },
 
-      // Auditor Routes
+      // Auditor & Benchmark Graceful Redirects
       {
         path: '/auditor/chain',
-        element: <AuditorChainVerificationPage />
+        element: <Navigate to="/reviewer/queue" replace />
       },
       {
         path: '/auditor/events',
-        element: <AuditorEventsPage />
+        element: <Navigate to="/reviewer/queue" replace />
       },
       {
         path: '/auditor/dashboard',
-        element: <Navigate to="/auditor/chain" replace />
+        element: <Navigate to="/reviewer/queue" replace />
       },
-
-      // Benchmark / Simulation Explorer
+      {
+        path: '/auditor/*',
+        element: <Navigate to="/reviewer/queue" replace />
+      },
       {
         path: '/benchmark',
-        element: <BenchmarkExplorerPage />
+        element: <Navigate to="/employer/jobs" replace />
       }
     ]
   },
