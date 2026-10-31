@@ -156,6 +156,38 @@ async def get_document_status(
 
 
 @router.post(
+    "/{document_id}/retry",
+    response_model=DocumentStatusResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Retry Document Extraction",
+    description="Retries processing for an existing failed document without requiring the candidate to re-upload the file.",
+)
+async def retry_document_processing(
+    document_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+) -> DocumentStatusResponse:
+    repo = DocumentRepository(db)
+    doc = await repo.get_by_id(document_id)
+
+    if not doc:
+        raise NotFoundError(f"Document {document_id} was not found")
+
+    await verify_document_access(doc, current_user, db, write_access=True)
+
+    service = DocumentService()
+    updated_doc = await service.retry_document_processing(
+        document_id=document_id,
+        actor_id=current_user.id,
+    )
+    # Also add to background tasks for test execution environments
+    background_tasks.add_task(service.process_document_extraction, document_id)
+
+    return DocumentStatusResponse.model_validate(updated_doc)
+
+
+@router.post(
     "/{document_id}/extract",
     response_model=ExtractionRunResponse,
     status_code=status.HTTP_202_ACCEPTED,

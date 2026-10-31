@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 from datetime import UTC, datetime
 from typing import Any
@@ -24,6 +25,9 @@ class AIExtractionService:
     prompt injection defense, deduplication, conflict detection, and immutable persistence.
     """
 
+    _lock = asyncio.Lock()
+    _active_run_ids: set[uuid.UUID] = set()
+
     def __init__(
         self,
         llm_provider: BaseLLMProvider | None = None,
@@ -46,43 +50,72 @@ class AIExtractionService:
         5. Performs deduplication and detects chronological / claim conflicts.
         6. Persists ExtractionRun, CandidateSkill, and EvidenceItem records.
         """
-        # Step 1: Fetch document & initialize or update run to PROCESSING
-        async with self.session_factory() as session:
-            doc_repo = DocumentRepository(session)
-            doc = await doc_repo.get_by_id(document_id)
-            if not doc:
-                raise ValueError(f"Document {document_id} not found")
-
-            candidate_id = doc.candidate_id
-            document_hash = doc.file_hash
-            raw_pages_raw = doc.extracted_text_by_page or {}
-            # Ensure integer keys
-            resume_pages: dict[int, str] = {int(k): str(v) for k, v in raw_pages_raw.items()}
-
-            if not resume_pages:
-                raise ValueError(f"Document {document_id} contains no extracted page text")
-
-            ext_repo = ExtractionRepository(session)
-            if run_id:
-                run = await ext_repo.get_by_id(run_id)
-                if not run:
-                    raise ValueError(f"Extraction run {run_id} not found")
-                run.status = DocumentProcessingStatus.PROCESSING
-                run.started_at = datetime.now(UTC)
-                await session.commit()
-            else:
-                provider_name = getattr(self.llm_provider, "provider_name", "fake")
-                model_name = getattr(self.llm_provider, "model_name", "default")
-                run = await ext_repo.create_extraction_run(
-                    document_id=document_id,
-                    provider=provider_name,
-                    model_name=model_name,
-                    status=DocumentProcessingStatus.PROCESSING,
-                )
-                run_id = run.id
-                await session.commit()
+        # Concurrency protection: prevent simultaneous processing of the same extraction run
+        if run_id:
+            async with self._lock:
+                if run_id in self._active_run_ids:
+                    logger.info(
+                        "Extraction run %s is already being processed; skipping duplicate task.",
+                        run_id,
+                    )
+                    async with self.session_factory() as session:
+                        ext_repo = ExtractionRepository(session)
+                        run = await ext_repo.get_by_id(run_id)
+                        skills = await ext_repo.get_candidate_skills_for_run(run_id)
+                        evidence = await ext_repo.get_evidence_items_for_run(run_id)
+                        return run, skills, evidence
+                self._active_run_ids.add(run_id)
 
         try:
+            # Step 1: Fetch document & initialize or update run to PROCESSING
+            async with self.session_factory() as session:
+                doc_repo = DocumentRepository(session)
+                doc = await doc_repo.get_by_id(document_id)
+                if not doc:
+                    raise ValueError(f"Document {document_id} not found")
+
+                candidate_id = doc.candidate_id
+                document_hash = doc.file_hash
+                raw_pages_raw = doc.extracted_text_by_page or {}
+                # Ensure integer keys
+                resume_pages: dict[int, str] = {int(k): str(v) for k, v in raw_pages_raw.items()}
+
+                if not resume_pages:
+                    raise ValueError(f"Document {document_id} contains no extracted page text")
+
+                ext_repo = ExtractionRepository(session)
+                if run_id:
+                    run = await ext_repo.get_by_id(run_id)
+                    if not run:
+                        raise ValueError(f"Extraction run {run_id} not found")
+                    # If already completed, return existing results without re-extracting
+                    if run.status == DocumentProcessingStatus.COMPLETED:
+                        logger.info(
+                            "Extraction run %s already completed; returning existing results.",
+                            run_id,
+                        )
+                        skills = await ext_repo.get_candidate_skills_for_run(run.id)
+                        evidence = await ext_repo.get_evidence_items_for_run(run.id)
+                        return run, skills, evidence
+
+                    # Clear any partial artifacts from previous interrupted attempts to prevent duplicates
+                    await ext_repo.clear_run_artifacts(run_id)
+
+                    run.status = DocumentProcessingStatus.PROCESSING
+                    run.started_at = datetime.now(UTC)
+                    await session.commit()
+                else:
+                    provider_name = getattr(self.llm_provider, "provider_name", "fake")
+                    model_name = getattr(self.llm_provider, "model_name", "default")
+                    run = await ext_repo.create_extraction_run(
+                        document_id=document_id,
+                        provider=provider_name,
+                        model_name=model_name,
+                        status=DocumentProcessingStatus.PROCESSING,
+                    )
+                    run_id = run.id
+                    await session.commit()
+
             # Step 2: Detect prompt injection attempts in raw input
             injection_flags: list[str] = []
             for p_num, p_text in resume_pages.items():
@@ -362,3 +395,8 @@ class AIExtractionService:
                 )
                 await session.commit()
             raise
+        finally:
+            if run_id:
+                async with self._lock:
+                    self._active_run_ids.discard(run_id)
+

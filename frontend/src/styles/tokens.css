@@ -1,0 +1,57 @@
+/* ============================================================
+   ClearHire Design Tokens
+   Sampled from reference screenshot (HRadar-style dark SaaS)
+   ALL styling MUST reference these variables. High contrast
+   readability guaranteed across all dark surfaces.
+   ============================================================ */
+
+:root {
+  /* ── Surfaces ─────────────────────────────────────────── */
+  --canvas:        #0F1012;           /* page floor / sidebar */
+  --surface:       #17181C;           /* card / panel */
+  --elevated:      #1E2027;           /* nested insets, icon wells */
+
+  /* ── Borders ──────────────────────────────────────────── */
+  --border:        rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.18);
+
+  /* ── Text (High-Contrast & Fully Legible) ─────────────── */
+  --ink:           #FFFFFF;           /* primary text, values, titles */
+  --ink-secondary: #E5E7EB;           /* primary body text */
+  --muted:         #CBD5E1;           /* secondary labels, metadata, table headers (crisp high contrast) */
+  --muted-dim:     #94A3B8;           /* subtle fine print */
+
+  /* ── Single accent (Mint / Aqua) ──────────────────────── */
+  --accent:        #3ECFBF;
+  --accent-dim:    rgba(62, 207, 191, 0.14);
+
+  /* ── Status Colors ────────────────────────────────────── */
+  --success:       #34D399;
+  --success-dim:   rgba(52, 211, 153, 0.15);
+  --warn:          #FBBF24;
+  --warn-dim:      rgba(251, 191, 36, 0.15);
+  --danger:        #F87171;
+  --danger-dim:    rgba(248, 113, 113, 0.15);
+
+  /* ── Radii ────────────────────────────────────────────── */
+  --radius-card:   20px;
+  --radius-sm:     10px;
+  --radius-pill:   9999px;
+
+  /* ── Spacing (4px grid) ───────────────────────────────── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* ── Typography ───────────────────────────────────────── */
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* ── Sidebar ──────────────────────────────────────────── */
+  --sidebar-w: 72px;
+}

@@ -1,0 +1,133 @@
+@import '../../styles/tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  ::selection {
+    background-color: var(--accent);
+    color: var(--canvas);
+  }
+}
+
+/* Custom dark scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* ========================================================= */
+/* SEAMLESS BLACK-AND-WHITE FLUID LIGHT ANIMATIONS           */
+/* ========================================================= */
+@keyframes fluidLightDrift1 {
+  0% {
+    transform: translate(0%, 0%) scale(1) rotate(0deg);
+    opacity: 0.65;
+  }
+  25% {
+    transform: translate(18%, -10%) scale(1.2, 0.9) rotate(8deg);
+    opacity: 0.85;
+  }
+  50% {
+    transform: translate(32%, 14%) scale(0.95, 1.25) rotate(-6deg);
+    opacity: 0.6;
+  }
+  75% {
+    transform: translate(14%, 20%) scale(1.15, 1.05) rotate(4deg);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(0%, 0%) scale(1) rotate(0deg);
+    opacity: 0.65;
+  }
+}
+
+@keyframes fluidLightDrift2 {
+  0% {
+    transform: translate(0%, 0%) scale(1.1) rotate(0deg);
+    opacity: 0.45;
+  }
+  33% {
+    transform: translate(-22%, 16%) scale(0.9, 1.2) rotate(-10deg);
+    opacity: 0.75;
+  }
+  66% {
+    transform: translate(-10%, -16%) scale(1.2, 0.95) rotate(12deg);
+    opacity: 0.55;
+  }
+  100% {
+    transform: translate(0%, 0%) scale(1.1) rotate(0deg);
+    opacity: 0.45;
+  }
+}
+
+@keyframes verticalBeamPulse {
+  0%, 100% {
+    opacity: 0.2;
+    transform: scaleY(0.85);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scaleY(1.15);
+  }
+}
+
+.animate-fluid-light-1 {
+  animation: fluidLightDrift1 22s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-fluid-light-2 {
+  animation: fluidLightDrift2 28s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.animate-beam-pulse {
+  animation: verticalBeamPulse 6s ease-in-out infinite;
+}
+
+/* Character Breathing & Idle Animations */
+@keyframes bodyBreathe {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.015, 0.985);
+  }
+}
+
+@keyframes characterSway {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  33% {
+    transform: rotate(1.2deg);
+  }
+  66% {
+    transform: rotate(-1deg);
+  }
+}
+
+.animate-body-breathe {
+  animation: bodyBreathe 4s ease-in-out infinite;
+}
+
+.animate-character-sway {
+  animation: characterSway 6s ease-in-out infinite;
+}

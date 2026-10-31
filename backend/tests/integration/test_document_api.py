@@ -2,6 +2,7 @@ import uuid
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import UserRole, create_access_token
 from tests.helpers import generate_blank_pdf, generate_sample_pdf
@@ -245,3 +246,40 @@ async def test_unauthenticated_request_rejected(client: AsyncClient):
     res_get = await client.get(f"/api/v1/documents/{uuid.uuid4()}/status")
     assert res_get.status_code == 401
     assert res_get.json()["error"]["code"] == "AUTHENTICATION_FAILED"
+
+
+@pytest.mark.asyncio
+async def test_retry_failed_document_processing_via_api(client: AsyncClient, test_session: AsyncSession):
+    candidate_id = str(uuid.uuid4())
+    token = create_access_token(subject=candidate_id, role=UserRole.CANDIDATE)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    pdf_content = generate_sample_pdf(["Charles Brown - Python Expert", "FastAPI & Microservices"])
+    files = {"file": ("charles_resume.pdf", pdf_content, "application/pdf")}
+    res = await client.post("/api/v1/documents", headers=headers, files=files)
+    assert res.status_code == 202
+    doc_id = res.json()["id"]
+
+    # Artificially set document to FAILED to simulate interrupted/failed run
+    from sqlalchemy import select
+
+    from app.db.models.document import Document
+    from app.db.models.enums import DocumentProcessingStatus
+    q = await test_session.execute(select(Document).where(Document.id == uuid.UUID(doc_id)))
+    doc = q.scalar_one()
+    doc.processing_status = DocumentProcessingStatus.FAILED
+    doc.processing_error = {"code": "INTERRUPTED", "message": "Failed mid-process"}
+    await test_session.commit()
+
+    # Call retry endpoint
+    retry_res = await client.post(f"/api/v1/documents/{doc_id}/retry", headers=headers)
+    assert retry_res.status_code == 202
+    retry_data = retry_res.json()
+    assert retry_data["id"] == doc_id
+
+    # Poll status: should now be completed
+    status_res = await client.get(f"/api/v1/documents/{doc_id}/status", headers=headers)
+    assert status_res.status_code == 200
+    assert status_res.json()["processing_status"] == "completed"
+    assert status_res.json()["processing_error"] is None
+

@@ -2,7 +2,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -711,3 +711,14 @@ class ExtractionRepository(BaseRepository[ExtractionRun]):
         )
         result = await self.session.execute(query)
         return list(result.scalars().all())
+
+    async def clear_run_artifacts(self, extraction_run_id: uuid.UUID) -> None:
+        """Deletes any partial CandidateSkill and EvidenceItem records for this run to prevent duplicates on retry."""
+        await self.session.execute(
+            delete(CandidateSkill).where(CandidateSkill.extraction_run_id == extraction_run_id)
+        )
+        await self.session.execute(
+            delete(EvidenceItem).where(EvidenceItem.extraction_run_id == extraction_run_id)
+        )
+        await self.session.flush()
+

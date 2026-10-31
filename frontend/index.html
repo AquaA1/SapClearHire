@@ -1,122 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ClearHire — Hiring Evidence Transparency Platform | SAP Hackfest 2026</title>
-  <meta name="description" content="ClearHire maps verifiable candidate evidence to explicit job criteria with source grounding, human reviewer rationales, candidate clarifications, and cryptographic tamper-evidence." />
-
-  <!-- Preconnect to Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-  <!-- Stylesheets -->
-  <link rel="stylesheet" href="css/index.css" />
-  <link rel="stylesheet" href="css/components.css" />
-  <link rel="stylesheet" href="css/views.css" />
-  <link rel="stylesheet" href="css/animations.css" />
-
-  <!-- Favicon svg -->
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%232563eb'/><text x='50%' y='65%' font-size='60' font-weight='800' fill='white' text-anchor='middle'>CH</text></svg>" />
-</head>
-<body>
-  <div id="app">
-    <!-- Top Sticky Header -->
-    <header class="app-header">
-      <div class="header-container">
-        <!-- Logo & Brand Title -->
-        <div class="brand-section">
-          <div class="brand-logo-icon">CH</div>
-          <div class="brand-titles">
-            <div class="brand-name">
-              ClearHire
-              <span class="brand-tag">SAP Hackfest 2026</span>
-            </div>
-            <div class="brand-subtitle">Hiring Evidence Transparency & Verification Platform</div>
-          </div>
-        </div>
-
-        <!-- Controls: Live Status & Persona Switcher -->
-        <div class="header-controls">
-          <!-- Backend Connectivity Status -->
-          <div class="status-indicator" id="header-status-indicator" title="Probes /api/v1/health/ready for PostgreSQL and process liveness">
-            <span class="status-dot live" id="header-status-dot"></span>
-            <span id="header-status-text">FastAPI Phase 1</span>
-          </div>
-
-          <!-- Active Persona Selector -->
-          <div class="persona-selector-container">
-            <span class="persona-label">Persona:</span>
-            <select class="persona-select" id="header-persona-select" aria-label="Select User Persona">
-              <option value="REVIEWER">Reviewer (Elena Rostova)</option>
-              <option value="CANDIDATE">Candidate (Marcus Vance)</option>
-              <option value="EMPLOYER_ADMIN">Employer Admin (Enterprise HR)</option>
-              <option value="SYSTEM_AUDITOR">System Auditor (Compliance)</option>
-            </select>
-          </div>
-        </div>
-      </div>
-    </header>
-
-    <!-- Navigation Tabs Bar -->
-    <nav class="app-nav-bar" aria-label="Main Navigation">
-      <ul class="nav-tabs">
-        <li>
-          <button class="nav-tab-btn active" data-tab="dashboard" id="nav-btn-dashboard">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
-            Command Center
-          </button>
-        </li>
-        <li>
-          <button class="nav-tab-btn" data-tab="candidate" id="nav-btn-candidate">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-            Candidate Portal
-          </button>
-        </li>
-        <li>
-          <button class="nav-tab-btn" data-tab="reviewer" id="nav-btn-reviewer">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-            Human Review Desk
-            <span class="tab-badge highlight" id="badge-review-count">1</span>
-          </button>
-        </li>
-        <li>
-          <button class="nav-tab-btn" data-tab="employer" id="nav-btn-employer">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-            Job & Criteria Studio
-          </button>
-        </li>
-        <li>
-          <button class="nav-tab-btn" data-tab="benchmark" id="nav-btn-benchmark">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-            Fairness Benchmark
-          </button>
-        </li>
-        <li>
-          <button class="nav-tab-btn" data-tab="audit" id="nav-btn-audit">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-            Cryptographic Ledger
-          </button>
-        </li>
-        <li>
-          <button class="nav-tab-btn" data-tab="settings" id="nav-btn-settings">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-            API Playground
-          </button>
-        </li>
-      </ul>
-    </nav>
-
-    <!-- Main Dynamic View Container -->
-    <main id="main-content" class="main-content">
-      <!-- Rendered dynamically by views/*.js -->
-    </main>
-
-    <!-- Global Toast Container -->
-    <div id="toast-container" class="toast-container"></div>
-  </div>
-
-  <!-- Application Module Script -->
-  <script type="module" src="js/app.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23F9D638'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ClearHire — Hiring Evidence Transparency Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-workspace text-navy font-sans antialiased selection:bg-yellow-accent selection:text-navy">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
