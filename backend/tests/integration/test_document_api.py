@@ -76,9 +76,15 @@ async def test_candidate_cannot_view_another_candidates_document(client: AsyncCl
 async def test_reviewer_can_view_candidate_document_status(client: AsyncClient):
     candidate_id = str(uuid.uuid4())
     reviewer_id = str(uuid.uuid4())
+    other_reviewer_id = str(uuid.uuid4())
 
     candidate_token = create_access_token(subject=candidate_id, role=UserRole.CANDIDATE)
-    reviewer_token = create_access_token(subject=reviewer_id, role=UserRole.REVIEWER)
+    reviewer_token = create_access_token(
+        subject=reviewer_id, role=UserRole.REVIEWER, employer_id="org-acme"
+    )
+    other_reviewer_token = create_access_token(
+        subject=other_reviewer_id, role=UserRole.REVIEWER, employer_id="org-other"
+    )
 
     pdf_content = generate_sample_pdf(["Reviewer Accessible Candidate Resume"])
     files = {"file": ("resume.pdf", pdf_content, "application/pdf")}
@@ -90,13 +96,56 @@ async def test_reviewer_can_view_candidate_document_status(client: AsyncClient):
     )
     doc_id = upload_res.json()["id"]
 
-    # Reviewer polls candidate status
+    # 1. Before application: unlinked document cannot be accessed by reviewer (403)
+    unlinked_res = await client.get(
+        f"/api/v1/documents/{doc_id}/status",
+        headers={"Authorization": f"Bearer {reviewer_token}"},
+    )
+    assert unlinked_res.status_code == 403
+
+    # 2. Reviewer creates a job in their organization
+    job_res = await client.post(
+        "/api/v1/jobs",
+        headers={"Authorization": f"Bearer {reviewer_token}"},
+        json={
+            "title": "Backend Reviewer Test Job",
+            "criteria": [
+                {
+                    "name": "Python",
+                    "category": "required",
+                    "weight": 1.0,
+                }
+            ],
+        },
+    )
+    assert job_res.status_code == 201
+    job_id = job_res.json()["id"]
+
+    # 3. Candidate submits application with this document to reviewer's job
+    app_res = await client.post(
+        "/api/v1/applications",
+        headers={"Authorization": f"Bearer {candidate_token}"},
+        json={
+            "job_id": job_id,
+            "primary_document_id": doc_id,
+        },
+    )
+    assert app_res.status_code == 201
+
+    # 4. Owning organization's reviewer can now access the document status (200)
     reviewer_res = await client.get(
         f"/api/v1/documents/{doc_id}/status",
         headers={"Authorization": f"Bearer {reviewer_token}"},
     )
     assert reviewer_res.status_code == 200
     assert reviewer_res.json()["id"] == doc_id
+
+    # 5. Other organization's reviewer cannot access document status (403)
+    other_res = await client.get(
+        f"/api/v1/documents/{doc_id}/status",
+        headers={"Authorization": f"Bearer {other_reviewer_token}"},
+    )
+    assert other_res.status_code == 403
 
 
 @pytest.mark.asyncio

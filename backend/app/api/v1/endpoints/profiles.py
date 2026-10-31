@@ -1,10 +1,14 @@
 import uuid
 
 from fastapi import APIRouter, Depends
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.exceptions import AuthorizationError
 from app.core.security import CurrentUser, UserRole, get_current_user
+from app.db.models.application import Application
+from app.db.models.job import Job
 from app.db.session import get_db_session
 from app.repositories.domain import ExtractionRepository
 from app.schemas.evaluation import CandidateProfileSkillsResponse, ProfileSkillItem
@@ -23,8 +27,41 @@ async def get_candidate_skills(
     current_user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session),
 ) -> CandidateProfileSkillsResponse:
-    if current_user.role == UserRole.CANDIDATE and current_user.id != str(id):
-        raise AuthorizationError("Candidates may only access their own profile skill inventory.")
+    if current_user.role == UserRole.CANDIDATE:
+        if current_user.id != str(id):
+            raise AuthorizationError(
+                "Candidates may only access their own profile skill inventory."
+            )
+    elif current_user.role == UserRole.SYSTEM_AUDITOR:
+        pass
+    elif current_user.role in (UserRole.EMPLOYER_ADMIN, UserRole.REVIEWER):
+        stmt = (
+            select(Application)
+            .options(selectinload(Application.job).selectinload(Job.creator))
+            .where(Application.candidate_id == id)
+        )
+        res = await db.execute(stmt)
+        apps = res.scalars().all()
+
+        authorized = False
+        for app in apps:
+            if app.job:
+                is_creator = str(app.job.employer_id) == current_user.id
+                org_matches = bool(
+                    current_user.employer_id
+                    and app.job.creator
+                    and app.job.creator.employer_id == current_user.employer_id
+                )
+                if is_creator or org_matches:
+                    authorized = True
+                    break
+
+        if not authorized:
+            raise AuthorizationError(
+                "You are not authorized to view candidate profiles outside your organization."
+            )
+    else:
+        raise AuthorizationError("You are not authorized to access this profile.")
 
     extraction_repo = ExtractionRepository(db)
     raw_skills = await extraction_repo.get_skills_for_candidate(id)

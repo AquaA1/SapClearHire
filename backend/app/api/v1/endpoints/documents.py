@@ -1,11 +1,16 @@
 import uuid
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, UploadFile, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.exceptions import AuthorizationError, ConflictError, NotFoundError, ValidationError
 from app.core.security import CurrentUser, UserRole, get_current_user
+from app.db.models.application import Application
+from app.db.models.document import Document
 from app.db.models.enums import DocumentProcessingStatus
+from app.db.models.job import Job
 from app.db.models.user import User
 from app.db.session import get_db_session
 from app.repositories.domain import DocumentRepository, ExtractionRepository, UserRepository
@@ -20,6 +25,60 @@ from app.services.document import DocumentService
 from app.services.extraction import AIExtractionService
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
+
+
+async def verify_document_access(
+    doc: Document,
+    current_user: CurrentUser,
+    db: AsyncSession,
+    write_access: bool = False,
+) -> None:
+    """
+    Enforces strict tenant and ownership authorization on documents.
+    - Candidates may only access their own documents.
+    - Employer administrators and reviewers may only access documents linked to an application
+      for a job requisition owned by their organization.
+    - System auditors have read-only access and cannot trigger write operations.
+    """
+    if current_user.role == UserRole.CANDIDATE:
+        if doc.candidate_id != uuid.UUID(current_user.id):
+            raise AuthorizationError("You are not authorized to access this document")
+        return
+
+    if current_user.role == UserRole.SYSTEM_AUDITOR:
+        if write_access:
+            raise AuthorizationError("Auditors do not have permission to trigger extraction")
+        return
+
+    if current_user.role in (UserRole.EMPLOYER_ADMIN, UserRole.REVIEWER):
+        stmt = (
+            select(Application)
+            .options(selectinload(Application.job).selectinload(Job.creator))
+            .where(Application.primary_document_id == doc.id)
+        )
+        res = await db.execute(stmt)
+        apps = res.scalars().all()
+
+        authorized = False
+        for app in apps:
+            if app.job:
+                is_creator = str(app.job.employer_id) == current_user.id
+                org_matches = bool(
+                    current_user.employer_id
+                    and app.job.creator
+                    and app.job.creator.employer_id == current_user.employer_id
+                )
+                if is_creator or org_matches:
+                    authorized = True
+                    break
+
+        if not authorized:
+            raise AuthorizationError(
+                "You are not authorized to access documents outside your organization"
+            )
+        return
+
+    raise AuthorizationError("You are not authorized to access this document")
 
 
 @router.post(
@@ -91,9 +150,7 @@ async def get_document_status(
     if not doc:
         raise NotFoundError(f"Document {document_id} was not found")
 
-    # Candidates are strictly restricted to their own documents
-    if current_user.role == UserRole.CANDIDATE and doc.candidate_id != uuid.UUID(current_user.id):
-        raise AuthorizationError("You are not authorized to view this document")
+    await verify_document_access(doc, current_user, db, write_access=False)
 
     return DocumentStatusResponse.model_validate(doc)
 
@@ -117,8 +174,7 @@ async def trigger_ai_extraction(
     if not doc:
         raise NotFoundError(f"Document {document_id} was not found")
 
-    if current_user.role == UserRole.CANDIDATE and doc.candidate_id != uuid.UUID(current_user.id):
-        raise AuthorizationError("You are not authorized to extract from this document")
+    await verify_document_access(doc, current_user, db, write_access=True)
 
     # 1. Reject if PDF text extraction is still queued or processing (HTTP 409)
     if doc.processing_status in (
@@ -222,8 +278,7 @@ async def get_extraction_results(
     if not doc:
         raise NotFoundError(f"Document {document_id} was not found")
 
-    if current_user.role == UserRole.CANDIDATE and doc.candidate_id != uuid.UUID(current_user.id):
-        raise AuthorizationError("You are not authorized to view this document's extractions")
+    await verify_document_access(doc, current_user, db, write_access=False)
 
     ext_repo = ExtractionRepository(db)
     run = await ext_repo.get_latest_run_for_document(document_id)
