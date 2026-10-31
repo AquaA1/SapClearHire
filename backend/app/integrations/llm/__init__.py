@@ -5,6 +5,7 @@ from app.integrations.llm.real import HTTPClientLLMProvider
 from app.integrations.llm.schemas import (
     CandidateClaim,
     EvidenceStatus,
+    ExtractedCertification,
     ExtractedEducation,
     ExtractedExperience,
     ExtractedProject,
@@ -44,6 +45,7 @@ __all__ = [
     "HTTPClientLLMProvider",
     "CandidateClaim",
     "EvidenceStatus",
+    "ExtractedCertification",
     "ExtractedEducation",
     "ExtractedExperience",
     "ExtractedProject",

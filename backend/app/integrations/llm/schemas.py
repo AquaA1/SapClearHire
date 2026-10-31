@@ -41,8 +41,10 @@ class ExtractedSkill(BaseModel):
 class ExtractedExperience(BaseModel):
     """Structured employment or work experience claim."""
 
-    job_title: str = Field(..., min_length=1, description="Job title or role")
-    company: str | None = Field(default=None, description="Employer or organization name")
+    job_title: str | None = Field(default=None, description="Job title or role if mentioned")
+    company: str | None = Field(
+        default=None, description="Employer or organization name if mentioned"
+    )
     start_date: str | None = Field(
         default=None, description="Start date string (e.g. YYYY-MM, YYYY, or text)"
     )
@@ -59,7 +61,9 @@ class ExtractedExperience(BaseModel):
 class ExtractedProject(BaseModel):
     """Structured project or portfolio claim."""
 
-    project_name: str = Field(..., min_length=1, description="Name or title of project")
+    project_name: str | None = Field(
+        default=None, description="Name or title of project if specified"
+    )
     description: str | None = Field(default=None, description="Brief summary of project scope")
     technologies: list[str] = Field(
         default_factory=list, description="Tools or languages used in the project"
@@ -70,11 +74,33 @@ class ExtractedProject(BaseModel):
 class ExtractedEducation(BaseModel):
     """Structured academic or credential qualification."""
 
-    institution: str = Field(..., min_length=1, description="University, college, or school")
+    institution: str | None = Field(
+        default=None,
+        description="University, college, school, or issuing organization if mentioned",
+    )
     degree: str | None = Field(default=None, description="Degree or certificate name")
     field_of_study: str | None = Field(default=None, description="Major or area of specialization")
     graduation_date: str | None = Field(default=None, description="Graduation year or date")
     source_quote: SourceQuote = Field(..., description="Exact quote grounding this education")
+
+
+class ExtractedCertification(BaseModel):
+    """Structured professional certification or license."""
+
+    certification_name: str | None = Field(
+        default=None, description="Name or title of certification or license"
+    )
+    issuing_organization: str | None = Field(
+        default=None, description="Issuing organization or authority (e.g. AWS, Cisco, SAP)"
+    )
+    issue_date: str | None = Field(default=None, description="Date or year of certification issue")
+    expiration_date: str | None = Field(
+        default=None, description="Expiration date or year if applicable"
+    )
+    credential_id: str | None = Field(
+        default=None, description="Credential ID or license identifier"
+    )
+    source_quote: SourceQuote = Field(..., description="Exact quote grounding this certification")
 
 
 class ExtractedResumeProfile(BaseModel):
@@ -87,6 +113,7 @@ class ExtractedResumeProfile(BaseModel):
     experiences: list[ExtractedExperience] = Field(default_factory=list)
     projects: list[ExtractedProject] = Field(default_factory=list)
     education: list[ExtractedEducation] = Field(default_factory=list)
+    certifications: list[ExtractedCertification] = Field(default_factory=list)
     detected_conflicts: list[str] = Field(
         default_factory=list,
         description="Any internal contradictions or anomalies detected by model",

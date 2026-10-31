@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, BackgroundTasks, Depends, File, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.exceptions import AuthorizationError, NotFoundError
+from app.core.exceptions import AuthorizationError, ConflictError, NotFoundError, ValidationError
 from app.core.security import CurrentUser, UserRole, get_current_user
 from app.db.models.enums import DocumentProcessingStatus
 from app.db.models.user import User
@@ -61,6 +61,10 @@ async def upload_document(
         session=db,
     )
 
+    # Persist document to DB before scheduling background processing
+    await db.commit()
+    await db.refresh(doc)
+
     # Schedule background extraction task
     background_tasks.add_task(
         service.process_document_extraction,
@@ -116,14 +120,38 @@ async def trigger_ai_extraction(
     if current_user.role == UserRole.CANDIDATE and doc.candidate_id != uuid.UUID(current_user.id):
         raise AuthorizationError("You are not authorized to extract from this document")
 
-    extraction_service = AIExtractionService()
-    # Execute extraction in background task or directly
-    background_tasks.add_task(extraction_service.extract_and_persist, document_id)
+    # 1. Reject if PDF text extraction is still queued or processing (HTTP 409)
+    if doc.processing_status in (
+        DocumentProcessingStatus.QUEUED,
+        DocumentProcessingStatus.PROCESSING,
+    ):
+        raise ConflictError(
+            "Document text extraction is still in progress. Please poll /status until completed."
+        )
 
-    # Return immediate run metadata placeholder
+    # 2. Reject if PDF processing failed (HTTP 422)
+    if doc.processing_status == DocumentProcessingStatus.FAILED:
+        err_msg = (
+            doc.processing_error.get("message", "Document text extraction failed")
+            if isinstance(doc.processing_error, dict)
+            else "Document text extraction failed"
+        )
+        raise ValidationError(f"Document text extraction failed: {err_msg}")
+
+    # 3. Reject if no usable page text exists (HTTP 422)
+    raw_pages = doc.extracted_text_by_page or {}
+    has_text = any(str(text).strip() for text in raw_pages.values())
+    if not has_text:
+        raise ValidationError("Document contains no usable extracted text for AI extraction.")
+
     ext_repo = ExtractionRepository(db)
+
+    # Prevent accidental duplicate in-flight runs: if an extraction run is already QUEUED or PROCESSING, return it
     existing_run = await ext_repo.get_latest_run_for_document(document_id)
-    if existing_run:
+    if existing_run and existing_run.status in (
+        DocumentProcessingStatus.QUEUED,
+        DocumentProcessingStatus.PROCESSING,
+    ):
         skills = await ext_repo.get_candidate_skills_for_run(existing_run.id)
         evidence_items = await ext_repo.get_evidence_items_for_run(existing_run.id)
         return ExtractionRunResponse(
@@ -140,20 +168,40 @@ async def trigger_ai_extraction(
             completed_at=existing_run.completed_at,
         )
 
-    # If first run scheduled, return queued status
-    next_num = await ext_repo.get_next_run_number(document_id)
-    return ExtractionRunResponse(
-        id=uuid.uuid4(),
+    # Synchronously create and commit the real ExtractionRun database record with QUEUED status
+    extraction_service = AIExtractionService()
+    provider = extraction_service.llm_provider
+    provider_name = getattr(provider, "provider_name", "fake")
+    model_name = getattr(provider, "model_name", "default")
+
+    new_run = await ext_repo.create_extraction_run(
         document_id=document_id,
-        run_number=next_num,
-        provider="ai",
-        model_name="default",
+        provider=provider_name,
+        model_name=model_name,
         status=DocumentProcessingStatus.QUEUED,
-        error_message=None,
+    )
+    await db.commit()
+    await db.refresh(new_run)
+
+    # Pass both document_id and run_id to the background task
+    background_tasks.add_task(
+        extraction_service.extract_and_persist,
+        document_id,
+        new_run.id,
+    )
+
+    return ExtractionRunResponse(
+        id=new_run.id,
+        document_id=new_run.document_id,
+        run_number=new_run.run_number,
+        provider=new_run.provider,
+        model_name=new_run.model_name,
+        status=new_run.status,
+        error_message=new_run.error_message,
         skills=[],
         evidence_items=[],
-        started_at=doc.created_at,
-        completed_at=None,
+        started_at=new_run.started_at,
+        completed_at=new_run.completed_at,
     )
 
 

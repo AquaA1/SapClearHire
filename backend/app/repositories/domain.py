@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select, update
@@ -604,6 +604,26 @@ class ExtractionRepository(BaseRepository[ExtractionRun]):
         run.status = status
         run.raw_output = raw_output
         run.error_message = error_message
+        run.completed_at = datetime.now(UTC)
+        await self.session.flush()
+        return run
+
+    async def update_run_status(
+        self,
+        extraction_run_id: uuid.UUID,
+        status: DocumentProcessingStatus,
+        error_message: str | None = None,
+    ) -> ExtractionRun | None:
+        run = await self.get_by_id(extraction_run_id)
+        if not run:
+            return None
+        run.status = status
+        if status == DocumentProcessingStatus.PROCESSING:
+            run.started_at = datetime.now(UTC)
+        elif status in (DocumentProcessingStatus.COMPLETED, DocumentProcessingStatus.FAILED):
+            run.completed_at = datetime.now(UTC)
+        if error_message is not None:
+            run.error_message = error_message
         await self.session.flush()
         return run
 
