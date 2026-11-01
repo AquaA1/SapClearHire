@@ -133,9 +133,30 @@ class ReviewWorkflowService:
                 raise NotFoundError(
                     f"CriterionEvidence {criterion_evidence_id} not found in latest evaluation."
                 )
+            if target_ce.verification_state in (
+                VerificationState.HUMAN_VERIFIED,
+                VerificationState.HUMAN_REJECTED,
+            ):
+                return []
             items_to_flag.append(target_ce)
         else:
+            existing_flags_pre = await flag_repo.get_by_application(application_id)
+            resolved_ce_ids_pre = {
+                f.criterion_evidence_id
+                for f in existing_flags_pre
+                if f.status == ReviewFlagStatus.RESOLVED
+            }
+
             for ce in latest_eval.criterion_evidence_items:
+                # Guard: do not flag criteria that have already been adjudicated by human review
+                if ce.verification_state in (
+                    VerificationState.HUMAN_VERIFIED,
+                    VerificationState.HUMAN_REJECTED,
+                ):
+                    continue
+                if ce.id in resolved_ce_ids_pre:
+                    continue
+
                 cat = str(ce.criterion.category).lower() if ce.criterion else "required"
                 is_req = cat in ("required", "requirement")
                 is_ambiguous_or_missing = ce.ai_status in (
@@ -241,37 +262,72 @@ class ReviewWorkflowService:
         current_user: CurrentUser,
         session: AsyncSession,
         status: ReviewFlagStatus | None = None,
+        status_list: list[ReviewFlagStatus] | None = None,
         application_id: uuid.UUID | None = None,
     ) -> list[ReviewFlagSummaryResponse]:
         """
         Retrieves review cases from the queue.
-        Enforces that reviewers can only view cases assigned to them.
+        Enforces role-based access:
+        - Reviewers view cases assigned to them.
+        - Employer Admins view cases belonging to their organization/jobs.
+        - System Auditors view all cases.
         """
         flag_repo = ReviewFlagRepository(session)
 
         filter_user_id: uuid.UUID | None = None
+        filter_employer_id: uuid.UUID | None = None
+        filter_org_employer_id: str | None = None
+
         if current_user.role == UserRole.REVIEWER:
             filter_user_id = uuid.UUID(current_user.id)
+        elif current_user.role == UserRole.EMPLOYER_ADMIN:
+            filter_employer_id = uuid.UUID(current_user.id)
+            filter_org_employer_id = current_user.employer_id
         elif current_user.role == UserRole.CANDIDATE:
             raise AuthorizationError("Candidates are not permitted to access reviewer case queues.")
 
         flags = await flag_repo.get_assigned_flags(
             user_id=filter_user_id,
             status=status,
+            status_list=status_list,
             application_id=application_id,
+            employer_id=filter_employer_id,
+            org_employer_id=filter_org_employer_id,
         )
 
+        # Auto-reconcile lingering flags whose criterion has already been decided
+        for f in flags:
+            ce = f.criterion_evidence
+            if ce and ce.verification_state in (
+                VerificationState.HUMAN_VERIFIED,
+                VerificationState.HUMAN_REJECTED,
+            ):
+                if f.status != ReviewFlagStatus.RESOLVED:
+                    await flag_repo.update_status(
+                        f.id, ReviewFlagStatus.RESOLVED, resolved_at=datetime.now(UTC)
+                    )
+                    f.status = ReviewFlagStatus.RESOLVED
+
+        # Deduplicate cases by (application_id, criterion_evidence_id) so duplicate flag rows are not double-counted
+        seen_cases: set[tuple[uuid.UUID, uuid.UUID | None]] = set()
         summaries: list[ReviewFlagSummaryResponse] = []
         for f in flags:
+            ce = f.criterion_evidence
+            ce_id = ce.id if ce else f.criterion_evidence_id
+            case_key = (f.application_id, ce_id)
+            if case_key in seen_cases:
+                continue
+            seen_cases.add(case_key)
+
             cand = f.application.candidate if f.application else None
             job = f.application.job if f.application else None
-            ce = f.criterion_evidence
             crit = ce.criterion if ce else None
 
             summaries.append(
                 ReviewFlagSummaryResponse(
                     id=f.id,
                     application_id=f.application_id,
+                    criterion_evidence_id=ce_id,
                     criterion_name=crit.name if crit else None,
                     criterion_category=crit.category if crit else None,
                     candidate_id=f.application.candidate_id if f.application else uuid.uuid4(),
@@ -523,8 +579,14 @@ class ReviewWorkflowService:
             ip_address=ip_address,
         )
 
-        # Update flag status if associated flag exists
-        if flag:
+        # Update flag status for all associated flags for this criterion evidence
+        if criterion_evidence_id:
+            await flag_repo.update_status_for_criterion_evidence(
+                criterion_evidence_id=criterion_evidence_id,
+                status=new_flag_status,
+                resolved_at=resolved_at,
+            )
+        elif flag:
             await flag_repo.update_status(flag.id, new_flag_status, resolved_at)
 
         # If all flags on this application are resolved, mark application as REVIEWED

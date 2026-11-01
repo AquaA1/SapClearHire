@@ -181,10 +181,19 @@ export const EmployerApplicationDetailPage: React.FC = () => {
     rationale: string
   ) => {
     const targetId = item.criterion_evidence_id || item.criterion_id;
+    if (!targetId) return;
     await reviewService.recordReviewDecision(targetId, decision, rationale);
     if (activeApp) {
-      const ev = await evaluationService.getEvaluationByApplication(activeApp.id);
-      setEvaluation(ev);
+      try {
+        const [updatedApp, updatedEval] = await Promise.all([
+          applicationService.getApplication(activeApp.id),
+          evaluationService.getEvaluationByApplication(activeApp.id),
+        ]);
+        setActiveApp(updatedApp);
+        setEvaluation(updatedEval);
+      } catch (e) {
+        console.error('Failed to refresh application/evaluation after decision', e);
+      }
     }
   };
 

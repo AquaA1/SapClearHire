@@ -5,7 +5,7 @@ import { applicationService } from '../../services/api/applicationService';
 import { ReviewFlagSummary } from '../../contracts/models';
 import { ReviewFlagStatus } from '../../contracts/enums';
 import { StatusBadge } from '../../components/ui/Badge';
-import { ChevronRight, ShieldCheck, CheckSquare, Clock, Inbox, Briefcase } from 'lucide-react';
+import { ChevronRight, ShieldCheck, CheckSquare, Clock, Inbox, Briefcase, RotateCw } from 'lucide-react';
 import { useAuth } from '../../stores/authStore';
 import {
   Table,
@@ -23,33 +23,58 @@ export const EmployerReviewQueuePage: React.FC = () => {
   const { user } = useAuth();
   const [flags, setFlags] = useState<ReviewFlagSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'ALL' | ReviewFlagStatus>('ALL');
 
-  useEffect(() => {
-    const fetchOrgFlags = async () => {
-      setLoading(true);
-      try {
-        const apps = await applicationService.listApplications();
+  const deduplicateFlags = (list: ReviewFlagSummary[]): ReviewFlagSummary[] => {
+    const map = new Map<string, ReviewFlagSummary>();
+    for (const f of list) {
+      const key = f.criterion_evidence_id
+        ? `${f.application_id}_${f.criterion_evidence_id}`
+        : f.id;
+      if (!map.has(key)) {
+        map.set(key, f);
+      } else {
+        const existing = map.get(key)!;
+        if (new Date(f.created_at).getTime() > new Date(existing.created_at).getTime()) {
+          map.set(key, f);
+        }
+      }
+    }
+    return Array.from(map.values());
+  };
 
-        // Strict organization tenant isolation: query review flags strictly scoped to employer applications
+  const fetchOrgFlags = async () => {
+    try {
+      let rawFlags = await reviewService.listReviewFlags();
+      if (!rawFlags || rawFlags.length === 0) {
+        const apps = await applicationService.listApplications();
         if (apps.length > 0) {
           const flagPromises = apps.map((app) =>
             reviewService.listReviewFlags({ application_id: app.id }).catch(() => [])
           );
           const flagBatches = await Promise.all(flagPromises);
-          setFlags(flagBatches.flat());
-        } else {
-          setFlags([]);
+          rawFlags = flagBatches.flat();
         }
-      } catch (err) {
-        console.error('Failed to load employer review cases:', err);
-      } finally {
-        setLoading(false);
       }
-    };
+      setFlags(deduplicateFlags(rawFlags || []));
+    } catch (err) {
+      console.error('Failed to load employer review cases:', err);
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
+    }
+  };
 
+  useEffect(() => {
+    setLoading(true);
     fetchOrgFlags();
   }, []);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchOrgFlags();
+  };
 
   if (loading) {
     return (
@@ -59,13 +84,20 @@ export const EmployerReviewQueuePage: React.FC = () => {
     );
   }
 
-  const pendingCount = flags.filter((f) => f.status === ReviewFlagStatus.PENDING).length;
+  // Authoritative counts: pendingCount includes all genuinely unresolved cases (PENDING and UNDER_REVIEW)
+  const pendingCount = flags.filter(
+    (f) => f.status === ReviewFlagStatus.PENDING || f.status === ReviewFlagStatus.UNDER_REVIEW
+  ).length;
   const underReviewCount = flags.filter((f) => f.status === ReviewFlagStatus.UNDER_REVIEW).length;
   const resolvedCount = flags.filter((f) => f.status === ReviewFlagStatus.RESOLVED).length;
 
   const filteredFlags =
     statusFilter === 'ALL'
       ? flags
+      : statusFilter === ReviewFlagStatus.PENDING
+      ? flags.filter(
+          (f) => f.status === ReviewFlagStatus.PENDING || f.status === ReviewFlagStatus.UNDER_REVIEW
+        )
       : flags.filter((f) => f.status === statusFilter);
 
   return (
@@ -81,15 +113,27 @@ export const EmployerReviewQueuePage: React.FC = () => {
           </p>
         </div>
 
-        <Button
-          onClick={() => navigate('/employer/jobs')}
-          variant="secondary"
-          size="sm"
-          leftIcon={<Briefcase className="w-4 h-4" />}
-          className="self-start sm:self-auto font-medium"
-        >
-          Manage Requisitions
-        </Button>
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <Button
+            onClick={handleRefresh}
+            variant="secondary"
+            size="sm"
+            isLoading={isRefreshing}
+            leftIcon={<RotateCw className="w-3.5 h-3.5" />}
+            className="font-medium"
+          >
+            Refresh Queue
+          </Button>
+          <Button
+            onClick={() => navigate('/employer/jobs')}
+            variant="secondary"
+            size="sm"
+            leftIcon={<Briefcase className="w-4 h-4" />}
+            className="font-medium"
+          >
+            Manage Requisitions
+          </Button>
+        </div>
       </div>
 
       {/* ── Tenant-Isolation Safeguard Banner ─────────────────── */}

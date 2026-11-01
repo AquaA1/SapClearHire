@@ -4,7 +4,7 @@ from typing import Any
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import aliased, selectinload
 
 from app.core.exceptions import ValidationError
 from app.core.security import UserRole
@@ -438,7 +438,10 @@ class ReviewFlagRepository(BaseRepository[ReviewFlag]):
         self,
         user_id: uuid.UUID | None = None,
         status: ReviewFlagStatus | None = None,
+        status_list: list[ReviewFlagStatus] | None = None,
         application_id: uuid.UUID | None = None,
+        employer_id: uuid.UUID | None = None,
+        org_employer_id: str | None = None,
     ) -> list[ReviewFlag]:
         query = (
             select(ReviewFlag)
@@ -448,12 +451,33 @@ class ReviewFlagRepository(BaseRepository[ReviewFlag]):
                 selectinload(ReviewFlag.criterion_evidence).selectinload(
                     CriterionEvidence.criterion
                 ),
+                selectinload(ReviewFlag.criterion_evidence).selectinload(
+                    CriterionEvidence.review_decisions
+                ),
             )
             .order_by(ReviewFlag.created_at.desc())
         )
+        if employer_id is not None or org_employer_id is not None:
+            creator = aliased(User)
+            query = (
+                query.join(ReviewFlag.application)
+                .join(Application.job)
+                .outerjoin(creator, Job.creator)
+            )
+            if employer_id is not None and org_employer_id:
+                query = query.where(
+                    (Job.employer_id == employer_id) | (creator.employer_id == org_employer_id)
+                )
+            elif employer_id is not None:
+                query = query.where(Job.employer_id == employer_id)
+            elif org_employer_id:
+                query = query.where(creator.employer_id == org_employer_id)
+
         if user_id is not None:
             query = query.where(ReviewFlag.assigned_to_user_id == user_id)
-        if status is not None:
+        if status_list is not None:
+            query = query.where(ReviewFlag.status.in_(status_list))
+        elif status is not None:
             query = query.where(ReviewFlag.status == status)
         if application_id is not None:
             query = query.where(ReviewFlag.application_id == application_id)
@@ -501,6 +525,19 @@ class ReviewFlagRepository(BaseRepository[ReviewFlag]):
         flag.resolved_at = resolved_at
         await self.session.flush()
         return flag
+
+    async def update_status_for_criterion_evidence(
+        self,
+        criterion_evidence_id: uuid.UUID,
+        status: ReviewFlagStatus,
+        resolved_at: datetime | None = None,
+    ) -> list[ReviewFlag]:
+        flags = await self.get_by_criterion_evidence(criterion_evidence_id)
+        for flag in flags:
+            flag.status = status
+            flag.resolved_at = resolved_at
+        await self.session.flush()
+        return flags
 
 
 class CorrectionRequestRepository(BaseRepository[CorrectionRequest]):

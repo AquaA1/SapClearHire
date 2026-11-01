@@ -69,6 +69,7 @@ class ReviewFlagSummaryResponse(BaseModel):
 
     id: uuid.UUID
     application_id: uuid.UUID
+    criterion_evidence_id: uuid.UUID | None = None
     criterion_name: str | None = None
     criterion_category: str | None = None
     candidate_id: uuid.UUID

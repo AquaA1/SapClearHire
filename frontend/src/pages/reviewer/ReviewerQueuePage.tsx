@@ -4,7 +4,7 @@ import { reviewService } from '../../services/api/reviewService';
 import { ReviewFlagSummary } from '../../contracts/models';
 import { ReviewFlagStatus } from '../../contracts/enums';
 import { StatusBadge } from '../../components/ui/Badge';
-import { ChevronRight, ShieldCheck, CheckSquare, Clock, Inbox } from 'lucide-react';
+import { ChevronRight, ShieldCheck, CheckSquare, Clock, Inbox, RotateCw } from 'lucide-react';
 import { useAuth } from '../../stores/authStore';
 import {
   Table,
@@ -14,6 +14,7 @@ import {
   TableHead,
   TableCell,
   LoadingSpinner,
+  Button,
 } from '../../components/ui';
 
 export const ReviewerQueuePage: React.FC = () => {
@@ -21,23 +22,48 @@ export const ReviewerQueuePage: React.FC = () => {
   const { user } = useAuth();
   const [flags, setFlags] = useState<ReviewFlagSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'ALL' | ReviewFlagStatus>('ALL');
 
-  useEffect(() => {
-    const fetchFlags = async () => {
-      setLoading(true);
-      try {
-        const data = await reviewService.listReviewFlags();
-        setFlags(data);
-      } catch (err) {
-        console.error('Failed to load review cases queue:', err);
-      } finally {
-        setLoading(false);
+  const deduplicateFlags = (list: ReviewFlagSummary[]): ReviewFlagSummary[] => {
+    const map = new Map<string, ReviewFlagSummary>();
+    for (const f of list) {
+      const key = f.criterion_evidence_id
+        ? `${f.application_id}_${f.criterion_evidence_id}`
+        : f.id;
+      if (!map.has(key)) {
+        map.set(key, f);
+      } else {
+        const existing = map.get(key)!;
+        if (new Date(f.created_at).getTime() > new Date(existing.created_at).getTime()) {
+          map.set(key, f);
+        }
       }
-    };
+    }
+    return Array.from(map.values());
+  };
 
+  const fetchFlags = async () => {
+    try {
+      const data = await reviewService.listReviewFlags();
+      setFlags(deduplicateFlags(data || []));
+    } catch (err) {
+      console.error('Failed to load review cases queue:', err);
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    setLoading(true);
     fetchFlags();
   }, []);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchFlags();
+  };
 
   if (loading) {
     return (
@@ -47,25 +73,44 @@ export const ReviewerQueuePage: React.FC = () => {
     );
   }
 
-  const pendingCount = flags.filter((f) => f.status === ReviewFlagStatus.PENDING).length;
+  // Authoritative counts: pendingCount includes all genuinely unresolved cases (PENDING and UNDER_REVIEW)
+  const pendingCount = flags.filter(
+    (f) => f.status === ReviewFlagStatus.PENDING || f.status === ReviewFlagStatus.UNDER_REVIEW
+  ).length;
   const underReviewCount = flags.filter((f) => f.status === ReviewFlagStatus.UNDER_REVIEW).length;
   const resolvedCount = flags.filter((f) => f.status === ReviewFlagStatus.RESOLVED).length;
 
   const filteredFlags =
     statusFilter === 'ALL'
       ? flags
+      : statusFilter === ReviewFlagStatus.PENDING
+      ? flags.filter(
+          (f) => f.status === ReviewFlagStatus.PENDING || f.status === ReviewFlagStatus.UNDER_REVIEW
+        )
       : flags.filter((f) => f.status === statusFilter);
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 select-none">
       {/* ── Header ────────────────────────────────────────────── */}
-      <div className="pb-3 border-b border-subtle">
-        <h1 className="text-xl sm:text-2xl font-semibold text-ink tracking-tight">
-          Review Cases Queue & Triage
-        </h1>
-        <p className="text-xs text-muted mt-1 font-medium">
-          Triage ambiguous and disputed candidate criteria. Select any case to open the side-by-side Decision Studio.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-subtle">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-semibold text-ink tracking-tight">
+            Review Cases Queue & Triage
+          </h1>
+          <p className="text-xs text-muted mt-1 font-medium">
+            Triage ambiguous and disputed candidate criteria. Select any case to open the side-by-side Decision Studio.
+          </p>
+        </div>
+        <Button
+          onClick={handleRefresh}
+          variant="secondary"
+          size="sm"
+          isLoading={isRefreshing}
+          leftIcon={<RotateCw className="w-3.5 h-3.5" />}
+          className="self-start sm:self-auto font-medium"
+        >
+          Refresh Queue
+        </Button>
       </div>
 
       {/* ── Integrated Workload & Specialist Authority Stats ──── */}

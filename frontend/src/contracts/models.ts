@@ -182,6 +182,7 @@ export interface ReviewDecisionItem {
 export interface ReviewFlagSummary {
   id: string;
   application_id: string;
+  criterion_evidence_id?: string | null;
   criterion_name: string | null;
   criterion_category: string | null;
   candidate_id: string;

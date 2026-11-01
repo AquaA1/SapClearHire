@@ -78,8 +78,10 @@ async def create_review_flags(
     include_in_schema=False,
 )
 async def list_review_cases(
-    status_filter: ReviewFlagStatus | None = Query(
-        default=None, alias="status", description="Filter by review flag status"
+    status_filter: str | None = Query(
+        default=None,
+        alias="status",
+        description="Filter by review flag status: 'pending', 'under_review', 'resolved', 'all'",
     ),
     application_id: uuid.UUID | None = Query(default=None, description="Filter by application ID"),
     current_user: CurrentUser = Depends(
@@ -88,12 +90,37 @@ async def list_review_cases(
     db: AsyncSession = Depends(get_db_session),
 ) -> list[ReviewFlagSummaryResponse]:
     service = ReviewWorkflowService()
-    return await service.get_assigned_review_cases(
+
+    status_enum: ReviewFlagStatus | None = None
+    status_list: list[ReviewFlagStatus] | None = None
+
+    if status_filter:
+        s = status_filter.strip().lower()
+        if s in ("pending", "unresolved", "needs_review"):
+            status_list = [ReviewFlagStatus.PENDING, ReviewFlagStatus.UNDER_REVIEW]
+        elif s == "under_review":
+            status_enum = ReviewFlagStatus.UNDER_REVIEW
+        elif s == "resolved":
+            status_enum = ReviewFlagStatus.RESOLVED
+        elif s == "dismissed":
+            status_enum = ReviewFlagStatus.DISMISSED
+        elif s in ("all", ""):
+            status_enum = None
+        else:
+            try:
+                status_enum = ReviewFlagStatus(s)
+            except ValueError:
+                status_enum = None
+
+    results = await service.get_assigned_review_cases(
         current_user=current_user,
         session=db,
-        status=status_filter,
+        status=status_enum,
+        status_list=status_list,
         application_id=application_id,
     )
+    await db.commit()
+    return results
 
 
 @router.get(

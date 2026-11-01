@@ -95,10 +95,18 @@ export const ReviewCaseDetailPage: React.FC = () => {
         : rationale.trim();
 
       await reviewService.recordReviewDecision(reviewCase.flag_id, decision, fullRationale);
+      try {
+        if (caseId) {
+          const updated = await reviewService.getReviewCase(caseId);
+          if (updated) setReviewCase(updated);
+        }
+      } catch {
+        // Fallback
+      }
       setSubmittedSuccess(true);
       setTimeout(() => {
         navigate(queueRoute);
-      }, 1800);
+      }, 1500);
     } catch (err) {
       console.error('Failed to submit decision:', err);
     } finally {
