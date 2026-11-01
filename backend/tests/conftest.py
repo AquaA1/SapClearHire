@@ -15,6 +15,7 @@ os.environ["ENVIRONMENT"] = "test"
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
 os.environ["SECRET_KEY"] = "test_environment_secret_key_minimum_32_chars!"
 os.environ["LLM_PROVIDER"] = "fake"
+os.environ["STORAGE_LOCAL_DIR"] = "/tmp/clearhire_test_storage"
 
 from sqlalchemy.pool import StaticPool
 
