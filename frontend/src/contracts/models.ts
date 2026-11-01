@@ -154,6 +154,8 @@ export interface CriterionEvaluationItem {
   decided_at?: string | null;
   subcriteria?: SubcriterionEvaluationItem[];
   missing_requirements?: string[];
+  clarifications?: CandidateClarificationItem[];
+  decisions?: ReviewDecisionItem[];
 }
 
 export interface EvidenceCoverageSummary {

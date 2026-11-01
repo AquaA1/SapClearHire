@@ -30,6 +30,7 @@ from app.schemas.evaluation import (
     EvidenceCoverageSummary,
     SubcriterionEvaluationItem,
 )
+from app.schemas.review import CandidateClarificationItem, ReviewDecisionItem
 from app.utils.text import validate_excerpt_in_text
 
 # Known technology and domain synonyms
@@ -1758,6 +1759,39 @@ class EvaluationService:
                 SubcriterionEvaluationItem.model_validate(s) for s in subcriteria_raw
             ]
 
+            # Candidate clarifications
+            clarifications: list[CandidateClarificationItem] = []
+            if ce.correction_requests:
+                for c in sorted(ce.correction_requests, key=lambda x: x.created_at):
+                    clarifications.append(
+                        CandidateClarificationItem(
+                            id=c.id,
+                            candidate_statement=c.candidate_statement,
+                            additional_document_id=c.additional_document_id,
+                            status=c.status,
+                            created_at=c.created_at,
+                        )
+                    )
+
+            # Review decisions
+            decisions: list[ReviewDecisionItem] = []
+            if ce.review_decisions:
+                for d in sorted(ce.review_decisions, key=lambda x: x.created_at):
+                    d_rationale = re.sub(
+                        r"\[Internal Notes:.*?\]", "", d.mandatory_rationale or ""
+                    ).strip()
+                    decisions.append(
+                        ReviewDecisionItem(
+                            id=d.id,
+                            reviewer_id=d.reviewer_id,
+                            decision=d.decision,
+                            mandatory_rationale=d_rationale,
+                            previous_verification_state=d.previous_verification_state,
+                            new_verification_state=d.new_verification_state,
+                            created_at=d.created_at,
+                        )
+                    )
+
             items.append(
                 CriterionEvaluationItem(
                     criterion_id=ce.job_criterion_id,
@@ -1776,6 +1810,8 @@ class EvaluationService:
                     decided_at=decided_at,
                     subcriteria=subcriteria,
                     missing_requirements=missing_requirements,
+                    clarifications=clarifications,
+                    decisions=decisions,
                 )
             )
 

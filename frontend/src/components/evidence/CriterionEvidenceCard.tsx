@@ -13,12 +13,15 @@ import {
 } from 'lucide-react';
 import { EvidenceStatus, ReviewDecisionType, VerificationState } from '../../contracts/enums';
 import { Button } from '../ui/Button';
+import { CriterionClarificationSection } from './CriterionClarificationSection';
+import { EmployerClarificationModal } from './EmployerClarificationModal';
 
 interface CriterionEvidenceCardProps {
   item: CriterionEvaluationItem;
   onClarify?: (criterionId: string) => void;
   showClarifyButton?: boolean;
   isReviewerOrEmployer?: boolean;
+  onCandidateSubmit?: (statement: string) => Promise<void>;
   onReviewDecision?: (
     item: CriterionEvaluationItem,
     decision: ReviewDecisionType,
@@ -31,9 +34,11 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
   onClarify,
   showClarifyButton = false,
   isReviewerOrEmployer = false,
+  onCandidateSubmit,
   onReviewDecision,
 }) => {
   const [showDecisionModal, setShowDecisionModal] = useState(false);
+  const [showEmployerClarifyModal, setShowEmployerClarifyModal] = useState(false);
   const [selectedDecision, setSelectedDecision] = useState<ReviewDecisionType>(
     ReviewDecisionType.ACCEPTED
   );
@@ -44,11 +49,19 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
   const isAmbiguousOrMissing =
     item.status === EvidenceStatus.AMBIGUOUS || item.status === EvidenceStatus.NOT_FOUND;
 
+  const hasActiveClarificationRequest =
+    (item.human_decision === 'requested_clarification' ||
+      item.decisions?.some((d) => d.decision === ReviewDecisionType.REQUESTED_CLARIFICATION)) &&
+    item.verification_state !== VerificationState.CANDIDATE_CLARIFIED &&
+    item.verification_state !== VerificationState.HUMAN_VERIFIED &&
+    item.verification_state !== VerificationState.HUMAN_REJECTED;
+
   const canClarify =
     (isAmbiguousOrMissing ||
       item.verification_state === VerificationState.HUMAN_REJECTED ||
       item.human_decision === 'rejected') &&
-    item.verification_state !== VerificationState.CANDIDATE_CLARIFIED;
+    item.verification_state !== VerificationState.CANDIDATE_CLARIFIED &&
+    !hasActiveClarificationRequest;
 
   // Determine display status based on verification state and AI evidence status
   const getBadgeStatus = (): string => {
@@ -59,8 +72,11 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
     if (vState === 'human_rejected' || item.human_decision === 'rejected') {
       return 'human_rejected';
     }
-    if (vState === 'candidate_clarified' || item.human_decision === 'requested_clarification') {
+    if (vState === 'candidate_clarified') {
       return 'candidate_clarified';
+    }
+    if (item.human_decision === 'requested_clarification' || hasActiveClarificationRequest) {
+      return 'awaiting_candidate_response';
     }
     if (item.status === EvidenceStatus.SUPPORTED) {
       return 'evidence_supported';
@@ -78,6 +94,12 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
       return 'not_found';
     }
     return item.status || 'unverified';
+  };
+
+  const handleEmployerClarifySubmit = async (question: string) => {
+    if (!onReviewDecision) return;
+    await onReviewDecision(item, ReviewDecisionType.REQUESTED_CLARIFICATION, question);
+    setShowEmployerClarifyModal(false);
   };
 
   const handleOpenDecision = (dec: ReviewDecisionType) => {
@@ -279,11 +301,16 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
 
             <button
               type="button"
-              onClick={() => handleOpenDecision(ReviewDecisionType.REQUESTED_CLARIFICATION)}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-warn-dim hover:bg-warn/20 text-warn border border-warn/30 transition-colors cursor-pointer"
+              disabled={hasActiveClarificationRequest}
+              onClick={() => setShowEmployerClarifyModal(true)}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold border transition-colors ${
+                hasActiveClarificationRequest
+                  ? 'bg-elevated text-muted border-subtle cursor-not-allowed opacity-60'
+                  : 'bg-warn-dim hover:bg-warn/20 text-warn border border-warn/30 cursor-pointer'
+              }`}
             >
               <HelpIcon className="w-3 h-3" />
-              <span>Request Clarification</span>
+              <span>{hasActiveClarificationRequest ? 'Awaiting Response' : 'Request Clarification'}</span>
             </button>
           </div>
         </div>
@@ -305,6 +332,14 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
           </button>
         </div>
       )}
+
+      {/* Inline Clarification Conversation Thread */}
+      <CriterionClarificationSection
+        item={item}
+        isEmployerOrReviewer={isReviewerOrEmployer}
+        onCandidateSubmit={onCandidateSubmit}
+        onReviewDecision={onReviewDecision}
+      />
 
       {/* Decision Rationale Modal */}
       {showDecisionModal && (
@@ -417,6 +452,16 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
             </form>
           </div>
         </div>
+      )}
+
+      {/* Employer Clarification Request Modal */}
+      {showEmployerClarifyModal && (
+        <EmployerClarificationModal
+          isOpen={showEmployerClarifyModal}
+          onClose={() => setShowEmployerClarifyModal(false)}
+          onSubmit={handleEmployerClarifySubmit}
+          item={item}
+        />
       )}
     </div>
   );

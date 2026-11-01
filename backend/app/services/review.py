@@ -17,6 +17,7 @@ from app.db.models.enums import (
 )
 from app.db.models.evaluation import CriterionEvidence, Evaluation
 from app.db.models.job import Job
+from app.db.models.review import ReviewFlag
 from app.db.models.user import User
 from app.repositories.audit import AuditEventRepository
 from app.repositories.domain import (
@@ -581,23 +582,41 @@ class ReviewWorkflowService:
 
         # Update flag status for all associated flags for this criterion evidence
         if criterion_evidence_id:
-            await flag_repo.update_status_for_criterion_evidence(
-                criterion_evidence_id=criterion_evidence_id,
-                status=new_flag_status,
-                resolved_at=resolved_at,
-            )
+            existing_flags = await flag_repo.get_by_criterion_evidence(criterion_evidence_id)
+            if not existing_flags and decision == ReviewDecisionType.REQUESTED_CLARIFICATION:
+                new_flag = ReviewFlag(
+                    application_id=application.id,
+                    criterion_evidence_id=criterion_evidence_id,
+                    flag_type="clarification_requested",
+                    status=ReviewFlagStatus.UNDER_REVIEW,
+                    priority="normal",
+                    reason=clean_rationale,
+                    assigned_to_user_id=reviewer_id,
+                )
+                session.add(new_flag)
+                flag = new_flag
+            else:
+                await flag_repo.update_status_for_criterion_evidence(
+                    criterion_evidence_id=criterion_evidence_id,
+                    status=new_flag_status,
+                    resolved_at=resolved_at,
+                )
         elif flag:
             await flag_repo.update_status(flag.id, new_flag_status, resolved_at)
 
-        # If all flags on this application are resolved, mark application as REVIEWED
-        all_app_flags = await flag_repo.get_by_application(application.id)
-        if all_app_flags:
-            all_resolved = all(
-                f.status in (ReviewFlagStatus.RESOLVED, ReviewFlagStatus.DISMISSED)
-                for f in all_app_flags
-            )
-            if all_resolved and application:
-                application.status = ApplicationStatus.REVIEWED
+        # Update application status according to decision
+        if decision == ReviewDecisionType.REQUESTED_CLARIFICATION:
+            application.status = ApplicationStatus.NEEDS_REVIEW
+        else:
+            # If all flags on this application are resolved, mark application as REVIEWED
+            all_app_flags = await flag_repo.get_by_application(application.id)
+            if all_app_flags:
+                all_resolved = all(
+                    f.status in (ReviewFlagStatus.RESOLVED, ReviewFlagStatus.DISMISSED)
+                    for f in all_app_flags
+                )
+                if all_resolved and application:
+                    application.status = ApplicationStatus.REVIEWED
 
         await session.flush()
 
@@ -692,10 +711,21 @@ class ReviewWorkflowService:
         # 6. Re-activate or update review flag to PENDING so reviewer sees candidate response
         flag_repo = ReviewFlagRepository(session)
         flags = await flag_repo.get_by_criterion_evidence(ce.id)
-        for flag in flags:
-            if flag.status in (ReviewFlagStatus.RESOLVED, ReviewFlagStatus.UNDER_REVIEW):
-                flag.status = ReviewFlagStatus.PENDING
-                flag.resolved_at = None
+        if not flags:
+            new_flag = ReviewFlag(
+                application_id=application.id,
+                criterion_evidence_id=ce.id,
+                flag_type="candidate_clarification",
+                status=ReviewFlagStatus.PENDING,
+                priority="normal",
+                reason=f"Candidate submitted clarification: {clean_statement[:100]}",
+            )
+            session.add(new_flag)
+        else:
+            for flag in flags:
+                if flag.status in (ReviewFlagStatus.RESOLVED, ReviewFlagStatus.UNDER_REVIEW):
+                    flag.status = ReviewFlagStatus.PENDING
+                    flag.resolved_at = None
 
         application.status = ApplicationStatus.NEEDS_REVIEW
 

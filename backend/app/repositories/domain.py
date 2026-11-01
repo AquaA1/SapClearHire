@@ -258,6 +258,9 @@ class EvaluationRepository(BaseRepository[Evaluation]):
                 selectinload(Evaluation.criterion_evidence_items).selectinload(
                     CriterionEvidence.review_decisions
                 ),
+                selectinload(Evaluation.criterion_evidence_items).selectinload(
+                    CriterionEvidence.correction_requests
+                ),
             )
         )
         result = await self.session.execute(query)
@@ -279,6 +282,9 @@ class EvaluationRepository(BaseRepository[Evaluation]):
                 ),
                 selectinload(Evaluation.criterion_evidence_items).selectinload(
                     CriterionEvidence.review_decisions
+                ),
+                selectinload(Evaluation.criterion_evidence_items).selectinload(
+                    CriterionEvidence.correction_requests
                 ),
             )
         )

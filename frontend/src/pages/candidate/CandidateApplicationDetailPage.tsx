@@ -208,20 +208,6 @@ export const CandidateApplicationDetailPage: React.FC = () => {
         candidate_statement: statement,
       });
 
-      // Update evaluation state locally to show clarified verification status
-      if (evaluation) {
-        const updatedCriteria = evaluation.criteria_evaluations.map((c) => {
-          if (c.criterion_id === activeCriterionClarify || c.criterion_evidence_id === activeCriterionClarify) {
-            return { ...c, verification_state: VerificationState.CANDIDATE_CLARIFIED };
-          }
-          return c;
-        });
-        setEvaluation({
-          ...evaluation,
-          criteria_evaluations: updatedCriteria,
-        });
-      }
-
       // Re-fetch evaluation to synchronize with backend
       try {
         const updatedEval = await evaluationService.getEvaluationByApplication(application.id);
@@ -229,7 +215,7 @@ export const CandidateApplicationDetailPage: React.FC = () => {
           setEvaluation(updatedEval);
         }
       } catch {
-        // Fallback to local state
+        // Fallback
       }
 
       setShowSuccessToast(true);
@@ -445,6 +431,18 @@ export const CandidateApplicationDetailPage: React.FC = () => {
                   item={item}
                   showClarifyButton={true}
                   onClarify={(critId) => setActiveCriterionClarify(critId)}
+                  onCandidateSubmit={async (statement: string) => {
+                    const targetId = item.criterion_evidence_id || item.criterion_id;
+                    if (!targetId || !application) return;
+                    await reviewService.submitClarification(application.id, {
+                      criterion_evidence_id: targetId,
+                      candidate_statement: statement,
+                    });
+                    const updatedEval = await evaluationService.getEvaluationByApplication(application.id);
+                    if (updatedEval) setEvaluation(updatedEval);
+                    setShowSuccessToast(true);
+                    setTimeout(() => setShowSuccessToast(false), 4500);
+                  }}
                 />
               ))}
             </div>

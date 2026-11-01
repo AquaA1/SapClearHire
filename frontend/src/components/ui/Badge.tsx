@@ -34,6 +34,10 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     dotCls  = 'bg-accent';
     pillCls = 'bg-accent-dim text-accent border-accent/30 font-semibold';
     label   = 'Clarification Under Review';
+  } else if (norm === 'awaiting_candidate_response' || norm === 'awaiting_clarification') {
+    dotCls  = 'bg-warn';
+    pillCls = 'bg-warn-dim text-warn border-warn/30 font-semibold';
+    label   = 'Awaiting Candidate Response';
   } else if (norm === EvidenceStatus.SUPPORTED || norm === 'supported' || norm === 'evidence_supported') {
     dotCls  = 'bg-success';
     pillCls = 'bg-success-dim text-success border-success/30 font-medium';

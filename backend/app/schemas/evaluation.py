@@ -5,6 +5,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.db.models.enums import CriterionCategory, EvidenceStatus, JobStatus, VerificationState
+from app.schemas.review import CandidateClarificationItem, ReviewDecisionItem
 
 # ============================================================================
 # Job & Criteria Schemas
@@ -149,6 +150,8 @@ class CriterionEvaluationItem(BaseModel):
     decided_at: datetime | None = None
     subcriteria: list[SubcriterionEvaluationItem] = Field(default_factory=list)
     missing_requirements: list[str] = Field(default_factory=list)
+    clarifications: list[CandidateClarificationItem] = Field(default_factory=list)
+    decisions: list[ReviewDecisionItem] = Field(default_factory=list)
 
 
 class EvidenceCoverageSummary(BaseModel):
