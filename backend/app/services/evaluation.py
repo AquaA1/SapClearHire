@@ -1,3 +1,4 @@
+import asyncio
 import re
 import uuid
 from typing import Any
@@ -7,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
 
 from app.core.exceptions import AuthorizationError, NotFoundError, ValidationError
+from app.core.logging import logger
 from app.core.security import CurrentUser, UserRole
 from app.db.models.application import Application
 from app.db.models.document import CandidateSkill, EvidenceItem
@@ -370,6 +372,16 @@ class EvaluationService:
     Strictly yields exactly one status per criterion: supported, not_found, or ambiguous.
     """
 
+    _global_lock = asyncio.Lock()
+    _app_locks: dict[uuid.UUID, asyncio.Lock] = {}
+
+    @classmethod
+    async def _get_app_lock(cls, app_id: uuid.UUID) -> asyncio.Lock:
+        async with cls._global_lock:
+            if app_id not in cls._app_locks:
+                cls._app_locks[app_id] = asyncio.Lock()
+            return cls._app_locks[app_id]
+
     def __init__(self, session_factory: async_sessionmaker[AsyncSession] | None = None):
         self.session_factory = session_factory or get_session_factory()
 
@@ -383,17 +395,20 @@ class EvaluationService:
         """
         Evaluates an application against active job criteria.
         Creates an immutable, versioned Evaluation record with factual evidence links.
+        Guards against duplicate concurrent evaluations for the same application via per-application locking.
         """
-        if session is not None:
-            return await self._evaluate_with_session(
-                session, application_id, actor_id, current_user
-            )
-
-        async with self.session_factory() as local_session:
-            async with local_session.begin():
+        app_lock = await self._get_app_lock(application_id)
+        async with app_lock:
+            if session is not None:
                 return await self._evaluate_with_session(
-                    local_session, application_id, actor_id, current_user
+                    session, application_id, actor_id, current_user
                 )
+
+            async with self.session_factory() as local_session:
+                async with local_session.begin():
+                    return await self._evaluate_with_session(
+                        local_session, application_id, actor_id, current_user
+                    )
 
     async def _evaluate_with_session(
         self,
@@ -448,7 +463,8 @@ class EvaluationService:
         )
         if not extraction_run or extraction_run.status != DocumentProcessingStatus.COMPLETED:
             raise ValidationError(
-                f"Application document {application.primary_document_id} has not completed evidence extraction."
+                f"Application document {application.primary_document_id} has not completed evidence extraction. "
+                "Structured AI claim extraction is required before evidence screening can be evaluated."
             )
 
         # 3. Fetch active criteria for the job
@@ -855,3 +871,7 @@ class EvaluationService:
             summary_notes=evaluation.summary_notes,
             created_at=evaluation.created_at,
         )
+
+
+EvidenceEvaluationService = EvaluationService
+

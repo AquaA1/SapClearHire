@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { applicationService } from '../../services/api/applicationService';
 import { evaluationService } from '../../services/api/evaluationService';
+import { documentService } from '../../services/api/documentService';
 import { reviewService } from '../../services/api/reviewService';
 import { Application, Evaluation } from '../../contracts/models';
 import { StatusBadge } from '../../components/ui/Badge';
@@ -17,8 +18,11 @@ import {
   AlertCircle,
   Briefcase,
   CheckCircle2,
+  Sparkles,
 } from 'lucide-react';
 import { Button, LoadingSpinner } from '../../components/ui';
+import { ResumePdfViewer } from '../../components/dossier/ResumePdfViewer';
+import { CandidateExtractedProfile } from '../../components/dossier/CandidateExtractedProfile';
 
 export const EmployerApplicationDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +33,9 @@ export const EmployerApplicationDetailPage: React.FC = () => {
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
   const [activeTab, setActiveTab] = useState<'DETAILS' | 'RESUME' | 'HIRING PIPELINE' | 'EVIDENCE'>('DETAILS');
   const [isEvaluating, setIsEvaluating] = useState(false);
+  const [isResolvingPrereq, setIsResolvingPrereq] = useState(false);
+  const [evalError, setEvalError] = useState<string | null>(null);
+  const [prereqRequired, setPrereqRequired] = useState(false);
   const [isFlagging, setIsFlagging] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notes, setNotes] = useState<Array<{ id: string; author: string; time: string; text: string; role: string }>>([]);
@@ -48,7 +55,7 @@ export const EmployerApplicationDetailPage: React.FC = () => {
 
           if (current) {
             try {
-              const ev = await evaluationService.getEvaluation(current.id);
+              const ev = await evaluationService.getEvaluationByApplication(current.id);
               setEvaluation(ev);
             } catch {
               setEvaluation(null);
@@ -67,8 +74,10 @@ export const EmployerApplicationDetailPage: React.FC = () => {
 
   const handleSelectApp = async (app: Application) => {
     setActiveApp(app);
+    setEvalError(null);
+    setPrereqRequired(false);
     try {
-      const ev = await evaluationService.getEvaluation(app.id);
+      const ev = await evaluationService.getEvaluationByApplication(app.id);
       setEvaluation(ev);
     } catch {
       setEvaluation(null);
@@ -78,13 +87,77 @@ export const EmployerApplicationDetailPage: React.FC = () => {
   const handleTriggerEvaluation = async () => {
     if (!activeApp) return;
     setIsEvaluating(true);
+    setEvalError(null);
+    setPrereqRequired(false);
     try {
       const updated = await evaluationService.evaluateApplication(activeApp.id);
       setEvaluation(updated);
-    } catch (err) {
+      setActiveApp({ ...activeApp, status: 'screening' as any });
+      setAllApps((prev) =>
+        prev.map((a) => (a.id === activeApp.id ? { ...a, status: 'screening' as any } : a))
+      );
+    } catch (err: any) {
       console.error('Failed to trigger evaluation:', err);
+      const errMsg = err?.message || err?.detail || 'Failed to execute screening evaluation';
+      setEvalError(errMsg);
+      if (
+        errMsg.toLowerCase().includes('prerequisite') ||
+        errMsg.toLowerCase().includes('claim extraction') ||
+        errMsg.toLowerCase().includes('evidence extraction')
+      ) {
+        setPrereqRequired(true);
+      }
     } finally {
       setIsEvaluating(false);
+    }
+  };
+
+  const handleResolvePrereqAndEvaluate = async () => {
+    if (!activeApp || !activeApp.primary_document_id) return;
+    setIsResolvingPrereq(true);
+    setEvalError(null);
+    try {
+      // 1. Trigger AI claim extraction
+      await documentService.triggerAIExtraction(activeApp.primary_document_id);
+
+      // 2. Poll extraction until completed (up to 45s)
+      let attempts = 0;
+      const maxAttempts = 30;
+      let completed = false;
+      while (attempts < maxAttempts) {
+        attempts += 1;
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        try {
+          const ext = await documentService.getExtractionResults(activeApp.primary_document_id);
+          if (ext.status === 'completed') {
+            completed = true;
+            break;
+          }
+          if (ext.status === 'failed') {
+            throw new Error(ext.error_message || 'AI claim extraction failed');
+          }
+        } catch (pollErr: any) {
+          if (pollErr?.message?.includes('failed')) throw pollErr;
+        }
+      }
+
+      if (!completed) {
+        throw new Error('AI claim extraction timed out. Please try again.');
+      }
+
+      // 3. Now execute evaluation
+      const updated = await evaluationService.evaluateApplication(activeApp.id);
+      setEvaluation(updated);
+      setPrereqRequired(false);
+      setActiveApp({ ...activeApp, status: 'screening' as any });
+      setAllApps((prev) =>
+        prev.map((a) => (a.id === activeApp.id ? { ...a, status: 'screening' as any } : a))
+      );
+    } catch (err: any) {
+      console.error('Failed to resolve prerequisite and evaluate:', err);
+      setEvalError(err?.message || 'Failed to complete extraction and evaluation');
+    } finally {
+      setIsResolvingPrereq(false);
     }
   };
 
@@ -236,14 +309,14 @@ export const EmployerApplicationDetailPage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Button
                   onClick={handleTriggerEvaluation}
-                  disabled={isEvaluating}
-                  isLoading={isEvaluating}
+                  disabled={isEvaluating || isResolvingPrereq}
+                  isLoading={isEvaluating || isResolvingPrereq}
                   variant="primary"
                   size="sm"
                   leftIcon={<Play className="w-3.5 h-3.5 fill-current" />}
                   className="font-semibold"
                 >
-                  <span>{evaluation ? 'Re-Screen Evidence' : 'Screen Evidence'}</span>
+                  <span>{isResolvingPrereq ? 'Extracting & Screening...' : (evaluation ? 'Re-Screen Evidence' : 'Screen Evidence')}</span>
                 </Button>
 
                 <Button
@@ -298,9 +371,55 @@ export const EmployerApplicationDetailPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Tab Content: DETAILS & EVIDENCE */}
-          {(activeTab === 'DETAILS' || activeTab === 'EVIDENCE') && (
+          {/* Tab Content: DETAILS (Extracted Candidate Profile) */}
+          {activeTab === 'DETAILS' && (
+            <CandidateExtractedProfile
+              application={activeApp}
+              documentId={activeApp.primary_document_id}
+            />
+          )}
+
+          {activeTab === 'EVIDENCE' && (
             <div className="space-y-6">
+              {/* Prerequisite Alert Banner */}
+              {prereqRequired && (
+                <div className="bg-surface rounded-card border border-amber-500/40 p-5 shadow-card space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-semibold text-ink">
+                          Prerequisite Required: Structured AI Claim Extraction
+                        </h4>
+                        <p className="text-xs text-muted max-w-lg leading-relaxed">
+                          Evidence screening requires structured candidate claims and grounded quotes from the resume. The AI claim extraction pipeline has not completed for this resume yet.
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={handleResolvePrereqAndEvaluate}
+                      isLoading={isResolvingPrereq}
+                      disabled={isResolvingPrereq || isEvaluating}
+                      leftIcon={<Sparkles className="w-3.5 h-3.5 fill-current" />}
+                      className="shrink-0 font-semibold"
+                    >
+                      <span>Extract Claims & Screen</span>
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {evalError && !prereqRequired && (
+                <div className="p-4 rounded bg-red-500/10 border border-red-500/30 text-xs text-red-400 flex items-center justify-between">
+                  <span>{evalError}</span>
+                  <Button variant="secondary" size="sm" onClick={() => setEvalError(null)}>
+                    Dismiss
+                  </Button>
+                </div>
+              )}
+
               {evaluation ? (
                 <>
                   {/* Coverage Summary Bar */}
@@ -329,18 +448,29 @@ export const EmployerApplicationDetailPage: React.FC = () => {
                   <FileText className="w-10 h-10 text-accent mx-auto opacity-70" />
                   <h3 className="text-sm font-semibold text-ink">Screening Evaluation Pending</h3>
                   <p className="text-xs text-muted max-w-md mx-auto leading-relaxed">
-                    This candidate application has not been evaluated against criteria benchmarks yet. Click "Screen Evidence" above to execute deterministic extraction.
+                    This candidate application has not been evaluated against criteria benchmarks yet. Click "Screen Evidence" above or use the automated extraction workflow below.
                   </p>
-                  <Button
-                    onClick={handleTriggerEvaluation}
-                    disabled={isEvaluating}
-                    isLoading={isEvaluating}
-                    variant="primary"
-                    size="sm"
-                    className="mt-2"
-                  >
-                    Execute Screening Evaluation
-                  </Button>
+                  <div className="flex flex-wrap items-center justify-center gap-3 mt-2">
+                    <Button
+                      onClick={handleTriggerEvaluation}
+                      disabled={isEvaluating || isResolvingPrereq}
+                      isLoading={isEvaluating}
+                      variant="primary"
+                      size="sm"
+                    >
+                      Execute Screening Evaluation
+                    </Button>
+                    <Button
+                      onClick={handleResolvePrereqAndEvaluate}
+                      disabled={isEvaluating || isResolvingPrereq}
+                      isLoading={isResolvingPrereq}
+                      variant="secondary"
+                      size="sm"
+                      leftIcon={<Sparkles className="w-3.5 h-3.5 fill-current" />}
+                    >
+                      Extract Claims & Screen
+                    </Button>
+                  </div>
                 </div>
               )}
 
@@ -409,17 +539,12 @@ export const EmployerApplicationDetailPage: React.FC = () => {
             </div>
           )}
 
-          {/* Tab Content: RESUME */}
+          {/* Tab Content: RESUME (Authenticated Original PDF & OCR Viewer) */}
           {activeTab === 'RESUME' && (
-            <div className="bg-surface rounded-card border border-subtle p-6 shadow-card space-y-3">
-              <h3 className="font-semibold text-ink text-sm">Attached Resume Document</h3>
-              <p className="text-xs text-muted font-medium">
-                Primary Document ID: <span className="font-mono text-ink">{activeApp.primary_document_id}</span>
-              </p>
-              <div className="p-8 rounded-sm bg-elevated/40 border border-subtle text-center text-muted text-xs">
-                Verbatim OCR coordinates verified. Resume citations are anchored directly to individual criteria cards.
-              </div>
-            </div>
+            <ResumePdfViewer
+              documentId={activeApp.primary_document_id}
+              applicationId={activeApp.id}
+            />
           )}
 
           {/* Tab Content: HIRING PIPELINE */}

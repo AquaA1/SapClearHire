@@ -55,6 +55,20 @@ class DocumentService {
   async getExtractionResults(documentId: string): Promise<ExtractionRunResponse> {
     return apiClient.get<ExtractionRunResponse>(`/documents/${documentId}/extraction-results`);
   }
+
+  /**
+   * Fetch original uploaded PDF document as a binary Blob.
+   * Enforces token authentication and returns Blob + original filename.
+   */
+  async getDocumentFile(
+    documentId: string,
+    disposition: 'inline' | 'attachment' = 'inline'
+  ): Promise<{ blob: Blob; filename: string; contentType: string }> {
+    return apiClient.getBlob(`/documents/${documentId}/file`, {
+      params: { disposition },
+    });
+  }
 }
+
 
 export const documentService = new DocumentService();

@@ -160,6 +160,7 @@ class DocumentService:
                 if not doc:
                     return
 
+                extraction_succeeded = False
                 file_path = Path(doc.file_path)
                 try:
                     pages_dict = extract_text_by_page(file_path, max_pages=self.settings.MAX_PDF_PAGES)
@@ -171,6 +172,7 @@ class DocumentService:
                     doc.page_count = len(pages_dict)
                     doc.extracted_text_by_page = extracted_pages
                     doc.processing_error = None
+                    extraction_succeeded = True
                     logger.info(
                         "Successfully extracted %d pages for document %s",
                         len(pages_dict),

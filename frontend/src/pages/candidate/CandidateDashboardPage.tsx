@@ -3,7 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../stores/authStore';
 import { applicationService } from '../../services/api/applicationService';
 import { jobService } from '../../services/api/jobService';
-import { Application, Job } from '../../contracts/models';
+import { documentService } from '../../services/api/documentService';
+import { Application, Job, DocumentStatusResponse } from '../../contracts/models';
 import { JobStatus } from '../../contracts/enums';
 import { StatusBadge } from '../../components/ui/Badge';
 import {
@@ -34,6 +35,7 @@ export const CandidateDashboardPage: React.FC = () => {
 
   const [applications, setApplications] = useState<Application[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [primaryDocStatus, setPrimaryDocStatus] = useState<DocumentStatusResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -45,6 +47,15 @@ export const CandidateDashboardPage: React.FC = () => {
         ]);
         setApplications(apps);
         setJobs(allJobs.slice(0, 4));
+
+        if (apps.length > 0 && apps[0].primary_document_id) {
+          try {
+            const docStatus = await documentService.getDocumentStatus(apps[0].primary_document_id);
+            setPrimaryDocStatus(docStatus);
+          } catch {
+            // Graceful fallback
+          }
+        }
       } catch (err) {
         console.error('Failed to load candidate dashboard data:', err);
       } finally {
@@ -141,7 +152,7 @@ export const CandidateDashboardPage: React.FC = () => {
                 <FileCheck className="w-5 h-5 text-accent shrink-0" />
                 <div className="min-w-0 flex-1">
                   <span className="text-xs font-semibold text-ink block truncate">
-                    Document #{primaryApp.primary_document_id.slice(0, 8)}.pdf
+                    {primaryDocStatus?.file_name || `Document #${primaryApp.primary_document_id.slice(0, 8)}.pdf`}
                   </span>
                   <span className="text-[11px] text-muted font-medium block mt-0.5 truncate">
                     Attached to {primaryApp.job_title}

@@ -331,6 +331,9 @@ export interface DocumentStatusResponse {
   processing_error: DocumentProcessingError | null;
   created_at: string;
   updated_at: string;
+  file_hash?: string;
+  file_size_bytes?: number;
+  mime_type?: string;
 }
 
 export interface ExtractionRunResponse {
@@ -345,4 +348,21 @@ export interface ExtractionRunResponse {
   evidence_items: EvidenceItem[];
   started_at: string;
   completed_at: string | null;
+  raw_output?: Record<string, any>;
 }
+
+export interface ProfileSkillItem {
+  id: string;
+  skill_name: string;
+  category: string | null;
+  confidence: number;
+  source_page: number | null;
+  source_excerpt: string | null;
+}
+
+export interface CandidateProfileSkillsResponse {
+  candidate_id: string;
+  total_skills: number;
+  skills: ProfileSkillItem[];
+}
+

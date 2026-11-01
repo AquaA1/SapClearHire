@@ -163,6 +163,53 @@ class ApiClient {
     return this.request<T>(path, { ...options, method: 'GET' });
   }
 
+  /**
+   * Fetch binary Blob resource (e.g. PDF documents) with authentication and error handling.
+   */
+  async getBlob(
+    path: string,
+    options: RequestOptions = {}
+  ): Promise<{ blob: Blob; filename: string; contentType: string }> {
+    const { params, headers = {}, ...customConfig } = options;
+    const url = this.buildUrl(path, params);
+
+    const token = getStoredToken();
+    const reqHeaders: Record<string, string> = {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(headers as Record<string, string>),
+    };
+
+    const response = await fetch(url, {
+      ...customConfig,
+      method: 'GET',
+      headers: reqHeaders,
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        removeStoredToken();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('clearhire:unauthorized'));
+        }
+      }
+      throw await this.parseError(response);
+    }
+
+    const contentType = response.headers.get('content-type') || 'application/octet-stream';
+    let filename = 'document.pdf';
+    const disposition = response.headers.get('content-disposition');
+    if (disposition) {
+      const match = disposition.match(/filename=["']?([^"';]+)["']?/i);
+      if (match && match[1]) {
+        filename = match[1].trim();
+      }
+    }
+
+    const blob = await response.blob();
+    return { blob, filename, contentType };
+  }
+
+
   post<T>(path: string, data?: unknown, options?: RequestOptions): Promise<T> {
     return this.request<T>(path, {
       ...options,

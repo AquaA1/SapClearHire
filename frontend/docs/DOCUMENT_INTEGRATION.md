@@ -205,8 +205,101 @@ The integration was verified by running an automated end-to-end test suite (`scr
 
 ---
 
-## 10. Final Verification Results
+## 10. Final Verification Results (Feature 3A)
 
 - **TypeScript Compilation**: `npx tsc --noEmit` passed with 0 errors.
 - **Production Build**: `npm run build` succeeded cleanly in 2.32s with 0 warnings.
 - **Design System Fidelity**: Full adherence to charcoal and mint styling, Manrope typography, crisp badge indicators, zero mock data.
+
+---
+
+## 11. Feature 3B: Candidate Application Submission & Document Linking
+
+**Integration Date**: November 1, 2026  
+**Scope**: Linking verified PDF resume to open job requisition, duplicate application prevention, application detail dossier, and candidate dashboard metrics reflection.  
+**Frontend Implementation**: `src/pages/candidate/CandidateJobDetailPage.tsx`, `src/pages/candidate/CandidateApplicationDetailPage.tsx`, `src/pages/candidate/CandidateDashboardPage.tsx`, `src/services/api/applicationService.ts`.
+
+### 11.1 Real Backend Application Endpoints
+
+| Endpoint | HTTP Method | Expected Status | Authorized Roles | Description |
+|---|---|---|---|---|
+| `/api/v1/applications` | `POST` | `201 Created` | `CANDIDATE` | Creates a new application linking `job_id` and `primary_document_id`. Validates ownership, job existence, and enforces duplicate prevention (`409 Conflict`). |
+| `/api/v1/applications` | `GET` | `200 OK` | `CANDIDATE`, `EMPLOYER_ADMIN`, `REVIEWER`, `SYSTEM_AUDITOR` | Lists applications. For `CANDIDATE`, returns only applications owned by `current_user.id`. Can be filtered by `?job_id=<uuid>`. |
+| `/api/v1/applications/{id}` | `GET` | `200 OK` | `CANDIDATE` (owner), `EMPLOYER_ADMIN`, `REVIEWER`, `SYSTEM_AUDITOR` | Retrieves single application details. Returns `403 Forbidden` if another candidate attempts access. |
+
+### 11.2 Request & Response Contracts
+
+#### Application Submission (`POST /api/v1/applications`)
+
+- **Headers**:
+  - `Authorization: Bearer <access_token>`
+  - `Content-Type: application/json`
+- **Request Body** (`ApplicationCreateRequest`):
+  ```json
+  {
+    "job_id": "89b7245b-7c70-4d43-8f0a-31b017b62a67",
+    "primary_document_id": "550e8400-e29b-41d4-a716-446655440000"
+  }
+  ```
+- **Response Schema** (`ApplicationResponse` — `201 Created`):
+  ```json
+  {
+    "id": "c1f7a4b2-3e5f-4a7b-9c8d-1e2f3a4b5c6d",
+    "job_id": "89b7245b-7c70-4d43-8f0a-31b017b62a67",
+    "candidate_id": "a9e634bc-0428-4032-9cb4-5690bfaee3a8",
+    "primary_document_id": "550e8400-e29b-41d4-a716-446655440000",
+    "status": "submitted",
+    "submitted_at": "2026-11-01T02:15:00.000000",
+    "created_at": "2026-11-01T02:15:00.000000"
+  }
+  ```
+
+### 11.3 Pre-Submission Gating & Client Validation
+
+In `CandidateJobDetailPage.tsx`, submission is strictly gated by the following rules:
+
+1. **Extraction Completion Gating**: The user cannot submit an application while document extraction is idle, uploading, processing, or failed (`uploadState !== 'completed'`).
+2. **Document Presence**: A valid `documentId` returned from `POST /api/v1/documents` must be loaded.
+3. **Candidate Declaration Confirmation**: The candidate must actively check the confirmation checkbox declaring that the uploaded resume accurately reflects their credentials.
+4. **Loading States**: During submission (`isSubmittingApp === true`), the submit button is disabled and renders an inline spinner to prevent double submissions.
+
+### 11.4 Duplicate Submission Prevention
+
+1. **Initial Mount Guard**: When the candidate loads `/candidate/jobs/:jobId`, the page immediately invokes `applicationService.listApplications({ job_id: jobId })`.
+2. **Submitted Application Banner**: If an existing application is returned, the upload dropzone and submit form are replaced with an **"Application Already Submitted"** banner displaying the submission date, current status badge, and an **"Inspect Application Dossier"** button routing to `/candidate/applications/:id`.
+3. **Backend `409 Conflict` Catch**: If a concurrent duplicate submission attempt occurs, the backend database `UniqueConstraint("job_id", "candidate_id")` raises `ConflictError` (`409 Conflict`), which the frontend catches and renders as an inline alert: *"An application for this requisition has already been submitted by your account."*
+
+### 11.5 Honest Evaluation Decoupling
+
+Per backend architecture, `POST /api/v1/applications` does **not** automatically execute qualification evaluations. Evaluations are triggered downstream via `POST /api/v1/evaluations`.
+Accordingly:
+- `CandidateApplicationDetailPage.tsx` handles newly submitted applications with `evaluation === null` by rendering an honest **"Evidence Extraction In Progress"** notice.
+- No synthetic evaluation percentages or fabricated citations are displayed.
+- The linked document's genuine filename, page count, and document ID are loaded via `documentService.getDocumentStatus(application.primary_document_id)`.
+
+### 11.6 Tenant Isolation & Document Ownership Integrity
+
+- **Cross-Candidate Document Injection Prevention**: The backend verifies `doc.candidate_id == current_user.id`. If Candidate B attempts to submit an application using Candidate A's `document_id`, the backend rejects the request with `HTTP 403 Forbidden: You do not own this document`.
+- **Cross-Candidate Application Privacy**: If Candidate B attempts `GET /api/v1/applications/{application_of_candidate_a}`, the backend enforces `app.candidate_id == current_user.id` and rejects with `HTTP 403 Forbidden: You are not authorized to view this application`.
+
+### 11.7 Resume Persistence Across Refreshes (Browser Recovery Engine)
+
+Because the backend does not expose a standalone document listing endpoint (`GET /api/v1/documents`), uploaded resumes awaiting submission exist as unlinked documents on the server. The frontend implements a secure, durable browser-refresh recovery engine:
+
+1. **Storage Utility (`pendingDocumentStore.ts`)**:
+   - Versioned storage key: `clearhire_pending_documents_v1`.
+   - Keyed strictly by composite candidate and job identifiers: `${candidateId}:${jobId}`.
+   - **Zero Privacy Leakage**: Stores **only** minimal reference metadata (`documentId`, `candidateId`, `jobId`, `fileName`, `savedAt`). **Never stores PDF binary data, extracted text, JWT tokens, or sensitive resume contents.**
+   - Automatic 7-day TTL expiration pruning.
+2. **Page Load Restoration Lifecycle**:
+   - On mount of `/candidate/jobs/:jobId`, checks if an application is already submitted. If so, removes any pending reference.
+   - If not applied, checks `pendingDocumentStore.getPendingDocument(user.id, jobId)`.
+   - If a reference exists, queries the authentic backend endpoint: `GET /api/v1/documents/{id}/status`.
+   - If `completed`: renders extracted text viewer freshly from backend response.
+   - If `processing` or `queued`: resumes live status polling.
+   - If `failed`: renders backend error and retry options.
+   - If backend returns `404 Not Found` or `403 Forbidden`: immediately discards the stale reference and renders a clean upload state with an informative notice.
+3. **Submission Cleanup**:
+   - Only after `applicationService.submitApplication(jobId, documentId)` returns `201 Created` does the frontend remove the pending document reference from browser storage.
+
+

@@ -1,14 +1,15 @@
+import asyncio
 import uuid
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import aliased, selectinload
 
 from app.core.exceptions import AuthorizationError, ConflictError, NotFoundError
 from app.core.security import CurrentUser, UserRole, get_current_user
 from app.db.models.application import Application
-from app.db.models.enums import ApplicationStatus
+from app.db.models.enums import ApplicationStatus, DocumentProcessingStatus
 from app.db.models.job import Job
 from app.db.models.user import User
 from app.db.session import get_db_session
@@ -21,6 +22,66 @@ from app.repositories.domain import (
 from app.schemas.evaluation import ApplicationCreateRequest, ApplicationResponse
 
 router = APIRouter(prefix="/applications", tags=["Applications"])
+
+
+async def run_application_pipeline(
+    application_id: uuid.UUID,
+    document_id: uuid.UUID,
+    actor_id: str | None = None,
+) -> None:
+    """
+    Executes the background pipeline for a newly submitted application:
+    1. Checks if document claims are already extracted. If not, runs AIExtractionService.extract_and_persist.
+    2. Runs EvidenceEvaluationService.evaluate_application against active job criteria.
+    3. Handles failures cleanly, ensuring terminal status and preventing indefinite processing hangs.
+    """
+    from app.core.logging import logger
+    from app.db.session import get_session_factory
+    from app.repositories.domain import ExtractionRepository
+    from app.services.evaluation import EvidenceEvaluationService
+    from app.services.extraction import AIExtractionService
+
+    logger.info("Starting background application pipeline for app %s, doc %s", application_id, document_id)
+    session_factory = get_session_factory()
+
+    # Wait for document text extraction to complete if it is currently in flight
+    for _ in range(15):
+        async with session_factory() as session:
+            doc_repo = DocumentRepository(session)
+            doc = await doc_repo.get_by_id(document_id)
+            if not doc:
+                logger.error("Document %s not found for background pipeline", document_id)
+                return
+            if doc.processing_status == DocumentProcessingStatus.COMPLETED:
+                break
+            if doc.processing_status == DocumentProcessingStatus.FAILED:
+                logger.error("Document %s text extraction failed; aborting pipeline", document_id)
+                return
+        await asyncio.sleep(1)
+
+    # Step 1: Ensure structured AI claims are extracted
+    async with session_factory() as session:
+        ext_repo = ExtractionRepository(session)
+        latest_run = await ext_repo.get_latest_run_for_document(document_id)
+        is_extracted = bool(latest_run and latest_run.status.value == "completed")
+
+    if not is_extracted:
+        ext_service = AIExtractionService(session_factory=session_factory)
+        try:
+            logger.info("Executing background AI claim extraction for doc %s", document_id)
+            await ext_service.extract_and_persist(document_id)
+        except Exception as exc:
+            logger.error("Background AI claim extraction failed for doc %s: %s", document_id, exc)
+            return
+
+    # Step 2: Evaluate application against job criteria
+    eval_service = EvidenceEvaluationService(session_factory=session_factory)
+    try:
+        logger.info("Executing background criteria evaluation for app %s", application_id)
+        await eval_service.evaluate_application(application_id, actor_id=actor_id)
+        logger.info("Background application pipeline successfully completed for app %s", application_id)
+    except Exception as exc:
+        logger.error("Background criteria evaluation failed for app %s: %s", application_id, exc)
 
 
 @router.get(
@@ -39,7 +100,10 @@ async def list_applications(
     current_user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session),
 ) -> list[ApplicationResponse]:
-    stmt = select(Application).options(selectinload(Application.job).selectinload(Job.creator))
+    stmt = select(Application).options(
+        selectinload(Application.job).selectinload(Job.creator),
+        selectinload(Application.candidate),
+    )
 
     if job_id:
         stmt = stmt.where(Application.job_id == job_id)
@@ -49,11 +113,12 @@ async def list_applications(
     if current_user.role == UserRole.CANDIDATE:
         stmt = stmt.where(Application.candidate_id == uuid.UUID(current_user.id))
     elif current_user.role in (UserRole.EMPLOYER_ADMIN, UserRole.REVIEWER):
-        stmt = stmt.join(Application.job).outerjoin(Job.creator)
+        creator = aliased(User)
+        stmt = stmt.join(Application.job).outerjoin(creator, Job.creator)
         curr_uuid = uuid.UUID(current_user.id)
         if current_user.employer_id:
             stmt = stmt.where(
-                (Job.employer_id == curr_uuid) | (User.employer_id == current_user.employer_id)
+                (Job.employer_id == curr_uuid) | (creator.employer_id == current_user.employer_id)
             )
         else:
             stmt = stmt.where(Job.employer_id == curr_uuid)
@@ -71,6 +136,8 @@ async def list_applications(
             id=app.id,
             job_id=app.job_id,
             candidate_id=app.candidate_id,
+            candidate_name=app.candidate.full_name if app.candidate else None,
+            candidate_email=app.candidate.email if app.candidate else None,
             primary_document_id=app.primary_document_id,
             status=app.status.value,
             submitted_at=app.submitted_at,
@@ -89,6 +156,7 @@ async def list_applications(
 )
 async def submit_application(
     request: ApplicationCreateRequest,
+    background_tasks: BackgroundTasks,
     current_user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_session),
 ) -> ApplicationResponse:
@@ -97,11 +165,13 @@ async def submit_application(
     # Ensure user record exists for foreign key integrity
     user_repo = UserRepository(db)
     user = await user_repo.get_by_id(candidate_id)
+    if not user and current_user.email:
+        user = await user_repo.get_by_email(current_user.email)
     if not user:
         user = User(
             id=candidate_id,
             email=current_user.email,
-            full_name=current_user.email.split("@")[0],
+            full_name=current_user.email.split("@")[0] if current_user.email else "Candidate",
             role=current_user.role,
             employer_id=current_user.employer_id,
         )
@@ -144,10 +214,21 @@ async def submit_application(
     await db.commit()
     await db.refresh(application)
 
+    # Automatically schedule downstream AI extraction and evidence evaluation in the background
+    if request.auto_evaluate:
+        background_tasks.add_task(
+            run_application_pipeline,
+            application.id,
+            application.primary_document_id,
+            current_user.id,
+        )
+
     return ApplicationResponse(
         id=application.id,
         job_id=application.job_id,
         candidate_id=application.candidate_id,
+        candidate_name=user.full_name if user else None,
+        candidate_email=user.email if user else None,
         primary_document_id=application.primary_document_id,
         status=application.status.value,
         submitted_at=application.submitted_at,
@@ -196,6 +277,8 @@ async def get_application(
         id=application.id,
         job_id=application.job_id,
         candidate_id=application.candidate_id,
+        candidate_name=application.candidate.full_name if application.candidate else None,
+        candidate_email=application.candidate.email if application.candidate else None,
         primary_document_id=application.primary_document_id,
         status=application.status.value,
         submitted_at=application.submitted_at,

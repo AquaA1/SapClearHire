@@ -1,11 +1,14 @@
 import uuid
+from pathlib import Path
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Query, UploadFile, status
+from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.exceptions import AuthorizationError, ConflictError, NotFoundError, ValidationError
+from app.core.logging import logger
 from app.core.security import CurrentUser, UserRole, get_current_user
 from app.db.models.application import Application
 from app.db.models.document import Document
@@ -23,6 +26,7 @@ from app.schemas.document import (
 )
 from app.services.document import DocumentService
 from app.services.extraction import AIExtractionService
+from app.services.storage import LocalStorageService
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
@@ -102,11 +106,13 @@ async def upload_document(
     # Ensure user record exists for database foreign key integrity
     user_repo = UserRepository(db)
     user = await user_repo.get_by_id(candidate_id)
+    if not user and current_user.email:
+        user = await user_repo.get_by_email(current_user.email)
     if not user:
         user = User(
             id=candidate_id,
             email=current_user.email,
-            full_name=current_user.email.split("@")[0],
+            full_name=current_user.email.split("@")[0] if current_user.email else "Candidate",
             role=current_user.role,
             employer_id=current_user.employer_id,
         )
@@ -254,6 +260,7 @@ async def trigger_ai_extraction(
             evidence_items=[EvidenceItemSummary.model_validate(e) for e in evidence_items],
             started_at=existing_run.started_at,
             completed_at=existing_run.completed_at,
+            raw_output=existing_run.raw_output,
         )
 
     # Synchronously create and commit the real ExtractionRun database record with QUEUED status
@@ -272,8 +279,14 @@ async def trigger_ai_extraction(
     await db.refresh(new_run)
 
     # Pass both document_id and run_id to the background task
+    async def _safe_extract(doc_id: uuid.UUID, r_id: uuid.UUID) -> None:
+        try:
+            await extraction_service.extract_and_persist(doc_id, r_id)
+        except Exception as exc:
+            logger.error("Background AI claim extraction failed for doc %s (run %s): %s", doc_id, r_id, exc)
+
     background_tasks.add_task(
-        extraction_service.extract_and_persist,
+        _safe_extract,
         document_id,
         new_run.id,
     )
@@ -290,6 +303,7 @@ async def trigger_ai_extraction(
         evidence_items=[],
         started_at=new_run.started_at,
         completed_at=new_run.completed_at,
+        raw_output=new_run.raw_output,
     )
 
 
@@ -332,4 +346,64 @@ async def get_extraction_results(
         evidence_items=[EvidenceItemSummary.model_validate(e) for e in evidence_items],
         started_at=run.started_at,
         completed_at=run.completed_at,
+        raw_output=run.raw_output,
     )
+
+
+@router.get(
+    "/{document_id}/file",
+    summary="Download or Stream Original Resume PDF",
+    description=(
+        "Retrieves the original uploaded PDF file for an authorized candidate, employer, or reviewer. "
+        "Strictly enforces tenant and ownership isolation."
+    ),
+    response_class=FileResponse,
+)
+async def get_document_file(
+    document_id: uuid.UUID,
+    disposition: str = Query(
+        default="inline",
+        pattern="^(inline|attachment)$",
+        description="Content-Disposition type: 'inline' for browser viewing or 'attachment' for download.",
+    ),
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+) -> FileResponse:
+    repo = DocumentRepository(db)
+    doc = await repo.get_by_id(document_id)
+    if not doc:
+        raise NotFoundError(f"Document {document_id} was not found")
+
+    # Enforce strict ownership / tenant authorization:
+    # - Candidates only see their own documents
+    # - Employers & Reviewers only see documents attached to applications for their jobs
+    # - Auditors can view
+    await verify_document_access(doc, current_user, db, write_access=False)
+
+    storage = LocalStorageService()
+    file_path = storage.get_file_path(document_id).resolve()
+
+    # Prevent path traversal and verify containment within storage documents directory
+    if not file_path.is_relative_to(storage.documents_dir.resolve()):
+        raise NotFoundError("Invalid document file location")
+
+    if not file_path.exists() or not file_path.is_file():
+        raise NotFoundError(f"Document file for {document_id} was not found in storage")
+
+    # Safe sanitize filename for Content-Disposition header
+    safe_filename = Path(doc.file_name).name.replace('"', '').replace('\n', '').replace('\r', '')
+    if not safe_filename:
+        safe_filename = f"resume_{document_id}.pdf"
+
+    return FileResponse(
+        path=file_path,
+        media_type=doc.mime_type or "application/pdf",
+        filename=safe_filename,
+        content_disposition_type=disposition,
+        headers={
+            "Cache-Control": "private, no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
+

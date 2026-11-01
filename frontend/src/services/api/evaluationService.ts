@@ -17,6 +17,13 @@ class EvaluationService {
   }
 
   /**
+   * Fetch the latest evaluation report for a specific application.
+   */
+  async getEvaluationByApplication(applicationId: string): Promise<Evaluation> {
+    return apiClient.get<Evaluation>(`/evaluations/application/${applicationId}`);
+  }
+
+  /**
    * Execute deterministic evidence evaluation for an application against active job criteria.
    * Accessible to Employer Admin, Reviewer, and System Auditor.
    */

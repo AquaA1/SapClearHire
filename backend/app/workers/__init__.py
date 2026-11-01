@@ -43,8 +43,22 @@ def register_default_worker_handlers(worker: BaseBackgroundWorker) -> None:
         run, _, _ = await service.extract_and_persist(doc_id, run_id)
         return {"document_id": str(doc_id), "run_id": str(run.id), "status": "extracted"}
 
+    async def handle_evaluate_application(payload: dict[str, Any]) -> dict[str, Any]:
+        from app.services.evaluation import EvidenceEvaluationService
+
+        app_id = uuid.UUID(str(payload["application_id"]))
+        actor_id = payload.get("actor_id")
+        service = EvidenceEvaluationService()
+        evaluation = await service.evaluate_application(app_id, actor_id=actor_id)
+        return {
+            "application_id": str(app_id),
+            "evaluation_id": str(evaluation.id),
+            "status": "evaluated",
+        }
+
     worker.register_handler("process_document", handle_process_document)
     worker.register_handler("extract_evidence", handle_extract_evidence)
+    worker.register_handler("evaluate_application", handle_evaluate_application)
 
 
 __all__ = [

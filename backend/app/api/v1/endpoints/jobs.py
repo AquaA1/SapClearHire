@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import select
@@ -105,6 +106,35 @@ async def create_job(
         await db.flush()
 
     job_repo = JobRepository(db)
+
+    # Duplicate submission protection: check if identical requisition was submitted by this employer within last 10 seconds
+    recent_threshold = datetime.now(UTC) - timedelta(seconds=10)
+    dupe_query = (
+        select(Job)
+        .options(selectinload(Job.criteria))
+        .where(
+            Job.employer_id == employer_id,
+            Job.title == request.title,
+            Job.department == request.department,
+            Job.created_at >= recent_threshold,
+        )
+        .order_by(Job.created_at.desc())
+        .limit(1)
+    )
+    existing_dupe = (await db.execute(dupe_query)).scalar_one_or_none()
+    if existing_dupe:
+        return JobResponse(
+            id=existing_dupe.id,
+            employer_id=existing_dupe.employer_id,
+            title=existing_dupe.title,
+            description=existing_dupe.description,
+            department=existing_dupe.department,
+            status=existing_dupe.status,
+            criteria=[JobCriterionResponse.model_validate(c) for c in existing_dupe.criteria],
+            created_at=existing_dupe.created_at,
+            updated_at=existing_dupe.updated_at,
+        )
+
     job = Job(
         employer_id=employer_id,
         title=request.title,

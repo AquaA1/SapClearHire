@@ -47,6 +47,48 @@ async def evaluate_application(
 
 
 @router.get(
+    "/application/{application_id}",
+    response_model=EvaluationResponse,
+    summary="Get Evaluation Report by Application ID",
+    description="Retrieves the latest candidate evaluation report for a given application ID.",
+)
+async def get_evaluation_by_application(
+    application_id: uuid.UUID,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db_session),
+) -> EvaluationResponse:
+    eval_repo = EvaluationRepository(db)
+    evaluation = await eval_repo.get_latest_by_application(application_id)
+    if not evaluation:
+        raise NotFoundError(f"No evaluation found for application {application_id}.")
+
+    if current_user.role == UserRole.CANDIDATE:
+        if evaluation.application and str(evaluation.application.candidate_id) != current_user.id:
+            raise AuthorizationError(
+                "Candidates may only view evaluations of their own applications."
+            )
+    elif current_user.role in (UserRole.EMPLOYER_ADMIN, UserRole.REVIEWER):
+        if evaluation.application and evaluation.application.job:
+            job = evaluation.application.job
+            is_creator = str(job.employer_id) == current_user.id
+            org_matches = bool(
+                current_user.employer_id
+                and job.creator
+                and job.creator.employer_id == current_user.employer_id
+            )
+            if not (is_creator or org_matches):
+                raise AuthorizationError(
+                    "You are not authorized to view evaluations for this job requisition."
+                )
+    elif current_user.role == UserRole.SYSTEM_AUDITOR:
+        pass
+    else:
+        raise AuthorizationError("You are not authorized to view this evaluation.")
+
+    return EvaluationService.build_evaluation_response(evaluation)
+
+
+@router.get(
     "/{id}",
     response_model=EvaluationResponse,
     summary="Get Evaluation Report",

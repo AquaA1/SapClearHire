@@ -80,10 +80,15 @@ class ApplicationService {
   /**
    * Submit a new candidate application.
    */
-  async submitApplication(job_id: string, primary_document_id: string): Promise<Application> {
+  async submitApplication(
+    job_id: string,
+    primary_document_id: string,
+    auto_evaluate = true
+  ): Promise<Application> {
     return apiClient.post<Application>('/applications', {
       job_id,
       primary_document_id,
+      auto_evaluate,
     });
   }
 }

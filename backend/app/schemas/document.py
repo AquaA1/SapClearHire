@@ -78,3 +78,4 @@ class ExtractionRunResponse(BaseModel):
     evidence_items: list[EvidenceItemSummary] = Field(default_factory=list)
     started_at: datetime
     completed_at: datetime | None = None
+    raw_output: dict[str, Any] | None = None

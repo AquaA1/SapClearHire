@@ -27,6 +27,7 @@ class AIExtractionService:
 
     _lock = asyncio.Lock()
     _active_run_ids: set[uuid.UUID] = set()
+    _active_doc_ids: set[uuid.UUID] = set()
 
     def __init__(
         self,
@@ -50,21 +51,33 @@ class AIExtractionService:
         5. Performs deduplication and detects chronological / claim conflicts.
         6. Persists ExtractionRun, CandidateSkill, and EvidenceItem records.
         """
-        # Concurrency protection: prevent simultaneous processing of the same extraction run
-        if run_id:
-            async with self._lock:
-                if run_id in self._active_run_ids:
-                    logger.info(
-                        "Extraction run %s is already being processed; skipping duplicate task.",
-                        run_id,
-                    )
-                    async with self.session_factory() as session:
-                        ext_repo = ExtractionRepository(session)
-                        run = await ext_repo.get_by_id(run_id)
-                        skills = await ext_repo.get_candidate_skills_for_run(run_id)
-                        evidence = await ext_repo.get_evidence_items_for_run(run_id)
-                        return run, skills, evidence
+        # Concurrency protection: prevent simultaneous processing of the same extraction run or document
+        async with self._lock:
+            if run_id and run_id in self._active_run_ids:
+                logger.info(
+                    "Extraction run %s is already being processed; skipping duplicate task.",
+                    run_id,
+                )
+                async with self.session_factory() as session:
+                    ext_repo = ExtractionRepository(session)
+                    run = await ext_repo.get_by_id(run_id)
+                    skills = await ext_repo.get_candidate_skills_for_run(run_id)
+                    evidence = await ext_repo.get_evidence_items_for_run(run_id)
+                    return run, skills, evidence
+            if not run_id and document_id in self._active_doc_ids:
+                logger.info(
+                    "Extraction for document %s is already in flight; skipping duplicate task.",
+                    document_id,
+                )
+                async with self.session_factory() as session:
+                    ext_repo = ExtractionRepository(session)
+                    run = await ext_repo.get_latest_run_for_document(document_id)
+                    skills = await ext_repo.get_candidate_skills_for_run(run.id) if run else []
+                    evidence = await ext_repo.get_evidence_items_for_run(run.id) if run else []
+                    return run, skills, evidence
+            if run_id:
                 self._active_run_ids.add(run_id)
+            self._active_doc_ids.add(document_id)
 
         try:
             # Step 1: Fetch document & initialize or update run to PROCESSING
@@ -105,6 +118,17 @@ class AIExtractionService:
                     run.started_at = datetime.now(UTC)
                     await session.commit()
                 else:
+                    existing_run = await ext_repo.get_latest_run_for_document(document_id)
+                    if existing_run and existing_run.status == DocumentProcessingStatus.COMPLETED:
+                        logger.info(
+                            "Document %s already has completed extraction run %s; returning existing results.",
+                            document_id,
+                            existing_run.id,
+                        )
+                        skills = await ext_repo.get_candidate_skills_for_run(existing_run.id)
+                        evidence = await ext_repo.get_evidence_items_for_run(existing_run.id)
+                        return existing_run, skills, evidence
+
                     provider_name = getattr(self.llm_provider, "provider_name", "fake")
                     model_name = getattr(self.llm_provider, "model_name", "default")
                     run = await ext_repo.create_extraction_run(
@@ -396,7 +420,8 @@ class AIExtractionService:
                 await session.commit()
             raise
         finally:
-            if run_id:
-                async with self._lock:
+            async with self._lock:
+                if run_id:
                     self._active_run_ids.discard(run_id)
+                self._active_doc_ids.discard(document_id)
 

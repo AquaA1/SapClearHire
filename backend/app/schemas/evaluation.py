@@ -78,6 +78,10 @@ class ApplicationCreateRequest(BaseModel):
 
     job_id: uuid.UUID = Field(..., description="Target job requisition ID")
     primary_document_id: uuid.UUID = Field(..., description="Uploaded resume document ID")
+    auto_evaluate: bool = Field(
+        default=False,
+        description="Whether to automatically enqueue background extraction and evaluation pipeline.",
+    )
 
 
 class ApplicationResponse(BaseModel):
@@ -88,6 +92,8 @@ class ApplicationResponse(BaseModel):
     id: uuid.UUID
     job_id: uuid.UUID
     candidate_id: uuid.UUID
+    candidate_name: str | None = None
+    candidate_email: str | None = None
     primary_document_id: uuid.UUID
     status: str
     submitted_at: datetime

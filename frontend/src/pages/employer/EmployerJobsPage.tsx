@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jobService } from '../../services/api/jobService';
 import { Job, JobCreateRequest } from '../../contracts/models';
@@ -60,6 +60,7 @@ export const EmployerJobsPage: React.FC = () => {
     },
   ]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [feedbackNotice, setFeedbackNotice] = useState<string | null>(null);
 
@@ -68,9 +69,13 @@ export const EmployerJobsPage: React.FC = () => {
     setError(null);
     try {
       const list = await jobService.listJobs(undefined, skipCache);
-      setJobs(list);
-      if (list.length > 0) {
-        setSelectedJob(list[0]);
+      // Deduplicate jobs by unique ID
+      const map = new Map<string, Job>();
+      list.forEach((j) => map.set(j.id, j));
+      const uniqueList = Array.from(map.values());
+      setJobs(uniqueList);
+      if (uniqueList.length > 0) {
+        setSelectedJob(uniqueList[0]);
       } else {
         setSelectedJob(null);
       }
@@ -121,6 +126,8 @@ export const EmployerJobsPage: React.FC = () => {
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmittingRef.current) return;
+
     setCreateError(null);
 
     // Client-side validation
@@ -140,6 +147,7 @@ export const EmployerJobsPage: React.FC = () => {
       return;
     }
 
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
     try {
       const payload: JobCreateRequest = {
@@ -156,8 +164,12 @@ export const EmployerJobsPage: React.FC = () => {
 
       const created = await jobService.createJob(payload);
 
-      // Invalidate and reload
-      setJobs([created, ...jobs]);
+      // Invalidate and reload with deduplication
+      setJobs((prev) => {
+        const map = new Map<string, Job>();
+        [created, ...prev].forEach((j) => map.set(j.id, j));
+        return Array.from(map.values());
+      });
       setSelectedJob(created);
       setIsCreateModalOpen(false);
       setFeedbackNotice(`Requisition "${created.title}" successfully created and activated.`);
@@ -177,6 +189,7 @@ export const EmployerJobsPage: React.FC = () => {
       const errObj = err as { message?: string };
       setCreateError(errObj.message || 'Failed to publish job requisition. Please verify your inputs.');
     } finally {
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   };

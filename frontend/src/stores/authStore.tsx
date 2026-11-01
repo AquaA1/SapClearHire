@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { User } from '../contracts/models';
 import { UserRole } from '../contracts/enums';
 import { authService } from '../services/api/authService';
+import { jobService } from '../services/api/jobService';
 import { getStoredToken, setStoredToken, removeStoredToken } from '../services/api/client';
 
 export interface AuthContextType {
@@ -25,6 +26,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = useCallback(() => {
     removeStoredToken();
+    jobService.invalidateCache();
     setUser(null);
     setIsAuthenticated(false);
   }, []);

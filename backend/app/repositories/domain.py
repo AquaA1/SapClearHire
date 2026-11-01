@@ -145,6 +145,7 @@ class ApplicationRepository(BaseRepository[Application]):
             .where(Application.id == application_id)
             .options(
                 selectinload(Application.job).selectinload(Job.creator),
+                selectinload(Application.candidate),
             )
         )
         result = await self.session.execute(query)
@@ -244,6 +245,25 @@ class EvaluationRepository(BaseRepository[Evaluation]):
         query = (
             select(Evaluation)
             .where(Evaluation.id == evaluation_id)
+            .options(
+                selectinload(Evaluation.application)
+                .selectinload(Application.job)
+                .selectinload(Job.creator),
+                selectinload(Evaluation.criterion_evidence_items).selectinload(
+                    CriterionEvidence.criterion
+                ),
+                selectinload(Evaluation.criterion_evidence_items).selectinload(
+                    CriterionEvidence.evidence_item
+                ),
+            )
+        )
+        result = await self.session.execute(query)
+        return result.scalar_one_or_none()
+
+    async def get_latest_by_application(self, application_id: uuid.UUID) -> Evaluation | None:
+        query = (
+            select(Evaluation)
+            .where(Evaluation.application_id == application_id, Evaluation.is_latest.is_(True))
             .options(
                 selectinload(Evaluation.application)
                 .selectinload(Application.job)

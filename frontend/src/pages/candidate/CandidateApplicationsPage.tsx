@@ -5,14 +5,17 @@ import { Application } from '../../contracts/models';
 import { StatusBadge } from '../../components/ui/Badge';
 import { Clock, FileCheck, ChevronRight, Briefcase } from 'lucide-react';
 import { Button, LoadingSpinner } from '../../components/ui';
+import { useAuthStore } from '../../stores/authStore';
 
 export const CandidateApplicationsPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchApplications = async () => {
+      setLoading(true);
       try {
         const apps = await applicationService.listApplications();
         setApplications(apps);
@@ -24,7 +27,7 @@ export const CandidateApplicationsPage: React.FC = () => {
     };
 
     fetchApplications();
-  }, []);
+  }, [user?.id]);
 
   if (loading) {
     return (
