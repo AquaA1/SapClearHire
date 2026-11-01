@@ -39,31 +39,40 @@ export const CandidateDashboardPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
     const loadDashboardData = async () => {
       try {
         const [apps, allJobs] = await Promise.all([
           applicationService.listApplications(),
           jobService.listJobs({ status: JobStatus.ACTIVE }),
         ]);
+        if (!isMounted) return;
         setApplications(apps);
         setJobs(allJobs.slice(0, 4));
+        setIsLoading(false);
 
         if (apps.length > 0 && apps[0].primary_document_id) {
           try {
             const docStatus = await documentService.getDocumentStatus(apps[0].primary_document_id);
-            setPrimaryDocStatus(docStatus);
+            if (isMounted) {
+              setPrimaryDocStatus(docStatus);
+            }
           } catch {
             // Graceful fallback
           }
         }
       } catch (err) {
         console.error('Failed to load candidate dashboard data:', err);
-      } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     };
 
     loadDashboardData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   if (isLoading) {

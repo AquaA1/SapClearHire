@@ -29,7 +29,7 @@ export class ApiError extends Error {
 
 export const getStoredToken = (): string | null => {
   try {
-    return localStorage.getItem(TOKEN_STORAGE_KEY);
+    return sessionStorage.getItem(TOKEN_STORAGE_KEY);
   } catch {
     return null;
   }
@@ -37,17 +37,20 @@ export const getStoredToken = (): string | null => {
 
 export const setStoredToken = (token: string): void => {
   try {
-    localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
+    // Clean up any legacy shared tokens in localStorage to prevent cross-tab leaks
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
   } catch (err) {
-    console.error('Failed to store auth token in localStorage:', err);
+    console.error('Failed to store auth token in sessionStorage:', err);
   }
 };
 
 export const removeStoredToken = (): void => {
   try {
+    sessionStorage.removeItem(TOKEN_STORAGE_KEY);
     localStorage.removeItem(TOKEN_STORAGE_KEY);
   } catch (err) {
-    console.error('Failed to remove auth token from localStorage:', err);
+    console.error('Failed to remove auth token from sessionStorage:', err);
   }
 };
 

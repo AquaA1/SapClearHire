@@ -44,33 +44,45 @@ export const EmployerApplicationDetailPage: React.FC = () => {
   const [showAddNote, setShowAddNote] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+
     const loadDossiers = async () => {
       setLoading(true);
       try {
-        const apps = await applicationService.listApplications();
+        const [apps, targetEval] = await Promise.all([
+          applicationService.listApplications(),
+          id ? evaluationService.getEvaluationByApplication(id).catch(() => null) : Promise.resolve(null),
+        ]);
+        if (!isMounted) return;
         setAllApps(apps);
 
         if (apps.length > 0) {
           const current = (id ? apps.find((a) => a.id === id) : null) || apps[0];
           setActiveApp(current);
 
-          if (current) {
+          if (targetEval && current && current.id === id) {
+            setEvaluation(targetEval);
+          } else if (current) {
             try {
               const ev = await evaluationService.getEvaluationByApplication(current.id);
-              setEvaluation(ev);
+              if (isMounted) setEvaluation(ev);
             } catch {
-              setEvaluation(null);
+              if (isMounted) setEvaluation(null);
             }
           }
         }
       } catch (err) {
         console.error('Failed to load application dossiers:', err);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     loadDossiers();
+
+    return () => {
+      isMounted = false;
+    };
   }, [id]);
 
   const handleSelectApp = async (app: Application) => {

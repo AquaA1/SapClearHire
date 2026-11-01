@@ -111,20 +111,28 @@ export const CandidateApplicationDetailPage: React.FC = () => {
       setError(null);
       setPipelineError(null);
       try {
-        const app = await applicationService.getApplication(appId);
+        const [app, initialEv] = await Promise.all([
+          applicationService.getApplication(appId),
+          evaluationService.getEvaluationByApplication(appId).catch(() => null),
+        ]);
         if (!isMounted) return;
         setApplication(app);
 
-        const done = await checkEvaluationAndStatus(app);
-        if (!done && isMounted) {
-          pollInterval = setInterval(async () => {
-            attempts += 1;
-            if (isMounted) setPollCount(attempts);
-            const finished = await checkEvaluationAndStatus(app);
-            if (finished || attempts >= maxAttempts) {
-              if (pollInterval) clearInterval(pollInterval);
-            }
-          }, 2000);
+        if (initialEv) {
+          setEvaluation(initialEv);
+          setPipelineError(null);
+        } else {
+          const done = await checkEvaluationAndStatus(app);
+          if (!done && isMounted) {
+            pollInterval = setInterval(async () => {
+              attempts += 1;
+              if (isMounted) setPollCount(attempts);
+              const finished = await checkEvaluationAndStatus(app);
+              if (finished || attempts >= maxAttempts) {
+                if (pollInterval) clearInterval(pollInterval);
+              }
+            }, 2000);
+          }
         }
       } catch (err: unknown) {
         if (!isMounted) return;

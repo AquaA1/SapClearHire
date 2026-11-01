@@ -69,6 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     try {
       const tokenRes = await authService.login({ email, password });
+      jobService.invalidateCache();
       setStoredToken(tokenRes.access_token);
       const currentUser = await authService.getMe();
       setUser(currentUser);
@@ -86,6 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await authService.register({ full_name: fullName, email, password });
       // 2. Authenticate to obtain Bearer JWT
       const tokenRes = await authService.login({ email, password });
+      jobService.invalidateCache();
       setStoredToken(tokenRes.access_token);
       // 3. Hydrate user identity
       const currentUser = await authService.getMe();

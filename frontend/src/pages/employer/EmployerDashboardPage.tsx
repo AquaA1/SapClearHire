@@ -39,25 +39,16 @@ export const EmployerDashboardPage: React.FC = () => {
   useEffect(() => {
     const loadEmployerData = async () => {
       try {
-        const [j, a, e] = await Promise.all([
+        const [j, a, e, f] = await Promise.all([
           jobService.listJobs(),
           applicationService.listApplications(),
           auditService.listAuditEvents().catch(() => []),
+          reviewService.listReviewFlags({ status: 'all' }).catch(() => []),
         ]);
         setJobs(j);
         setApplications(a);
         setAuditEvents(e.slice(0, 6));
-
-        // Strict tenant boundary: query review flags strictly scoped to employer's validated applications
-        if (a.length > 0) {
-          const flagPromises = a.map((app) =>
-            reviewService.listReviewFlags({ application_id: app.id }).catch(() => [])
-          );
-          const flagBatches = await Promise.all(flagPromises);
-          setFlags(flagBatches.flat());
-        } else {
-          setFlags([]);
-        }
+        setFlags(f);
       } catch (err) {
         console.error('Failed to load employer command center:', err);
       } finally {
