@@ -65,6 +65,12 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
     if (item.status === EvidenceStatus.SUPPORTED) {
       return 'evidence_supported';
     }
+    if (
+      item.status === EvidenceStatus.PARTIALLY_SUPPORTED ||
+      item.status === ('partially_supported' as any)
+    ) {
+      return 'partially_supported';
+    }
     if (item.status === EvidenceStatus.AMBIGUOUS) {
       return 'ambiguous';
     }
@@ -142,7 +148,7 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
           <div className="flex items-center justify-between mb-1.5 text-[11px] font-medium text-muted">
             <span className="flex items-center gap-1.5 text-ink font-medium">
               <MessageSquareQuote className="w-3.5 h-3.5 text-accent" />
-              Verbatim Resume Evidence
+              Primary Grounded Evidence
             </span>
             {item.source_page && (
               <span className="flex items-center gap-1 px-2 py-0.5 bg-surface border border-subtle rounded text-[10px] text-muted font-medium">
@@ -158,6 +164,63 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
       ) : (
         <div className="bg-elevated/50 border border-dashed border-subtle rounded-sm p-3 text-xs text-muted italic">
           No explicit matching citation found in resume text.
+        </div>
+      )}
+
+      {/* Subcriteria Decomposed Breakdown */}
+      {item.subcriteria && item.subcriteria.length > 0 && (
+        <div className="pt-2 border-t border-subtle space-y-2">
+          <div className="flex items-center justify-between text-[11px] font-semibold text-muted">
+            <span>Decomposed Sub-requirements ({item.subcriteria.length})</span>
+            {item.missing_requirements && item.missing_requirements.length > 0 && (
+              <span className="text-[10px] text-danger font-medium">
+                {item.missing_requirements.length} missing from evidence
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            {item.subcriteria.map((sub) => {
+              const subStatus = String(sub.status).toLowerCase();
+              return (
+                <div
+                  key={sub.id}
+                  className="bg-elevated/70 border border-subtle rounded p-2.5 text-xs space-y-1.5"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-ink flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
+                      {sub.name}
+                    </span>
+                    <StatusBadge status={subStatus} size="sm" />
+                  </div>
+
+                  {sub.source_excerpt && (
+                    <div className="text-[11px] font-mono text-ink/80 italic pl-3 border-l-2 border-accent/40 bg-surface/40 p-1.5 rounded-r">
+                      "{sub.source_excerpt}"
+                      {sub.source_page && (
+                        <span className="ml-2 not-italic text-[10px] text-muted font-sans font-medium px-1.5 py-0.5 bg-elevated border border-subtle rounded">
+                          Page {sub.source_page}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {sub.missing_reason && subStatus === 'not_found' && (
+                    <p className="text-[11px] text-muted leading-tight pl-3 border-l-2 border-danger/40">
+                      {sub.missing_reason}
+                    </p>
+                  )}
+
+                  {sub.explanation && subStatus !== 'not_found' && !sub.source_excerpt && (
+                    <p className="text-[11px] text-muted leading-tight pl-3 border-l-2 border-subtle">
+                      {sub.explanation}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

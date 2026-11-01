@@ -9,6 +9,7 @@ export enum EvidenceStatus {
   SUPPORTED = 'supported',
   NOT_FOUND = 'not_found',
   AMBIGUOUS = 'ambiguous',
+  PARTIALLY_SUPPORTED = 'partially_supported',
 }
 
 export enum VerificationState {

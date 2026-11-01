@@ -38,6 +38,10 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     dotCls  = 'bg-success';
     pillCls = 'bg-success-dim text-success border-success/30 font-medium';
     label   = 'Evidence Supported';
+  } else if (norm === EvidenceStatus.PARTIALLY_SUPPORTED || norm === 'partially_supported') {
+    dotCls  = 'bg-amber-500';
+    pillCls = 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 font-medium';
+    label   = 'Partially Supported';
   } else if (norm === 'active' || norm === 'resolved') {
     dotCls  = 'bg-success';
     pillCls = 'bg-success-dim text-success border-success/30 font-medium';
@@ -63,7 +67,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   ) {
     dotCls  = 'bg-danger';
     pillCls = 'bg-danger-dim text-danger border-danger/30 font-medium';
-    label   = norm === 'not_found' ? 'Not Found' : 'Rejected';
+    label   = norm === 'not_found' ? 'Not Found in Evidence' : 'Rejected';
   } else if (norm === 'screening' || norm === 'reviewed') {
     dotCls  = 'bg-success';
     pillCls = 'bg-success-dim text-success border-success/30 font-medium';

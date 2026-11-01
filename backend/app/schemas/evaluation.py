@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -111,6 +112,22 @@ class EvaluationCreateRequest(BaseModel):
     application_id: uuid.UUID = Field(..., description="Candidate application ID")
 
 
+class SubcriterionEvaluationItem(BaseModel):
+    """Evaluation result for an individual subrequirement of a compound criterion."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    name: str
+    status: EvidenceStatus
+    confidence: float = 1.0
+    source_excerpt: str | None = None
+    source_page: int | None = None
+    explanation: str | None = None
+    citations: list[dict[str, Any]] = Field(default_factory=list)
+    missing_reason: str | None = None
+
+
 class CriterionEvaluationItem(BaseModel):
     """Evaluation result for an individual job criterion."""
 
@@ -130,6 +147,8 @@ class CriterionEvaluationItem(BaseModel):
     human_decision: str | None = None
     decision_rationale: str | None = None
     decided_at: datetime | None = None
+    subcriteria: list[SubcriterionEvaluationItem] = Field(default_factory=list)
+    missing_requirements: list[str] = Field(default_factory=list)
 
 
 class EvidenceCoverageSummary(BaseModel):
@@ -139,6 +158,7 @@ class EvidenceCoverageSummary(BaseModel):
     supported_count: int
     not_found_count: int
     ambiguous_count: int
+    partially_supported_count: int = 0
     required_total: int
     required_supported_count: int
     preferred_total: int

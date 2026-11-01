@@ -93,6 +93,9 @@ class FakeLLMProvider(BaseLLMProvider):
             ("aws", "Cloud Infrastructure"),
             ("sap", "Enterprise Software"),
             ("sql", "Databases"),
+            ("git", "Developer Tools"),
+            ("rest api", "API Concepts"),
+            ("sqlite", "Databases"),
         ]
 
         # Scan each page for skills
@@ -115,11 +118,14 @@ class FakeLLMProvider(BaseLLMProvider):
                     if years_match:
                         years = float(years_match.group(1))
 
+                    skill_disp = (
+                        kw.upper()
+                        if kw.lower() in ("aws", "sql", "sap", "git")
+                        else ("REST API" if kw.lower() == "rest api" else kw.capitalize())
+                    )
                     skills.append(
                         ExtractedSkill(
-                            skill_name=kw.capitalize()
-                            if kw.lower() != "aws" and kw.lower() != "sql" and kw.lower() != "sap"
-                            else kw.upper(),
+                            skill_name=skill_disp,
                             category=category,
                             years_of_experience=years,
                             confidence=0.95,
@@ -131,6 +137,39 @@ class FakeLLMProvider(BaseLLMProvider):
                             ),
                         )
                     )
+
+            # Heuristic detection for Projects
+            proj_matches = list(
+                re.finditer(
+                    r"^([A-Za-z0-9][^\n·•-]{1,50}?)\s*[·•-]\s*([^\n·•-]+?)\s*[·•-]\s*([^\n]+)$",
+                    text,
+                    re.MULTILINE,
+                )
+            )
+            for i, pm in enumerate(proj_matches):
+                p_name = pm.group(1).strip()
+                p_techs = [t.strip() for t in pm.group(2).split(",") if t.strip()]
+                start_idx = pm.start()
+                if i + 1 < len(proj_matches):
+                    end_idx = proj_matches[i + 1].start()
+                else:
+                    next_sec = re.search(r"\n[A-Z\s]{4,}\n", text[pm.end() :])
+                    end_idx = pm.end() + next_sec.start() if next_sec else min(len(text), pm.end() + 350)
+                proj_excerpt = text[start_idx:end_idx].strip()
+
+                projects.append(
+                    ExtractedProject(
+                        project_name=p_name,
+                        technologies=p_techs,
+                        description=proj_excerpt,
+                        source_quote=SourceQuote(
+                            page_number=page_num,
+                            exact_excerpt=proj_excerpt,
+                            start_char=start_idx,
+                            end_char=end_idx,
+                        ),
+                    )
+                )
 
             # Heuristic detection for Experience
             exp_matches = re.finditer(

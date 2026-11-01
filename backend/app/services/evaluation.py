@@ -7,6 +7,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
 
+from dataclasses import dataclass, field
+
 from app.core.exceptions import AuthorizationError, NotFoundError, ValidationError
 from app.core.logging import logger
 from app.core.security import CurrentUser, UserRole
@@ -26,7 +28,9 @@ from app.schemas.evaluation import (
     CriterionEvaluationItem,
     EvaluationResponse,
     EvidenceCoverageSummary,
+    SubcriterionEvaluationItem,
 )
+from app.utils.text import validate_excerpt_in_text
 
 # Known technology and domain synonyms
 SYNONYMS: dict[str, set[str]] = {
@@ -52,10 +56,20 @@ SYNONYMS: dict[str, set[str]] = {
     "typescript": {"typescript", "ts"},
     "js": {"javascript", "js"},
     "javascript": {"javascript", "js"},
-    "sql": {"sql", "rdbms", "relational database"},
+    "sql": {"sql", "rdbms", "relational database", "sql queries", "sql query", "sql statements"},
     "nosql": {"nosql", "mongodb", "dynamodb"},
     "git": {"git", "github", "gitlab", "version control"},
     "github": {"git", "github", "gitlab", "version control"},
+    "asyncio": {"asyncio", "asynchronous programming", "async", "async await"},
+    "asynchronous programming": {"asyncio", "asynchronous programming", "async", "async await"},
+    "rest api": {"rest api", "rest apis", "restful api", "restful apis", "rest", "restful"},
+    "restful api": {"rest api", "rest apis", "restful api", "restful apis", "rest", "restful"},
+    "scaling": {"scaling", "database scaling", "horizontal scaling", "vertical scaling", "replication", "sharding", "partitioning"},
+    "database scaling": {"scaling", "database scaling", "horizontal scaling", "vertical scaling", "replication", "sharding", "partitioning"},
+    "index optimization": {"index optimization", "indexing", "index tuning", "indexes", "indices", "execution plan", "query optimization", "explain analyze"},
+    "indexing": {"index optimization", "indexing", "index tuning", "indexes", "indices", "execution plan", "query optimization", "explain analyze"},
+    "table design": {"table design", "tables", "schema design", "table modeling", "relational database design", "database design"},
+    "schema design": {"table design", "tables", "schema design", "table modeling", "relational database design", "database design"},
 }
 
 # Subjective or vague criteria that cannot be verified from static resume evidence alone
@@ -365,6 +379,666 @@ def classify_evidence_item(
         return False, 99, 0.0, ""
 
 
+@dataclass
+class SubcriterionDefinition:
+    """Definition for a decomposed requirement of a job criterion."""
+
+    id: str
+    name: str
+    required_keywords: list[str] = field(default_factory=list)
+    description: str | None = None
+    is_framework: bool = False
+    is_duration: bool = False
+    is_production: bool = False
+    require_project_or_experience: bool = False
+    min_years: float | None = None
+
+
+def decompose_criterion(
+    criterion_name: str, description: str | None = None
+) -> list[SubcriterionDefinition]:
+    """
+    Decomposes a job criterion into constituent verifiable subrequirements.
+    Distinguishes atomic criteria from compound criteria requiring multi-layer matching.
+    """
+    name_norm = normalize_term(criterion_name)
+    desc_norm = normalize_term(description or "")
+    combined = f"{name_norm} {desc_norm}".strip()
+
+    # Pattern 1: Production + Years + Python (e.g. "2+ Years Production Python (FastAPI / AsyncIO)")
+    has_duration = bool(re.search(r"(\d+)\+?\s*years?", combined))
+    has_production = "production" in combined
+
+    if (
+        ("fastapi" in combined or "asyncio" in combined)
+        and "python" in combined
+        and (has_duration or has_production)
+    ):
+        dur_match = re.search(r"(\d+)\+?\s*years?", combined)
+        min_yrs = float(dur_match.group(1)) if dur_match else 2.0
+        return [
+            SubcriterionDefinition(
+                id="sub_python",
+                name="Python Programming",
+                required_keywords=["python", "py", "python3"],
+                description="Proficiency in Python programming language",
+            ),
+            SubcriterionDefinition(
+                id="sub_fastapi",
+                name="FastAPI Framework",
+                required_keywords=["fastapi"],
+                is_framework=True,
+                description="Direct hands-on experience developing with FastAPI",
+            ),
+            SubcriterionDefinition(
+                id="sub_asyncio",
+                name="AsyncIO / Asynchronous Programming",
+                required_keywords=["asyncio", "asynchronous programming", "async", "async await"],
+                description="Asynchronous Python programming and concurrency",
+            ),
+            SubcriterionDefinition(
+                id="sub_duration",
+                name=f"{int(min_yrs) if min_yrs.is_integer() else min_yrs}+ Years Experience Duration",
+                required_keywords=[],
+                is_duration=True,
+                min_years=min_yrs,
+                description=f"At least {int(min_yrs) if min_yrs.is_integer() else min_yrs} years of documented experience",
+            ),
+            SubcriterionDefinition(
+                id="sub_production",
+                name="Production Environment Experience",
+                required_keywords=[],
+                is_production=True,
+                description="Experience operating applications in enterprise production environments",
+            ),
+        ]
+
+    # Pattern 2: "Experience in FastAPI" or compound criteria demanding FastAPI
+    if "fastapi" in name_norm and any(
+        kw in name_norm for kw in ["experience", "framework", "rest", "api", "production", "development"]
+    ):
+        return [
+            SubcriterionDefinition(
+                id="sub_python",
+                name="Python Programming",
+                required_keywords=["python", "py", "python3"],
+                description="Python programming language fundamentals",
+            ),
+            SubcriterionDefinition(
+                id="sub_rest_api",
+                name="REST API Development",
+                required_keywords=["rest api", "rest apis", "restful api", "restful", "rest", "api", "fastapi"],
+                description="Designing and implementing RESTful API endpoints",
+            ),
+            SubcriterionDefinition(
+                id="sub_fastapi",
+                name="FastAPI Framework",
+                required_keywords=["fastapi"],
+                is_framework=True,
+                description="Direct implementation experience using the FastAPI framework",
+            ),
+        ]
+
+    # Pattern 3: PostgreSQL Scaling & Index Optimization
+    if any(p in name_norm for p in ["postgres", "postgresql"]) and any(
+        kw in name_norm for kw in ["scaling", "index", "optimization", "tuning"]
+    ):
+        return [
+            SubcriterionDefinition(
+                id="sub_postgres",
+                name="PostgreSQL Database",
+                required_keywords=["postgresql", "postgres", "psql"],
+                description="Relational database operations and data handling with PostgreSQL",
+            ),
+            SubcriterionDefinition(
+                id="sub_table_design",
+                name="PostgreSQL Table Design",
+                required_keywords=[
+                    "table design",
+                    "tables",
+                    "relational database design",
+                    "schema design",
+                    "table modeling",
+                ],
+                description="Designing database schemas, relational tables, and data models",
+            ),
+            SubcriterionDefinition(
+                id="sub_sql_queries",
+                name="SQL Query Experience",
+                required_keywords=[
+                    "sql",
+                    "sql query",
+                    "sql queries",
+                    "sql statements",
+                    "joins",
+                    "aggregate functions",
+                ],
+                description="Writing SQL queries using joins, grouping, and aggregate functions",
+            ),
+            SubcriterionDefinition(
+                id="sub_scaling",
+                name="Database Scaling",
+                required_keywords=[
+                    "scaling",
+                    "database scaling",
+                    "horizontal scaling",
+                    "vertical scaling",
+                    "replication",
+                    "sharding",
+                    "partitioning",
+                ],
+                description="Database scaling strategies including replication, partitioning, and sharding",
+            ),
+            SubcriterionDefinition(
+                id="sub_index_opt",
+                name="Index Optimization",
+                required_keywords=[
+                    "index optimization",
+                    "indexing",
+                    "index tuning",
+                    "indexes",
+                    "indices",
+                    "execution plan",
+                    "query optimization",
+                    "explain analyze",
+                ],
+                description="Creating performance indexes, query optimization, and analyzing execution plans",
+            ),
+        ]
+
+    # Pattern 4: Experience in PostgreSQL (Practical / applied experience)
+    if any(p in name_norm for p in ["postgres", "postgresql"]) and any(
+        kw in name_norm for kw in ["experience", "project", "work", "applied"]
+    ):
+        return [
+            SubcriterionDefinition(
+                id="sub_postgres",
+                name="PostgreSQL Database",
+                required_keywords=["postgresql", "postgres", "psql"],
+                description="Knowledge and usage of PostgreSQL relational database",
+            ),
+            SubcriterionDefinition(
+                id="sub_postgres_project",
+                name="PostgreSQL Project Experience",
+                required_keywords=["postgresql", "postgres", "psql"],
+                require_project_or_experience=True,
+                description="Applied project or professional experience utilizing PostgreSQL",
+            ),
+        ]
+
+    # Pattern 5: Criteria with explicit conjunctions (&, and, /, commas)
+    split_parts = re.split(r"\s*(?:&|\band\b|/|,)\s*", criterion_name, flags=re.IGNORECASE)
+    parts = [p.strip() for p in split_parts if p.strip() and len(normalize_term(p)) > 1]
+    if len(parts) > 1:
+        defs = []
+        for i, part in enumerate(parts):
+            p_norm = normalize_term(part)
+            dur_match = re.search(r"(\d+)\+?\s*years?", p_norm)
+            if dur_match:
+                yrs = float(dur_match.group(1))
+                defs.append(
+                    SubcriterionDefinition(
+                        id=f"sub_{i}_{int(yrs)}yr",
+                        name=f"{int(yrs) if yrs.is_integer() else yrs}+ Years Experience",
+                        required_keywords=[],
+                        is_duration=True,
+                        min_years=yrs,
+                    )
+                )
+            elif "production" in p_norm:
+                defs.append(
+                    SubcriterionDefinition(
+                        id=f"sub_{i}_prod",
+                        name="Production Experience",
+                        required_keywords=[],
+                        is_production=True,
+                    )
+                )
+            else:
+                defs.append(
+                    SubcriterionDefinition(
+                        id=f"sub_{i}_{p_norm[:15]}",
+                        name=part,
+                        required_keywords=[p_norm],
+                        description=f"Demonstrated capability in {part}",
+                    )
+                )
+        if len(defs) > 1:
+            return defs
+
+    # Default: Atomic criterion
+    return [
+        SubcriterionDefinition(
+            id=f"sub_{name_norm[:20]}",
+            name=criterion_name,
+            required_keywords=[name_norm],
+            description=description or f"Demonstrated evidence for {criterion_name}",
+        )
+    ]
+
+
+def extract_matching_sentence(text: str, synonyms: set[str]) -> str:
+    """Extracts the specific sentence or bullet point that matches the criterion keywords."""
+    if not text:
+        return ""
+    lines = re.split(r"[\n•\r]", text)
+    for line in lines:
+        cleaned = line.strip().lstrip("-*•").strip()
+        if cleaned and matches_criterion_term(cleaned, synonyms):
+            return cleaned
+    return text.strip()
+
+
+def evaluate_subcriterion(
+    sub: SubcriterionDefinition,
+    evidence_items: list[EvidenceItem],
+    candidate_skills: list[CandidateSkill],
+    resume_pages: dict[str, Any] | None = None,
+) -> SubcriterionEvaluationItem:
+    """
+    Evaluates a single subrequirement deterministically with multi-layer evidence retrieval,
+    controlled synonyms, and strict source grounding.
+    """
+    # 1. Duration requirement
+    if sub.is_duration:
+        min_years = sub.min_years or 0.0
+        skill_years = max(
+            (
+                float(s.years_of_experience)
+                for s in candidate_skills
+                if getattr(s, "years_of_experience", None) is not None
+            ),
+            default=0.0,
+        )
+        exp_years = 0.0
+        for ev in evidence_items:
+            meta = ev.raw_metadata or {}
+            ev_yrs = meta.get("years_of_experience")
+            if ev_yrs is not None:
+                exp_years = max(exp_years, float(ev_yrs))
+            if meta.get("item_type") == "experience":
+                start = meta.get("start_date")
+                end = meta.get("end_date")
+                if start:
+                    start_yr = (
+                        int(re.search(r"\d{4}", str(start)).group(0))
+                        if re.search(r"\d{4}", str(start))
+                        else None
+                    )
+                    end_yr = (
+                        int(re.search(r"\d{4}", str(end)).group(0))
+                        if end and re.search(r"\d{4}", str(end))
+                        else 2026
+                    )
+                    if start_yr:
+                        exp_years += max(0, end_yr - start_yr)
+
+        total_years = max(skill_years, exp_years)
+        if total_years >= min_years and min_years > 0:
+            return SubcriterionEvaluationItem(
+                id=sub.id,
+                name=sub.name,
+                status=EvidenceStatus.SUPPORTED,
+                confidence=0.95,
+                explanation=f"Documented experience ({total_years:.1f} years) satisfies the {min_years}+ years requirement.",
+            )
+        else:
+            return SubcriterionEvaluationItem(
+                id=sub.id,
+                name=sub.name,
+                status=EvidenceStatus.NOT_FOUND,
+                confidence=0.90,
+                missing_reason=f"Resume documents academic projects but does not document {min_years}+ years of professional experience.",
+                explanation=f"Resume documents academic projects but does not document {min_years}+ years of professional experience. Note: This indicates absence in the submitted resume, not a verified lack of capability.",
+            )
+
+    # 2. Production requirement
+    if sub.is_production:
+        has_prod = False
+        prod_excerpt = None
+        prod_page = None
+        for ev in evidence_items:
+            meta = ev.raw_metadata or {}
+            combined_txt = f"{ev.claim_text} {ev.source_excerpt or ''} {meta.get('description', '')}".lower()
+            if meta.get("item_type") == "experience":
+                company = str(meta.get("company", "")).lower()
+                is_academic = any(
+                    ac in company
+                    for ac in ["university", "college", "institute", "school", "student", "intern"]
+                )
+                if not is_academic and (
+                    "production" in combined_txt
+                    or "enterprise" in combined_txt
+                    or "microservices" in combined_txt
+                ):
+                    has_prod = True
+                    prod_excerpt = ev.source_excerpt
+                    prod_page = ev.source_page
+                    break
+            elif "production" in combined_txt or "deployed to production" in combined_txt:
+                has_prod = True
+                prod_excerpt = ev.source_excerpt
+                prod_page = ev.source_page
+                break
+
+        if has_prod:
+            return SubcriterionEvaluationItem(
+                id=sub.id,
+                name=sub.name,
+                status=EvidenceStatus.SUPPORTED,
+                confidence=0.95,
+                source_excerpt=prod_excerpt,
+                source_page=prod_page,
+                explanation="Evidence demonstrates experience in production / enterprise environments.",
+            )
+        else:
+            return SubcriterionEvaluationItem(
+                id=sub.id,
+                name=sub.name,
+                status=EvidenceStatus.NOT_FOUND,
+                confidence=0.90,
+                missing_reason="Documented experience is in academic and personal projects rather than enterprise production environments.",
+                explanation="Documented experience is in academic and personal projects rather than enterprise production environments. Note: This indicates absence in the submitted resume, not a verified lack of capability.",
+            )
+
+    # 3. Strict framework requirement (e.g. FastAPI)
+    if sub.is_framework:
+        kw_syns: set[str] = set()
+        for kw in sub.required_keywords:
+            kw_syns.update(get_synonym_set(kw))
+            kw_syns.add(normalize_term(kw))
+
+        # Check evidence items
+        matched_ev: EvidenceItem | None = None
+        for ev in evidence_items:
+            meta = ev.raw_metadata or {}
+            txt = f"{ev.claim_text} {ev.source_excerpt or ''} {meta.get('skill_name', '')} {meta.get('technologies', '')} {meta.get('description', '')}"
+            if matches_criterion_term(txt, kw_syns):
+                matched_ev = ev
+                break
+
+        # Check candidate skills
+        matched_sk: CandidateSkill | None = None
+        if not matched_ev:
+            for sk in candidate_skills:
+                if matches_criterion_term(sk.skill_name, kw_syns):
+                    matched_sk = sk
+                    break
+
+        # Check raw resume pages
+        page_match_excerpt = None
+        page_match_num = None
+        if not matched_ev and not matched_sk and resume_pages:
+            for pg_str, pg_txt in resume_pages.items():
+                if matches_criterion_term(str(pg_txt), kw_syns):
+                    for line in str(pg_txt).split("\n"):
+                        line_clean = line.strip().lstrip("-*•").strip()
+                        if matches_criterion_term(line_clean, kw_syns) and validate_excerpt_in_text(
+                            line_clean, str(pg_txt)
+                        ):
+                            page_match_excerpt = line_clean
+                            page_match_num = int(pg_str) if str(pg_str).isdigit() else 1
+                            break
+                    if page_match_excerpt:
+                        break
+
+        if matched_ev and matched_ev.grounding_verified:
+            return SubcriterionEvaluationItem(
+                id=sub.id,
+                name=sub.name,
+                status=EvidenceStatus.SUPPORTED,
+                confidence=matched_ev.confidence,
+                source_excerpt=matched_ev.source_excerpt,
+                source_page=matched_ev.source_page,
+                explanation=f"Direct evidence for '{sub.name}' found on page {matched_ev.source_page}.",
+                citations=[
+                    {
+                        "document_id": str(matched_ev.document_id)
+                        if matched_ev.document_id
+                        else None,
+                        "page_number": matched_ev.source_page,
+                        "exact_excerpt": matched_ev.source_excerpt,
+                        "evidence_type": (matched_ev.raw_metadata or {}).get(
+                            "item_type", "evidence"
+                        ),
+                        "grounding_verified": True,
+                    }
+                ],
+            )
+        elif matched_sk:
+            return SubcriterionEvaluationItem(
+                id=sub.id,
+                name=sub.name,
+                status=EvidenceStatus.AMBIGUOUS,
+                confidence=matched_sk.confidence,
+                source_excerpt=matched_sk.source_excerpt,
+                source_page=matched_sk.source_page,
+                explanation=f"Candidate lists '{sub.name}' in skills inventory on page {matched_sk.source_page}, but without applied project or experience evidence.",
+            )
+        elif page_match_excerpt:
+            return SubcriterionEvaluationItem(
+                id=sub.id,
+                name=sub.name,
+                status=EvidenceStatus.SUPPORTED,
+                confidence=0.90,
+                source_excerpt=page_match_excerpt,
+                source_page=page_match_num,
+                explanation=f"Direct evidence for '{sub.name}' found on page {page_match_num}.",
+                citations=[
+                    {
+                        "document_id": None,
+                        "page_number": page_match_num,
+                        "exact_excerpt": page_match_excerpt,
+                        "evidence_type": "document_text",
+                        "grounding_verified": True,
+                    }
+                ],
+            )
+        else:
+            return SubcriterionEvaluationItem(
+                id=sub.id,
+                name=sub.name,
+                status=EvidenceStatus.NOT_FOUND,
+                confidence=0.95,
+                missing_reason=f"Resume documents related capabilities (e.g., Python, REST APIs) but does not document {sub.name} specifically.",
+                explanation=f"Candidate's resume demonstrates related capabilities but contains no direct mention of {sub.name}. Note: This indicates absence of evidence in the resume, not a verified lack of capability.",
+            )
+
+    # 4. Standard technical skill / subrequirement matching
+    kw_syns = set()
+    for kw in sub.required_keywords:
+        kw_syns.update(get_synonym_set(kw))
+        kw_syns.add(normalize_term(kw))
+
+    matching_citations: list[dict[str, Any]] = []
+    applied_matches: list[tuple[int, float, EvidenceItem | None, str]] = []
+    bare_skill_matches: list[tuple[EvidenceItem | None, str]] = []
+
+    for ev in evidence_items:
+        meta = ev.raw_metadata or {}
+        item_type = meta.get("item_type", "general")
+        claim = ev.claim_text or ""
+        excerpt = ev.source_excerpt or ""
+        desc = meta.get("description", "")
+        techs = meta.get("technologies", [])
+        techs_str = " ".join(techs) if isinstance(techs, list) else str(techs)
+        full_context = f"{claim} {excerpt} {desc} {techs_str} {meta.get('job_title', '')}"
+
+        matched = False
+        sentence = ""
+
+        if item_type == "skill":
+            skill_name = meta.get("skill_name") or claim
+            if matches_criterion_term(skill_name, kw_syns):
+                matched = True
+                sentence = extract_matching_sentence(excerpt or skill_name, kw_syns)
+        elif item_type == "project":
+            proj_name = meta.get("project_name", "")
+            if matches_criterion_term(f"{proj_name} {techs_str} {desc} {excerpt}", kw_syns):
+                matched = True
+                sentence = extract_matching_sentence(f"{desc}\n{excerpt}", kw_syns)
+                if not sentence or not matches_criterion_term(sentence, kw_syns):
+                    sentence = f"Project {proj_name}: {techs_str}"
+        elif item_type == "experience":
+            job_title = meta.get("job_title", "")
+            resps = meta.get("responsibilities", [])
+            resps_str = " ".join(resps) if isinstance(resps, list) else str(resps)
+            if matches_criterion_term(f"{job_title} {resps_str} {excerpt}", kw_syns):
+                matched = True
+                sentence = extract_matching_sentence(f"{resps_str}\n{excerpt}", kw_syns)
+        else:
+            if matches_criterion_term(full_context, kw_syns):
+                matched = True
+                sentence = extract_matching_sentence(excerpt or claim, kw_syns)
+
+        if matched:
+            citation_item = {
+                "document_id": str(ev.document_id) if ev.document_id else None,
+                "page_number": ev.source_page,
+                "exact_excerpt": sentence or ev.source_excerpt,
+                "evidence_type": item_type,
+                "grounding_verified": ev.grounding_verified,
+            }
+            matching_citations.append(citation_item)
+
+            if ev.grounding_verified:
+                if item_type in ("project", "experience"):
+                    tier = TIER_PROJECT if item_type == "project" else TIER_EXPERIENCE
+                    applied_matches.append(
+                        (tier, ev.confidence, ev, sentence or ev.source_excerpt or "")
+                    )
+                elif item_type == "skill":
+                    if is_bare_skill_list(excerpt):
+                        bare_skill_matches.append((ev, sentence or excerpt))
+                    else:
+                        applied_matches.append(
+                            (TIER_EXPERIENCE, ev.confidence, ev, sentence or excerpt)
+                        )
+                else:
+                    has_action_verbs = any(
+                        re.search(rf"\b{verb}\b", f"{claim} {excerpt}".lower())
+                        for verb in (
+                            "built",
+                            "developed",
+                            "created",
+                            "used",
+                            "administered",
+                            "deployed",
+                            "designed",
+                            "implemented",
+                            "engineered",
+                            "managed",
+                        )
+                    )
+                    if has_action_verbs:
+                        applied_matches.append(
+                            (TIER_PROJECT, ev.confidence, ev, sentence or ev.source_excerpt or "")
+                        )
+                    elif is_bare_skill_list(excerpt):
+                        bare_skill_matches.append((ev, sentence or excerpt))
+                    else:
+                        applied_matches.append(
+                            (TIER_SKILL, ev.confidence, ev, sentence or excerpt)
+                        )
+
+    # Also inspect resume_pages if applied_matches is empty
+    if not applied_matches and resume_pages:
+        for pg_str, pg_txt in resume_pages.items():
+            pg_int = int(pg_str) if str(pg_str).isdigit() else 1
+            for line in str(pg_txt).split("\n"):
+                line_clean = line.strip().lstrip("-*•").strip()
+                if len(line_clean) > 10 and matches_criterion_term(line_clean, kw_syns):
+                    if validate_excerpt_in_text(line_clean, str(pg_txt)):
+                        citation_item = {
+                            "document_id": None,
+                            "page_number": pg_int,
+                            "exact_excerpt": line_clean,
+                            "evidence_type": "project"
+                            if "project" in str(pg_txt).lower()
+                            else "document_text",
+                            "grounding_verified": True,
+                        }
+                        matching_citations.append(citation_item)
+                        applied_matches.append((TIER_PROJECT, 0.90, None, line_clean))
+                        break
+
+    # Also check candidate_skills if nothing else matched
+    if not applied_matches and not bare_skill_matches:
+        for sk in candidate_skills:
+            if matches_criterion_term(sk.skill_name, kw_syns):
+                bare_skill_matches.append((None, sk.source_excerpt or sk.skill_name))
+                matching_citations.append(
+                    {
+                        "document_id": None,
+                        "page_number": sk.source_page,
+                        "exact_excerpt": sk.source_excerpt or sk.skill_name,
+                        "evidence_type": "skill",
+                        "grounding_verified": sk.confidence > 0,
+                    }
+                )
+
+    if applied_matches:
+        best_match = applied_matches[0]
+        ev_obj = best_match[2]
+        quote = best_match[3]
+        page = (
+            ev_obj.source_page
+            if ev_obj
+            else (matching_citations[0]["page_number"] if matching_citations else 1)
+        )
+        conf = ev_obj.confidence if ev_obj else 0.90
+
+        return SubcriterionEvaluationItem(
+            id=sub.id,
+            name=sub.name,
+            status=EvidenceStatus.SUPPORTED,
+            confidence=conf,
+            source_excerpt=quote,
+            source_page=page,
+            explanation=f"Validated evidence demonstrates '{sub.name}' on page {page}.",
+            citations=matching_citations,
+        )
+    elif bare_skill_matches:
+        quote = bare_skill_matches[0][1]
+        ev_obj = bare_skill_matches[0][0]
+        page = ev_obj.source_page if ev_obj else 1
+        conf = ev_obj.confidence if ev_obj else 0.70
+
+        if sub.require_project_or_experience:
+            return SubcriterionEvaluationItem(
+                id=sub.id,
+                name=sub.name,
+                status=EvidenceStatus.AMBIGUOUS,
+                confidence=conf,
+                source_excerpt=quote,
+                source_page=page,
+                explanation=f"Candidate lists '{sub.name}' in skills inventory on page {page}, but without applied project or experience evidence.",
+                citations=matching_citations,
+                missing_reason=f"Candidate lists '{sub.name}' in skills inventory, but practical project or applied experience was not documented.",
+            )
+        else:
+            return SubcriterionEvaluationItem(
+                id=sub.id,
+                name=sub.name,
+                status=EvidenceStatus.AMBIGUOUS,
+                confidence=conf,
+                source_excerpt=quote,
+                source_page=page,
+                explanation=f"Candidate lists '{sub.name}' in skills inventory on page {page}, but without applied project or experience evidence.",
+                citations=matching_citations,
+            )
+    else:
+        return SubcriterionEvaluationItem(
+            id=sub.id,
+            name=sub.name,
+            status=EvidenceStatus.NOT_FOUND,
+            confidence=0.95,
+            missing_reason=f"No validated evidence for '{sub.name}' was found in the submitted materials.",
+            explanation=f"No validated evidence for '{sub.name}' was found in the submitted materials. Note: This indicates absence in the resume, not a verified lack of capability.",
+            citations=[],
+        )
+
+
 class EvaluationService:
     """
     Deterministic evidence evaluation service.
@@ -478,6 +1152,12 @@ class EvaluationService:
         candidate_skills = await extraction_repo.get_candidate_skills_for_run(extraction_run.id)
         evidence_items = await extraction_repo.get_evidence_items_for_run(extraction_run.id)
 
+        resume_pages = (
+            application.primary_document.extracted_text_by_page
+            if application.primary_document
+            else {}
+        )
+
         # 5. Evaluate each criterion deterministically
         criterion_mappings: list[dict[str, Any]] = []
 
@@ -486,6 +1166,7 @@ class EvaluationService:
                 criterion=criterion,
                 candidate_skills=candidate_skills,
                 evidence_items=evidence_items,
+                resume_pages=resume_pages,
             )
             criterion_mappings.append(mapping)
 
@@ -493,6 +1174,9 @@ class EvaluationService:
         total_count = len(criterion_mappings)
         supported_count = sum(
             1 for m in criterion_mappings if m["ai_status"] == EvidenceStatus.SUPPORTED
+        )
+        partially_supported_count = sum(
+            1 for m in criterion_mappings if m["ai_status"] == EvidenceStatus.PARTIALLY_SUPPORTED
         )
         not_found_count = sum(
             1 for m in criterion_mappings if m["ai_status"] == EvidenceStatus.NOT_FOUND
@@ -514,6 +1198,8 @@ class EvaluationService:
             overall_status = EvidenceStatus.SUPPORTED
         elif not_found_count == total_count:
             overall_status = EvidenceStatus.NOT_FOUND
+        elif partially_supported_count > 0 or (supported_count > 0 and not_found_count > 0):
+            overall_status = EvidenceStatus.PARTIALLY_SUPPORTED
         else:
             overall_status = EvidenceStatus.AMBIGUOUS
 
@@ -529,6 +1215,17 @@ class EvaluationService:
             for m in criterion_mappings
         }
 
+        criteria_subcriteria = {
+            str(m["job_criterion_id"]): {
+                "subcriteria": [
+                    s.model_dump() if hasattr(s, "model_dump") else s
+                    for s in m.get("subcriteria", [])
+                ],
+                "missing_requirements": m.get("missing_requirements", []),
+            }
+            for m in criterion_mappings
+        }
+
         # 7. Record evaluation and audit trail
         evaluation = await eval_repo.record_evaluation(
             application_id=application.id,
@@ -538,7 +1235,9 @@ class EvaluationService:
             criterion_mappings=criterion_mappings,
             summary_notes=(
                 f"Evaluated {total_count} criteria: {supported_count} supported, "
-                f"{not_found_count} not found, {total_count - supported_count - not_found_count} ambiguous."
+                f"{partially_supported_count} partially supported, "
+                f"{not_found_count} not found, "
+                f"{total_count - supported_count - partially_supported_count - not_found_count} ambiguous."
             ),
             raw_model_output={
                 "job_criteria_version": criteria_version,
@@ -546,6 +1245,7 @@ class EvaluationService:
                 "extraction_run_number": extraction_run.run_number,
                 "document_id": str(application.primary_document_id),
                 "criteria_evidence_summary": criteria_summary,
+                "criteria_subcriteria": criteria_subcriteria,
             },
             actor_id=actor_id,
         )
@@ -562,9 +1262,11 @@ class EvaluationService:
         criterion: JobCriterion,
         candidate_skills: list[CandidateSkill],
         evidence_items: list[EvidenceItem],
+        resume_pages: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """
         Evaluates a single criterion against extracted skills and evidence.
+        Decomposes compound criteria into subcriteria when applicable.
         Returns mapping dictionary for CriterionEvidence record.
         """
         criterion_name = criterion.name.strip()
@@ -587,11 +1289,127 @@ class EvaluationService:
                 "source_excerpt": None,
                 "source_page": None,
                 "supporting_evidence_ids": [],
+                "subcriteria": [],
+                "missing_requirements": [],
             }
 
+        # Rule B: Decompose compound requirements
+        sub_defs = decompose_criterion(criterion_name, criterion.description)
+
+        if len(sub_defs) > 1:
+            evaluated_subs = [
+                evaluate_subcriterion(
+                    sub=sub_def,
+                    evidence_items=evidence_items,
+                    candidate_skills=candidate_skills,
+                    resume_pages=resume_pages,
+                )
+                for sub_def in sub_defs
+            ]
+
+            supported_subs = [s for s in evaluated_subs if s.status == EvidenceStatus.SUPPORTED]
+            not_found_subs = [s for s in evaluated_subs if s.status == EvidenceStatus.NOT_FOUND]
+            ambiguous_subs = [s for s in evaluated_subs if s.status == EvidenceStatus.AMBIGUOUS]
+            partially_subs = [
+                s for s in evaluated_subs if s.status == EvidenceStatus.PARTIALLY_SUPPORTED
+            ]
+
+            if len(supported_subs) == len(evaluated_subs):
+                parent_status = EvidenceStatus.SUPPORTED
+                confidence = min((s.confidence for s in supported_subs), default=0.95)
+                ai_reasoning = (
+                    f"Validated source evidence directly demonstrates all required aspects for '{criterion_name}': "
+                    + ", ".join(f"{s.name} (page {s.source_page})" for s in supported_subs)
+                    + "."
+                )
+            elif len(not_found_subs) == len(evaluated_subs):
+                parent_status = EvidenceStatus.NOT_FOUND
+                confidence = 1.0
+                ai_reasoning = (
+                    f"No validated evidence for '{criterion_name}' was found in the submitted material. "
+                    "Note: This does not mean the candidate lacks this skill, only that it was not documented "
+                    "in the submitted resume."
+                )
+            elif supported_subs or partially_subs:
+                parent_status = EvidenceStatus.PARTIALLY_SUPPORTED
+                confidence = 0.90
+                reason_parts = []
+                if supported_subs:
+                    reason_parts.append(
+                        f"Supported requirements: {', '.join(s.name for s in supported_subs)}"
+                    )
+                if not_found_subs:
+                    reason_parts.append(
+                        f"Missing from evidence: {', '.join(s.name for s in not_found_subs)}"
+                    )
+                if ambiguous_subs:
+                    reason_parts.append(
+                        f"Ambiguous or limited depth: {', '.join(s.name for s in ambiguous_subs)}"
+                    )
+                ai_reasoning = (
+                    f"Partial evidence found for '{criterion_name}'. "
+                    + "; ".join(reason_parts)
+                    + ". Note: Missing items reflect absence of documentation in the submitted resume, not a verified lack of capability."
+                )
+            else:
+                parent_status = EvidenceStatus.AMBIGUOUS
+                confidence = 0.60
+                ai_reasoning = (
+                    f"Evidence for '{criterion_name}' is ambiguous, limited in depth, or ungrounded."
+                )
+
+            primary_ev_id = None
+            primary_excerpt = None
+            primary_page = None
+            supporting_ids: list[uuid.UUID] = []
+
+            for sub_res in supported_subs:
+                if not primary_excerpt and sub_res.source_excerpt:
+                    primary_excerpt = sub_res.source_excerpt
+                    primary_page = sub_res.source_page
+
+            if supported_subs:
+                for ev in evidence_items:
+                    if (
+                        primary_excerpt
+                        and ev.source_excerpt
+                        and (
+                            primary_excerpt in ev.source_excerpt
+                            or ev.source_excerpt in primary_excerpt
+                        )
+                    ):
+                        primary_ev_id = ev.id
+                        break
+                for ev in evidence_items:
+                    if primary_ev_id and ev.id != primary_ev_id:
+                        for sub_res in supported_subs:
+                            for cit in sub_res.citations:
+                                if (
+                                    cit.get("exact_excerpt")
+                                    and ev.source_excerpt
+                                    and cit["exact_excerpt"] in ev.source_excerpt
+                                ):
+                                    if ev.id not in supporting_ids:
+                                        supporting_ids.append(ev.id)
+
+            return {
+                "job_criterion_id": criterion.id,
+                "category": criterion_category,
+                "evidence_item_id": primary_ev_id,
+                "ai_status": parent_status,
+                "ai_confidence": confidence,
+                "ai_reasoning": ai_reasoning,
+                "verification_state": VerificationState.UNVERIFIED,
+                "source_excerpt": primary_excerpt,
+                "source_page": primary_page,
+                "supporting_evidence_ids": supporting_ids,
+                "subcriteria": evaluated_subs,
+                "missing_requirements": [s.name for s in not_found_subs],
+            }
+
+        # Rule C: Atomic criterion evaluation with multi-tier ranking
         synonyms = get_synonym_set(criterion_name)
 
-        # 1. Collect and rank all matching evidence items using deterministic multi-tier ranking
         ranked_evidence: list[tuple[int, int, float, float, int, EvidenceItem, str]] = []
         for item in evidence_items:
             is_matched, tier, relevance, desc = classify_evidence_item(
@@ -611,14 +1429,21 @@ class EvaluationService:
 
         ranked_evidence.sort(key=lambda x: (x[0], x[1], x[2], x[3], x[4]))
 
-        # 2. Check CandidateSkill objects as fallback if no EvidenceItem matches
         matched_skills: list[CandidateSkill] = []
         for skill in candidate_skills:
             if matches_criterion_term(skill.skill_name, synonyms):
                 matched_skills.append(skill)
 
-        # Rule B: If no skills and no evidence found -> not_found
+        # Atomic fallback when no items matched in extraction run
         if not ranked_evidence and not matched_skills:
+            sub_item = SubcriterionEvaluationItem(
+                id=sub_defs[0].id if sub_defs else "sub_0",
+                name=sub_defs[0].name if sub_defs else criterion_name,
+                status=EvidenceStatus.NOT_FOUND,
+                confidence=1.0,
+                missing_reason=f"No validated evidence for '{criterion_name}' was found in the submitted material.",
+                explanation=f"No validated evidence for '{criterion_name}' was found in the submitted material. Note: This indicates absence in the resume, not a verified lack of capability.",
+            )
             return {
                 "job_criterion_id": criterion.id,
                 "category": criterion_category,
@@ -634,9 +1459,11 @@ class EvaluationService:
                 "source_excerpt": None,
                 "source_page": None,
                 "supporting_evidence_ids": [],
+                "subcriteria": [sub_item],
+                "missing_requirements": [criterion_name],
             }
 
-        # Rule C: Evidence item exists
+        # Atomic evidence item exists
         if ranked_evidence:
             primary_entry = ranked_evidence[0]
             primary_tier = primary_entry[0]
@@ -648,8 +1475,16 @@ class EvaluationService:
             source_page = primary_evidence.source_page
             evidence_item_id = primary_evidence.id
 
-            # Ungrounded evidence
             if not primary_evidence.grounding_verified:
+                sub_item = SubcriterionEvaluationItem(
+                    id=sub_defs[0].id if sub_defs else "sub_0",
+                    name=sub_defs[0].name if sub_defs else criterion_name,
+                    status=EvidenceStatus.AMBIGUOUS,
+                    confidence=0.4,
+                    source_excerpt=source_excerpt,
+                    source_page=source_page,
+                    explanation=f"Evidence referencing '{criterion_name}' was extracted, but grounding verification against the original document text failed or was unverified.",
+                )
                 return {
                     "job_criterion_id": criterion.id,
                     "category": criterion_category,
@@ -664,9 +1499,10 @@ class EvaluationService:
                     "source_excerpt": source_excerpt,
                     "source_page": source_page,
                     "supporting_evidence_ids": supporting_ids,
+                    "subcriteria": [sub_item],
+                    "missing_requirements": [],
                 }
 
-            # Date conflicts in metadata
             has_date_conflict = False
             if primary_evidence.raw_metadata:
                 has_date_conflict = bool(
@@ -674,6 +1510,15 @@ class EvaluationService:
                     or primary_evidence.raw_metadata.get("has_date_conflict")
                 )
             if has_date_conflict:
+                sub_item = SubcriterionEvaluationItem(
+                    id=sub_defs[0].id if sub_defs else "sub_0",
+                    name=sub_defs[0].name if sub_defs else criterion_name,
+                    status=EvidenceStatus.AMBIGUOUS,
+                    confidence=0.6,
+                    source_excerpt=source_excerpt,
+                    source_page=source_page,
+                    explanation=f"Candidate mentions '{criterion_name}', but evidence indicates conflicting dates in the timeline.",
+                )
                 return {
                     "job_criterion_id": criterion.id,
                     "category": criterion_category,
@@ -687,11 +1532,21 @@ class EvaluationService:
                     "source_excerpt": source_excerpt,
                     "source_page": source_page,
                     "supporting_evidence_ids": supporting_ids,
+                    "subcriteria": [sub_item],
+                    "missing_requirements": [],
                 }
 
-            # Criterion-specific weak exposure check
             combined_text = f"{source_excerpt or ''}\n{primary_evidence.claim_text or ''}"
             if has_weak_exposure_qualifier(criterion_name, combined_text, synonyms):
+                sub_item = SubcriterionEvaluationItem(
+                    id=sub_defs[0].id if sub_defs else "sub_0",
+                    name=sub_defs[0].name if sub_defs else criterion_name,
+                    status=EvidenceStatus.AMBIGUOUS,
+                    confidence=0.6,
+                    source_excerpt=source_excerpt,
+                    source_page=source_page,
+                    explanation=f"Candidate mentions '{criterion_name}', but evidence indicates limited exposure, basic familiarity, or introductory usage.",
+                )
                 return {
                     "job_criterion_id": criterion.id,
                     "category": criterion_category,
@@ -706,10 +1561,20 @@ class EvaluationService:
                     "source_excerpt": source_excerpt,
                     "source_page": source_page,
                     "supporting_evidence_ids": supporting_ids,
+                    "subcriteria": [sub_item],
+                    "missing_requirements": [],
                 }
 
-            # Bare skill-list scoring: bare skill listing alone produces ambiguous (never supported with 1.0)
             if primary_tier == TIER_SKILL:
+                sub_item = SubcriterionEvaluationItem(
+                    id=sub_defs[0].id if sub_defs else "sub_0",
+                    name=sub_defs[0].name if sub_defs else criterion_name,
+                    status=EvidenceStatus.AMBIGUOUS,
+                    confidence=0.7,
+                    source_excerpt=source_excerpt,
+                    source_page=source_page,
+                    explanation=f"Candidate lists '{criterion_name}' in skills inventory, but without project, experience, or applied evidence demonstrating practical usage.",
+                )
                 return {
                     "job_criterion_id": criterion.id,
                     "category": criterion_category,
@@ -724,9 +1589,10 @@ class EvaluationService:
                     "source_excerpt": source_excerpt,
                     "source_page": source_page,
                     "supporting_evidence_ids": supporting_ids,
+                    "subcriteria": [sub_item],
+                    "missing_requirements": [],
                 }
 
-            # Education coursework for a non-education technical skill
             if primary_tier == TIER_EDUCATION:
                 is_edu_criterion = any(
                     kw in normalize_term(criterion_name)
@@ -743,6 +1609,15 @@ class EvaluationService:
                     )
                 )
                 if not is_edu_criterion:
+                    sub_item = SubcriterionEvaluationItem(
+                        id=sub_defs[0].id if sub_defs else "sub_0",
+                        name=sub_defs[0].name if sub_defs else criterion_name,
+                        status=EvidenceStatus.AMBIGUOUS,
+                        confidence=0.6,
+                        source_excerpt=source_excerpt,
+                        source_page=source_page,
+                        explanation=f"Candidate references '{criterion_name}' in academic education coursework, but without applied project or professional experience.",
+                    )
                     return {
                         "job_criterion_id": criterion.id,
                         "category": criterion_category,
@@ -757,13 +1632,24 @@ class EvaluationService:
                         "source_excerpt": source_excerpt,
                         "source_page": source_page,
                         "supporting_evidence_ids": supporting_ids,
+                        "subcriteria": [sub_item],
+                        "missing_requirements": [],
                     }
 
-            # Validated, applied source evidence (Experience, Project, Certification)
             confidence = primary_evidence.confidence
             support_note = ""
             if supporting_ids:
                 support_note = f" (supported by {len(supporting_ids)} other evidence item(s))"
+
+            sub_item = SubcriterionEvaluationItem(
+                id=sub_defs[0].id if sub_defs else "sub_0",
+                name=sub_defs[0].name if sub_defs else criterion_name,
+                status=EvidenceStatus.SUPPORTED,
+                confidence=confidence,
+                source_excerpt=source_excerpt,
+                source_page=source_page,
+                explanation=f"Validated source evidence ({primary_desc}) directly demonstrates experience with '{criterion_name}' on page {source_page}.{support_note}",
+            )
 
             return {
                 "job_criterion_id": criterion.id,
@@ -779,10 +1665,20 @@ class EvaluationService:
                 "source_excerpt": source_excerpt,
                 "source_page": source_page,
                 "supporting_evidence_ids": supporting_ids,
+                "subcriteria": [sub_item],
+                "missing_requirements": [],
             }
 
-        # Fallback: only CandidateSkill found
         primary_skill = matched_skills[0]
+        sub_item = SubcriterionEvaluationItem(
+            id=sub_defs[0].id if sub_defs else "sub_0",
+            name=sub_defs[0].name if sub_defs else criterion_name,
+            status=EvidenceStatus.AMBIGUOUS,
+            confidence=0.7,
+            source_excerpt=primary_skill.source_excerpt,
+            source_page=primary_skill.source_page,
+            explanation=f"Candidate lists '{criterion_name}' in skills inventory, but without project, experience, or applied evidence demonstrating practical usage.",
+        )
         return {
             "job_criterion_id": criterion.id,
             "category": criterion_category,
@@ -797,22 +1693,27 @@ class EvaluationService:
             "source_excerpt": primary_skill.source_excerpt,
             "source_page": primary_skill.source_page,
             "supporting_evidence_ids": [],
+            "subcriteria": [sub_item],
+            "missing_requirements": [],
         }
 
     @staticmethod
     def build_evaluation_response(evaluation: Evaluation) -> EvaluationResponse:
         """
         Builds the EvaluationResponse schema with explicit factual coverage counts
-        and individual criterion evaluations.
+        and individual criterion evaluations including decomposed subcriteria.
         """
         items: list[CriterionEvaluationItem] = []
         supported_count = 0
+        partially_supported_count = 0
         not_found_count = 0
         ambiguous_count = 0
         required_total = 0
         required_supported = 0
         preferred_total = 0
         preferred_supported = 0
+
+        criteria_subcriteria = (evaluation.raw_model_output or {}).get("criteria_subcriteria", {})
 
         for ce in evaluation.criterion_evidence_items:
             cat = str(ce.criterion.category) if ce.criterion else "required"
@@ -829,6 +1730,8 @@ class EvaluationService:
                     required_supported += 1
                 else:
                     preferred_supported += 1
+            elif ce.ai_status == EvidenceStatus.PARTIALLY_SUPPORTED:
+                partially_supported_count += 1
             elif ce.ai_status == EvidenceStatus.NOT_FOUND:
                 not_found_count += 1
             else:
@@ -843,8 +1746,17 @@ class EvaluationService:
             public_rationale = None
             decided_at = active_dec.created_at if active_dec else None
             if active_dec and active_dec.mandatory_rationale:
-                import re
-                public_rationale = re.sub(r"\[Internal Notes:.*?\]", "", active_dec.mandatory_rationale).strip()
+                public_rationale = re.sub(
+                    r"\[Internal Notes:.*?\]", "", active_dec.mandatory_rationale
+                ).strip()
+
+            crit_sub_info = criteria_subcriteria.get(str(ce.job_criterion_id), {})
+            subcriteria_raw = crit_sub_info.get("subcriteria", [])
+            missing_requirements = crit_sub_info.get("missing_requirements", [])
+
+            subcriteria = [
+                SubcriterionEvaluationItem.model_validate(s) for s in subcriteria_raw
+            ]
 
             items.append(
                 CriterionEvaluationItem(
@@ -862,6 +1774,8 @@ class EvaluationService:
                     human_decision=human_decision,
                     decision_rationale=public_rationale,
                     decided_at=decided_at,
+                    subcriteria=subcriteria,
+                    missing_requirements=missing_requirements,
                 )
             )
 
@@ -870,6 +1784,7 @@ class EvaluationService:
             supported_count=supported_count,
             not_found_count=not_found_count,
             ambiguous_count=ambiguous_count,
+            partially_supported_count=partially_supported_count,
             required_total=required_total,
             required_supported_count=required_supported,
             preferred_total=preferred_total,

@@ -119,6 +119,24 @@ export interface EvidenceItem {
   raw_metadata?: Record<string, any>;
 }
 
+export interface SubcriterionEvaluationItem {
+  id: string;
+  name: string;
+  status: EvidenceStatus | string;
+  confidence: number;
+  source_excerpt?: string | null;
+  source_page?: number | null;
+  explanation?: string | null;
+  citations?: Array<{
+    document_id?: string | null;
+    page_number?: number | null;
+    exact_excerpt?: string;
+    evidence_type?: string;
+    grounding_verified?: boolean;
+  }>;
+  missing_reason?: string | null;
+}
+
 export interface CriterionEvaluationItem {
   criterion_id: string;
   criterion_name: string;
@@ -134,6 +152,8 @@ export interface CriterionEvaluationItem {
   human_decision?: string | null;
   decision_rationale?: string | null;
   decided_at?: string | null;
+  subcriteria?: SubcriterionEvaluationItem[];
+  missing_requirements?: string[];
 }
 
 export interface EvidenceCoverageSummary {
@@ -141,6 +161,7 @@ export interface EvidenceCoverageSummary {
   supported_count: number;
   not_found_count: number;
   ambiguous_count: number;
+  partially_supported_count?: number;
   required_total: number;
   required_supported_count: number;
   preferred_total: number;

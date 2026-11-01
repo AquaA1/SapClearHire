@@ -5,6 +5,7 @@ class EvidenceStatus(StrEnum):
     """AI-evaluated status of evidence mapped to explicit job criteria."""
 
     SUPPORTED = "supported"
+    PARTIALLY_SUPPORTED = "partially_supported"
     NOT_FOUND = "not_found"
     AMBIGUOUS = "ambiguous"
 
