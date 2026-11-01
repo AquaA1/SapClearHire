@@ -176,7 +176,7 @@ class ReviewDecisionResponse(BaseModel):
     mandatory_rationale: str
     previous_verification_state: str
     new_verification_state: str
-    flag_status: ReviewFlagStatus
+    flag_status: ReviewFlagStatus | None = None
     created_at: datetime
 
 

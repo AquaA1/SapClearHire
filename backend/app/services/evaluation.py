@@ -834,6 +834,18 @@ class EvaluationService:
             else:
                 ambiguous_count += 1
 
+            active_dec = (
+                next((d for d in ce.review_decisions if getattr(d, "is_active", True)), None)
+                if ce.review_decisions
+                else None
+            )
+            human_decision = active_dec.decision.value if active_dec else None
+            public_rationale = None
+            decided_at = active_dec.created_at if active_dec else None
+            if active_dec and active_dec.mandatory_rationale:
+                import re
+                public_rationale = re.sub(r"\[Internal Notes:.*?\]", "", active_dec.mandatory_rationale).strip()
+
             items.append(
                 CriterionEvaluationItem(
                     criterion_id=ce.job_criterion_id,
@@ -845,6 +857,11 @@ class EvaluationService:
                     source_excerpt=ce.source_excerpt,
                     source_page=ce.source_page,
                     evidence_item_id=ce.evidence_item_id,
+                    criterion_evidence_id=ce.id,
+                    verification_state=ce.verification_state,
+                    human_decision=human_decision,
+                    decision_rationale=public_rationale,
+                    decided_at=decided_at,
                 )
             )
 

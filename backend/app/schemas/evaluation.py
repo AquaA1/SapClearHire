@@ -3,7 +3,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.db.models.enums import CriterionCategory, EvidenceStatus, JobStatus
+from app.db.models.enums import CriterionCategory, EvidenceStatus, JobStatus, VerificationState
 
 # ============================================================================
 # Job & Criteria Schemas
@@ -125,6 +125,11 @@ class CriterionEvaluationItem(BaseModel):
     source_excerpt: str | None = None
     source_page: int | None = None
     evidence_item_id: uuid.UUID | None = None
+    criterion_evidence_id: uuid.UUID | None = None
+    verification_state: VerificationState = VerificationState.UNVERIFIED
+    human_decision: str | None = None
+    decision_rationale: str | None = None
+    decided_at: datetime | None = None
 
 
 class EvidenceCoverageSummary(BaseModel):

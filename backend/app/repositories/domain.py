@@ -255,6 +255,9 @@ class EvaluationRepository(BaseRepository[Evaluation]):
                 selectinload(Evaluation.criterion_evidence_items).selectinload(
                     CriterionEvidence.evidence_item
                 ),
+                selectinload(Evaluation.criterion_evidence_items).selectinload(
+                    CriterionEvidence.review_decisions
+                ),
             )
         )
         result = await self.session.execute(query)
@@ -273,6 +276,9 @@ class EvaluationRepository(BaseRepository[Evaluation]):
                 ),
                 selectinload(Evaluation.criterion_evidence_items).selectinload(
                     CriterionEvidence.evidence_item
+                ),
+                selectinload(Evaluation.criterion_evidence_items).selectinload(
+                    CriterionEvidence.review_decisions
                 ),
             )
         )
@@ -314,6 +320,23 @@ class ReviewDecisionRepository(BaseRepository[ReviewDecision]):
             raise ValidationError(f"CriterionEvidence {criterion_evidence_id} not found.")
 
         previous_state = ce.verification_state
+
+        # Check for duplicate submission (idempotency)
+        existing_active_query = (
+            select(ReviewDecision)
+            .where(
+                ReviewDecision.criterion_evidence_id == criterion_evidence_id,
+                ReviewDecision.is_active.is_(True),
+            )
+        )
+        existing_active = (await self.session.execute(existing_active_query)).scalar_one_or_none()
+        if (
+            existing_active
+            and existing_active.decision == decision
+            and existing_active.mandatory_rationale == clean_rationale
+            and existing_active.reviewer_id == reviewer_id
+        ):
+            return existing_active
 
         # Deactivate previous active decisions for this criterion evidence
         await self.session.execute(

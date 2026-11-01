@@ -38,6 +38,7 @@ export const CandidateApplicationDetailPage: React.FC = () => {
   const [pollCount, setPollCount] = useState(0);
   const [activeCriterionClarify, setActiveCriterionClarify] = useState<string | null>(null);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     if (!appId) {
@@ -181,6 +182,23 @@ export const CandidateApplicationDetailPage: React.FC = () => {
     }
   };
 
+  const handleRefresh = async () => {
+    if (!application) return;
+    setIsRefreshing(true);
+    try {
+      const [updatedApp, updatedEval] = await Promise.all([
+        applicationService.getApplication(application.id),
+        evaluationService.getEvaluationByApplication(application.id),
+      ]);
+      setApplication(updatedApp);
+      setEvaluation(updatedEval);
+    } catch (e) {
+      console.error('Failed to refresh application data', e);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const handleClarificationSubmit = async (statement: string) => {
     if (!application || !activeCriterionClarify) return;
 
@@ -193,7 +211,7 @@ export const CandidateApplicationDetailPage: React.FC = () => {
       // Update evaluation state locally to show clarified verification status
       if (evaluation) {
         const updatedCriteria = evaluation.criteria_evaluations.map((c) => {
-          if (c.criterion_id === activeCriterionClarify) {
+          if (c.criterion_id === activeCriterionClarify || c.criterion_evidence_id === activeCriterionClarify) {
             return { ...c, verification_state: VerificationState.CANDIDATE_CLARIFIED };
           }
           return c;
@@ -202,6 +220,16 @@ export const CandidateApplicationDetailPage: React.FC = () => {
           ...evaluation,
           criteria_evaluations: updatedCriteria,
         });
+      }
+
+      // Re-fetch evaluation to synchronize with backend
+      try {
+        const updatedEval = await evaluationService.getEvaluationByApplication(application.id);
+        if (updatedEval) {
+          setEvaluation(updatedEval);
+        }
+      } catch {
+        // Fallback to local state
       }
 
       setShowSuccessToast(true);
@@ -235,7 +263,7 @@ export const CandidateApplicationDetailPage: React.FC = () => {
   }
 
   const selectedCriterion = evaluation?.criteria_evaluations.find(
-    (c) => c.criterion_id === activeCriterionClarify
+    (c) => c.criterion_id === activeCriterionClarify || c.criterion_evidence_id === activeCriterionClarify
   );
 
   return (
@@ -394,15 +422,26 @@ export const CandidateApplicationDetailPage: React.FC = () => {
                   Each requirement is matched strictly against citations in your resume. Click "Contest with clarification" to submit proof.
                 </p>
               </div>
-              <span className="text-xs font-medium text-muted bg-elevated border border-subtle px-3 py-1 rounded-pill">
-                {evaluation.criteria_evaluations.length} Criteria Evaluated
-              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={handleRefresh}
+                  variant="secondary"
+                  size="sm"
+                  isLoading={isRefreshing}
+                  leftIcon={<RotateCw className="w-3.5 h-3.5" />}
+                >
+                  Sync Status
+                </Button>
+                <span className="text-xs font-medium text-muted bg-elevated border border-subtle px-3 py-1 rounded-pill">
+                  {evaluation.criteria_evaluations.length} Criteria Evaluated
+                </span>
+              </div>
             </div>
 
             <div className="space-y-4">
               {evaluation.criteria_evaluations.map((item) => (
                 <CriterionEvidenceCard
-                  key={item.criterion_id}
+                  key={item.criterion_evidence_id || item.criterion_id}
                   item={item}
                   showClarifyButton={true}
                   onClarify={(critId) => setActiveCriterionClarify(critId)}

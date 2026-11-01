@@ -22,40 +22,48 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   let pillCls = 'bg-elevated text-ink border-subtle font-medium';
   let label = String(status).replace(/_/g, ' ');
 
-  if (
-    norm === EvidenceStatus.SUPPORTED ||
-    norm === VerificationState.HUMAN_VERIFIED ||
-    norm === 'active' ||
-    norm === 'resolved'
-  ) {
+  if (norm === VerificationState.HUMAN_VERIFIED || norm === 'human_verified') {
+    dotCls  = 'bg-success';
+    pillCls = 'bg-success-dim text-success border-success/30 font-semibold';
+    label   = 'Human Verified';
+  } else if (norm === VerificationState.HUMAN_REJECTED || norm === 'human_rejected') {
+    dotCls  = 'bg-danger';
+    pillCls = 'bg-danger-dim text-danger border-danger/30 font-semibold';
+    label   = 'Human Rejected';
+  } else if (norm === VerificationState.CANDIDATE_CLARIFIED || norm === 'candidate_clarified' || norm === 'clarified') {
+    dotCls  = 'bg-accent';
+    pillCls = 'bg-accent-dim text-accent border-accent/30 font-semibold';
+    label   = 'Clarification Under Review';
+  } else if (norm === EvidenceStatus.SUPPORTED || norm === 'supported' || norm === 'evidence_supported') {
     dotCls  = 'bg-success';
     pillCls = 'bg-success-dim text-success border-success/30 font-medium';
-    label   = norm === 'active' ? 'Active' : norm === 'resolved' ? 'Resolved' : norm === 'supported' ? 'Supported' : 'Verified';
+    label   = 'Evidence Supported';
+  } else if (norm === 'active' || norm === 'resolved') {
+    dotCls  = 'bg-success';
+    pillCls = 'bg-success-dim text-success border-success/30 font-medium';
+    label   = norm === 'active' ? 'Active' : 'Resolved';
   } else if (norm === 'pending' || norm === 'under_review') {
     dotCls  = 'bg-pending';
     pillCls = 'bg-pending-dim text-pending border-pending/30 font-medium';
     label   = norm === 'pending' ? 'Pending' : 'Under Review';
   } else if (
     norm === EvidenceStatus.AMBIGUOUS ||
+    norm === 'ambiguous' ||
     norm === 'needs_review' ||
     norm === 'warning'
   ) {
     dotCls  = 'bg-warn';
     pillCls = 'bg-warn-dim text-warn border-warn/30 font-medium';
-    label   = norm === 'ambiguous' ? 'Ambiguous' : 'Needs Review';
+    label   = norm === 'needs_review' ? 'Needs Review' : 'Ambiguous Evidence';
   } else if (
     norm === EvidenceStatus.NOT_FOUND ||
-    norm === VerificationState.HUMAN_REJECTED ||
+    norm === 'not_found' ||
     norm === 'rejected' ||
     norm === 'failed'
   ) {
     dotCls  = 'bg-danger';
     pillCls = 'bg-danger-dim text-danger border-danger/30 font-medium';
     label   = norm === 'not_found' ? 'Not Found' : 'Rejected';
-  } else if (norm === VerificationState.CANDIDATE_CLARIFIED || norm === 'clarified') {
-    dotCls  = 'bg-accent';
-    pillCls = 'bg-accent-dim text-accent border-accent/30 font-medium';
-    label   = 'Clarified';
   } else if (norm === 'screening' || norm === 'reviewed') {
     dotCls  = 'bg-success';
     pillCls = 'bg-success-dim text-success border-success/30 font-medium';
@@ -64,6 +72,10 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     dotCls  = 'bg-info';
     pillCls = 'bg-info-dim text-info border-info/30 font-medium';
     label   = 'Information';
+  } else if (norm === 'unverified') {
+    dotCls  = 'bg-muted';
+    pillCls = 'bg-elevated text-muted border-subtle font-medium';
+    label   = 'Awaiting Human Review';
   } else {
     // Submitted or default state
     dotCls  = 'bg-muted';

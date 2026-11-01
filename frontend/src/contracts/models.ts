@@ -129,7 +129,11 @@ export interface CriterionEvaluationItem {
   source_excerpt: string | null;
   source_page: number | null;
   evidence_item_id: string | null;
+  criterion_evidence_id?: string | null;
   verification_state?: VerificationState;
+  human_decision?: string | null;
+  decision_rationale?: string | null;
+  decided_at?: string | null;
 }
 
 export interface EvidenceCoverageSummary {

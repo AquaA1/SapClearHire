@@ -401,33 +401,84 @@ class ReviewWorkflowService:
 
         flag_repo = ReviewFlagRepository(session)
         flag = await flag_repo.get_flag_with_full_details(flag_id)
-        if not flag:
-            raise NotFoundError(f"ReviewFlag {flag_id} not found.")
+        ce = None
+        application = None
 
-        # Enforce reviewer assignment boundary
-        if current_user.role == UserRole.REVIEWER:
-            if flag.assigned_to_user_id != uuid.UUID(current_user.id):
-                raise AuthorizationError(
-                    "Reviewers may only record decisions for review cases assigned to them."
+        if flag:
+            ce = flag.criterion_evidence
+            application = flag.application
+            criterion_evidence_id = flag.criterion_evidence_id
+            if not criterion_evidence_id:
+                raise ValidationError(
+                    "This review flag is not linked to a specific criterion evidence item."
                 )
-        elif current_user.role == UserRole.EMPLOYER_ADMIN:
-            if flag.application and flag.application.job:
-                job = flag.application.job
-                is_creator = str(job.employer_id) == current_user.id
-                org_matches = bool(
-                    current_user.employer_id
-                    and job.creator
-                    and job.creator.employer_id == current_user.employer_id
-                )
-                if not (is_creator or org_matches):
+
+            # Enforce reviewer assignment boundary
+            if current_user.role == UserRole.REVIEWER:
+                if flag.assigned_to_user_id and flag.assigned_to_user_id != uuid.UUID(current_user.id):
                     raise AuthorizationError(
-                        "You are not authorized to record decisions for this job requisition."
+                        "Reviewers may only record decisions for review cases assigned to them."
                     )
-
-        if not flag.criterion_evidence_id:
-            raise ValidationError(
-                "This review flag is not linked to a specific criterion evidence item."
+            elif current_user.role == UserRole.EMPLOYER_ADMIN:
+                if application and application.job:
+                    job = application.job
+                    is_creator = str(job.employer_id) == current_user.id
+                    org_matches = bool(
+                        current_user.employer_id
+                        and job.creator
+                        and job.creator.employer_id == current_user.employer_id
+                    )
+                    if not (is_creator or org_matches):
+                        raise AuthorizationError(
+                            "You are not authorized to record decisions for this job requisition."
+                        )
+        else:
+            # Check if flag_id is a CriterionEvidence.id
+            ce_query = (
+                select(CriterionEvidence)
+                .where(CriterionEvidence.id == flag_id)
+                .options(
+                    selectinload(CriterionEvidence.evaluation)
+                    .selectinload(Evaluation.application)
+                    .selectinload(Application.job)
+                    .selectinload(Job.creator),
+                    selectinload(CriterionEvidence.criterion),
+                    selectinload(CriterionEvidence.review_flags),
+                )
             )
+            ce_res = await session.execute(ce_query)
+            ce = ce_res.scalar_one_or_none()
+            if not ce:
+                raise NotFoundError(f"ReviewFlag or CriterionEvidence {flag_id} not found.")
+
+            criterion_evidence_id = ce.id
+            evaluation = ce.evaluation
+            application = evaluation.application if evaluation else None
+            if not application:
+                raise NotFoundError("Application associated with this criterion evidence not found.")
+
+            if ce.review_flags:
+                flag = ce.review_flags[0]
+
+            # Enforce reviewer / employer authorization
+            if current_user.role == UserRole.REVIEWER:
+                if flag and flag.assigned_to_user_id and flag.assigned_to_user_id != uuid.UUID(current_user.id):
+                    raise AuthorizationError(
+                        "Reviewers may only record decisions for review cases assigned to them."
+                    )
+            elif current_user.role == UserRole.EMPLOYER_ADMIN:
+                if application.job:
+                    job = application.job
+                    is_creator = str(job.employer_id) == current_user.id
+                    org_matches = bool(
+                        current_user.employer_id
+                        and job.creator
+                        and job.creator.employer_id == current_user.employer_id
+                    )
+                    if not (is_creator or org_matches):
+                        raise AuthorizationError(
+                            "You are not authorized to record decisions for this job requisition."
+                        )
 
         reviewer_id = uuid.UUID(current_user.id)
         user_repo = UserRepository(session)
@@ -462,8 +513,8 @@ class ReviewWorkflowService:
         # Record decision via repository (creates ReviewDecision and AuditEvent)
         decision_repo = ReviewDecisionRepository(session)
         review_decision = await decision_repo.record_decision(
-            application_id=flag.application_id,
-            criterion_evidence_id=flag.criterion_evidence_id,
+            application_id=application.id,
+            criterion_evidence_id=criterion_evidence_id,
             reviewer_id=reviewer_id,
             decision=decision,
             mandatory_rationale=clean_rationale,
@@ -472,30 +523,32 @@ class ReviewWorkflowService:
             ip_address=ip_address,
         )
 
-        # Update flag status
-        await flag_repo.update_status(flag_id, new_flag_status, resolved_at)
+        # Update flag status if associated flag exists
+        if flag:
+            await flag_repo.update_status(flag.id, new_flag_status, resolved_at)
 
         # If all flags on this application are resolved, mark application as REVIEWED
-        all_app_flags = await flag_repo.get_by_application(flag.application_id)
-        all_resolved = all(
-            f.status in (ReviewFlagStatus.RESOLVED, ReviewFlagStatus.DISMISSED)
-            for f in all_app_flags
-        )
-        if all_resolved and flag.application:
-            flag.application.status = ApplicationStatus.REVIEWED
+        all_app_flags = await flag_repo.get_by_application(application.id)
+        if all_app_flags:
+            all_resolved = all(
+                f.status in (ReviewFlagStatus.RESOLVED, ReviewFlagStatus.DISMISSED)
+                for f in all_app_flags
+            )
+            if all_resolved and application:
+                application.status = ApplicationStatus.REVIEWED
 
         await session.flush()
 
         return ReviewDecisionResponse(
             id=review_decision.id,
-            application_id=flag.application_id,
-            criterion_evidence_id=flag.criterion_evidence_id,
+            application_id=application.id,
+            criterion_evidence_id=criterion_evidence_id,
             reviewer_id=reviewer_id,
             decision=decision,
             mandatory_rationale=clean_rationale,
             previous_verification_state=review_decision.previous_verification_state,
             new_verification_state=review_decision.new_verification_state,
-            flag_status=new_flag_status,
+            flag_status=new_flag_status if flag else None,
             created_at=review_decision.created_at,
         )
 
@@ -550,7 +603,8 @@ class ReviewWorkflowService:
             select(CriterionEvidence)
             .join(Evaluation, CriterionEvidence.evaluation_id == Evaluation.id)
             .where(
-                CriterionEvidence.id == criterion_evidence_id,
+                (CriterionEvidence.id == criterion_evidence_id)
+                | (CriterionEvidence.job_criterion_id == criterion_evidence_id),
                 Evaluation.application_id == application_id,
             )
         )
@@ -564,7 +618,7 @@ class ReviewWorkflowService:
         correction = await correction_repo.create_correction(
             application_id=application_id,
             candidate_id=candidate_id,
-            criterion_evidence_id=criterion_evidence_id,
+            criterion_evidence_id=ce.id,
             candidate_statement=clean_statement,
             additional_document_id=additional_document_id,
         )
@@ -575,7 +629,7 @@ class ReviewWorkflowService:
 
         # 6. Re-activate or update review flag to PENDING so reviewer sees candidate response
         flag_repo = ReviewFlagRepository(session)
-        flags = await flag_repo.get_by_criterion_evidence(criterion_evidence_id)
+        flags = await flag_repo.get_by_criterion_evidence(ce.id)
         for flag in flags:
             if flag.status in (ReviewFlagStatus.RESOLVED, ReviewFlagStatus.UNDER_REVIEW):
                 flag.status = ReviewFlagStatus.PENDING

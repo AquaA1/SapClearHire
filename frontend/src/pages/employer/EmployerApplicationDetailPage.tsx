@@ -4,7 +4,8 @@ import { applicationService } from '../../services/api/applicationService';
 import { evaluationService } from '../../services/api/evaluationService';
 import { documentService } from '../../services/api/documentService';
 import { reviewService } from '../../services/api/reviewService';
-import { Application, Evaluation } from '../../contracts/models';
+import { Application, Evaluation, CriterionEvaluationItem } from '../../contracts/models';
+import { ReviewDecisionType } from '../../contracts/enums';
 import { StatusBadge } from '../../components/ui/Badge';
 import { CoverageSummaryBar } from '../../components/evidence/CoverageSummaryBar';
 import { CriterionEvidenceCard } from '../../components/evidence/CriterionEvidenceCard';
@@ -171,6 +172,19 @@ export const EmployerApplicationDetailPage: React.FC = () => {
       console.error('Failed to flag review cases:', err);
     } finally {
       setIsFlagging(false);
+    }
+  };
+
+  const handleReviewDecision = async (
+    item: CriterionEvaluationItem,
+    decision: ReviewDecisionType,
+    rationale: string
+  ) => {
+    const targetId = item.criterion_evidence_id || item.criterion_id;
+    await reviewService.recordReviewDecision(targetId, decision, rationale);
+    if (activeApp) {
+      const ev = await evaluationService.getEvaluationByApplication(activeApp.id);
+      setEvaluation(ev);
     }
   };
 
@@ -438,7 +452,12 @@ export const EmployerApplicationDetailPage: React.FC = () => {
 
                     <div className="space-y-3">
                       {evaluation.criteria_evaluations.map((item) => (
-                        <CriterionEvidenceCard key={item.criterion_id} item={item} />
+                        <CriterionEvidenceCard
+                          key={item.criterion_evidence_id || item.criterion_id}
+                          item={item}
+                          isReviewerOrEmployer={true}
+                          onReviewDecision={handleReviewDecision}
+                        />
                       ))}
                     </div>
                   </div>
