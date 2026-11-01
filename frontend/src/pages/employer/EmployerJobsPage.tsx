@@ -91,15 +91,8 @@ export const EmployerJobsPage: React.FC = () => {
     fetchJobs();
   }, []);
 
-  const handleSelectJob = async (job: Job) => {
+  const handleSelectJob = (job: Job) => {
     setSelectedJob(job);
-    try {
-      // Fetch full requisition details to ensure complete criteria freshness
-      const fullJob = await jobService.getJob(job.id);
-      setSelectedJob(fullJob);
-    } catch {
-      // Keep selected job from list if individual fetch fails
-    }
   };
 
   const handleAddCriterion = () => {

@@ -18,6 +18,7 @@ from app.db.models.enums import (
     ApplicationStatus,
     DocumentProcessingStatus,
     EvidenceStatus,
+    ReviewDecisionType,
     VerificationState,
 )
 from app.db.models.evaluation import Evaluation

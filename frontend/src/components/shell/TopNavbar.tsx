@@ -4,6 +4,8 @@ import { useAuth } from '../../stores/authStore';
 import { UserRole } from '../../contracts/enums';
 import { useNavigate } from 'react-router-dom';
 
+import { ConnectionIndicator } from '../ui/ConnectionIndicator';
+
 export const TopNavbar: React.FC = () => {
   const { user, role } = useAuth();
   const navigate = useNavigate();
@@ -70,6 +72,9 @@ export const TopNavbar: React.FC = () => {
 
       {/* Right: Role Badge, Notification, Profile, Action Button (all matching h-9) */}
       <div className="flex items-center gap-2.5 sm:gap-3">
+        {/* Live WebSocket Connection Status Pill */}
+        <ConnectionIndicator />
+
         {/* Authenticated Role Badge */}
         <div className="hidden sm:flex items-center gap-1.5 h-9 bg-surface border border-subtle px-3 rounded-pill text-xs">
           <Shield className="w-3.5 h-3.5 text-accent shrink-0" />

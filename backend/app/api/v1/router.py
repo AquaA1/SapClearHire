@@ -11,6 +11,7 @@ from app.api.v1.endpoints import (
     jobs,
     profiles,
     reviews,
+    ws,
 )
 
 api_v1_router = APIRouter()
@@ -24,3 +25,4 @@ api_v1_router.include_router(profiles.router)
 api_v1_router.include_router(reviews.router)
 api_v1_router.include_router(audit.router)
 api_v1_router.include_router(benchmark.router)
+api_v1_router.include_router(ws.router)

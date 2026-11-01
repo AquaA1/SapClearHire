@@ -20,13 +20,14 @@ import {
   RotateCw,
   Loader2,
 } from 'lucide-react';
-import { VerificationState } from '../../contracts/enums';
 import { Button, LoadingSpinner } from '../../components/ui';
+import { useWebSocket } from '../../contexts/WebSocketContext';
 
 export const CandidateApplicationDetailPage: React.FC = () => {
   const { id, applicationId } = useParams<{ id?: string; applicationId?: string }>();
   const appId = id || applicationId;
   const navigate = useNavigate();
+  const { subscribeToApplication } = useWebSocket();
 
   const [application, setApplication] = useState<Application | null>(null);
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
@@ -151,6 +152,28 @@ export const CandidateApplicationDetailPage: React.FC = () => {
     };
   }, [appId]);
 
+  // Real-time WebSocket subscription for live clarification updates
+  useEffect(() => {
+    if (!appId) return;
+
+    const unsubscribe = subscribeToApplication(appId, async () => {
+      try {
+        const [updatedApp, updatedEv] = await Promise.all([
+          applicationService.getApplication(appId).catch(() => null),
+          evaluationService.getEvaluationByApplication(appId).catch(() => null),
+        ]);
+        if (updatedApp) setApplication(updatedApp);
+        if (updatedEv) setEvaluation(updatedEv);
+      } catch (err) {
+        console.error('Failed to auto-refresh candidate application via WebSocket:', err);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [appId, subscribeToApplication]);
+
   const handleRetryPipeline = async () => {
     if (!application?.primary_document_id) return;
     setIsRetrying(true);
@@ -261,12 +284,12 @@ export const CandidateApplicationDetailPage: React.FC = () => {
   );
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 select-none">
+    <div className="max-w-6xl mx-auto space-y-8 select-none py-2">
       {/* ── Toast Notification ────────────────────────────────── */}
       {showSuccessToast && (
         <div className="fixed top-6 right-6 z-50 bg-surface text-ink px-5 py-3.5 rounded-card shadow-modal border border-accent/40 flex items-center gap-3">
           <CheckCircle2 className="w-5 h-5 text-accent shrink-0" />
-          <div className="text-xs">
+          <div className="text-xs sm:text-[13px]">
             <span className="font-semibold block text-ink">Clarification Dispatched</span>
             <span className="text-muted font-medium">
               Your statement has been routed to the human reviewer queue.
@@ -279,9 +302,9 @@ export const CandidateApplicationDetailPage: React.FC = () => {
       <div>
         <button
           onClick={() => navigate('/candidate/applications')}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted hover:text-ink transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink transition-colors cursor-pointer py-1"
         >
-          <ArrowLeft className="w-3.5 h-3.5" /> Back to applications
+          <ArrowLeft className="w-4 h-4" /> Back to applications
         </button>
       </div>
 
@@ -289,17 +312,17 @@ export const CandidateApplicationDetailPage: React.FC = () => {
       <div className="bg-surface rounded-card p-6 md:p-8 border border-subtle shadow-card space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-subtle">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs font-medium px-3 py-0.5 rounded-pill bg-elevated text-muted border border-subtle">
+            <div className="flex items-center gap-2.5 mb-2.5 flex-wrap">
+              <span className="text-xs font-semibold px-3 py-1 rounded-pill bg-elevated text-muted border border-subtle uppercase tracking-wider">
                 {application.department || 'General'}
               </span>
-              <StatusBadge status={application.status} />
+              <StatusBadge status={application.status} size="md" />
             </div>
             <h1 className="text-2xl md:text-3xl font-semibold text-ink tracking-tight">
               {application.job_title}
             </h1>
-            <p className="text-xs text-muted mt-1.5 flex items-center gap-2 font-medium">
-              <Clock className="w-3.5 h-3.5" />
+            <p className="text-xs sm:text-[13.5px] text-muted mt-2 flex items-center gap-2.5 font-medium flex-wrap">
+              <Clock className="w-4 h-4 shrink-0" />
               <span>
                 Submitted on{' '}
                 {new Date(application.submitted_at || application.created_at).toLocaleDateString('en-US', {
@@ -309,15 +332,15 @@ export const CandidateApplicationDetailPage: React.FC = () => {
                 })}
               </span>
               <span>•</span>
-              <span className="font-medium">App #{application.id.slice(0, 8)}</span>
+              <span>Application #{application.id.slice(0, 8)}</span>
             </p>
           </div>
 
-          <div className="bg-elevated border border-subtle px-4 py-2.5 rounded-card text-right">
-            <span className="block text-[10px] font-semibold text-muted uppercase tracking-wider">
+          <div className="bg-elevated/70 border border-subtle px-4.5 py-3 rounded-card text-right self-start md:self-center">
+            <span className="block text-xs font-semibold text-muted uppercase tracking-wider">
               Transparency Status
             </span>
-            <span className="text-xs font-semibold text-ink flex items-center gap-1.5 justify-end mt-0.5">
+            <span className="text-xs sm:text-[13px] font-semibold text-ink flex items-center gap-1.5 justify-end mt-1">
               <ShieldCheck className="w-4 h-4 text-accent" />
               Verbatim Grounding Enforced
             </span>
@@ -326,10 +349,10 @@ export const CandidateApplicationDetailPage: React.FC = () => {
 
         {/* Horizontal Pipeline Progression */}
         <div>
-          <span className="block text-[11px] font-semibold text-muted uppercase tracking-wider mb-3">
+          <span className="block text-xs font-semibold text-muted uppercase tracking-wider mb-3.5">
             Hiring Transparency Progression
           </span>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               { label: '1. Submitted', active: true, done: true },
               {
@@ -350,7 +373,7 @@ export const CandidateApplicationDetailPage: React.FC = () => {
             ].map((step, idx) => (
               <div
                 key={idx}
-                className={`py-2 px-3 rounded-sm text-center text-xs font-medium border transition-all ${
+                className={`py-2.5 px-3.5 rounded-sm text-center text-xs sm:text-[13px] font-medium border transition-all ${
                   step.done
                     ? 'bg-accent-dim text-accent border-accent/40 font-semibold'
                     : step.active
@@ -366,21 +389,21 @@ export const CandidateApplicationDetailPage: React.FC = () => {
       </div>
 
       {/* ── Linked Verified Document Card ─────────────────────── */}
-      <div className="bg-surface rounded-card p-5 border border-subtle shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-accent-dim text-accent border border-accent/30 flex items-center justify-center shrink-0">
-            <FileText className="w-5 h-5" />
+      <div className="bg-surface rounded-card p-5 sm:p-6 border border-subtle shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-card bg-accent-dim text-accent border border-accent/30 flex items-center justify-center shrink-0">
+            <FileText className="w-6 h-6" />
           </div>
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-2">
-              <h3 className="text-xs font-semibold text-ink">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h3 className="text-sm sm:text-[15px] font-semibold text-ink">
                 {documentStatus?.file_name || `Document #${application.primary_document_id.slice(0, 8)}.pdf`}
               </h3>
-              <span className="text-[10px] font-medium px-2 py-0.5 rounded-pill bg-success-dim text-success border border-success/30">
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-pill bg-success-dim text-success border border-success/30">
                 Verified Evidence Source
               </span>
             </div>
-            <p className="text-[11px] text-muted font-medium flex items-center gap-2">
+            <p className="text-xs sm:text-[13px] text-muted font-medium flex items-center gap-2 flex-wrap">
               <span>Doc ID: {application.primary_document_id.slice(0, 8)}</span>
               {documentStatus?.page_count && (
                 <>
@@ -394,7 +417,7 @@ export const CandidateApplicationDetailPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="text-xs text-muted font-medium bg-elevated px-3 py-1.5 rounded-pill border border-subtle self-start sm:self-auto">
+        <div className="text-xs sm:text-[13px] text-muted font-medium bg-elevated px-3.5 py-1.5 rounded-pill border border-subtle self-start sm:self-auto">
           Bound to Requisition #{application.job_id.slice(0, 8)}
         </div>
       </div>
@@ -406,17 +429,17 @@ export const CandidateApplicationDetailPage: React.FC = () => {
           <CoverageSummaryBar coverage={evaluation.coverage} />
 
           {/* Criteria Breakdown Section */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h2 className="text-base font-semibold text-ink tracking-tight">
+                <h2 className="text-xl sm:text-[22px] font-semibold text-ink tracking-tight leading-[1.3]">
                   Criteria Evidence Audit
                 </h2>
-                <p className="text-xs text-muted font-medium mt-0.5">
+                <p className="text-sm sm:text-[15px] text-muted font-normal mt-1 leading-[1.6]">
                   Each requirement is matched strictly against citations in your resume. Click "Contest with clarification" to submit proof.
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5 self-start sm:self-auto">
                 <Button
                   onClick={handleRefresh}
                   variant="secondary"
@@ -426,13 +449,13 @@ export const CandidateApplicationDetailPage: React.FC = () => {
                 >
                   Sync Status
                 </Button>
-                <span className="text-xs font-medium text-muted bg-elevated border border-subtle px-3 py-1 rounded-pill">
+                <span className="text-xs sm:text-[13px] font-medium text-muted bg-elevated border border-subtle px-3.5 py-1.5 rounded-pill">
                   {evaluation.criteria_evaluations.length} Criteria Evaluated
                 </span>
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-6">
               {evaluation.criteria_evaluations.map((item) => (
                 <CriterionEvidenceCard
                   key={item.criterion_evidence_id || item.criterion_id}

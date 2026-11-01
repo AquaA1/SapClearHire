@@ -30,4 +30,11 @@ export const authService = {
   async getMe(): Promise<User> {
     return apiClient.get<User>('/auth/me');
   },
+
+  /**
+   * Request a short-lived, single-use ticket to authenticate WebSocket connections.
+   */
+  async getWsTicket(): Promise<{ ticket: string; expires_at: string }> {
+    return apiClient.post<{ ticket: string; expires_at: string }>('/auth/ws-ticket');
+  },
 };

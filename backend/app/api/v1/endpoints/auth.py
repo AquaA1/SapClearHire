@@ -3,9 +3,11 @@ Authentication endpoints for ClearHire.
 Handles first-party candidate registration, credential login, administrative provisioning, and profile retrieval.
 """
 
+from datetime import datetime
 import uuid
 
 from fastapi import APIRouter, Depends, status
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -218,3 +220,24 @@ async def get_me(
         raise NotFoundError(f"User account {current_user.id} not found")
 
     return UserResponse.model_validate(user)
+
+
+class WebSocketTicketResponse(BaseModel):
+    ticket: str
+    expires_at: datetime
+
+
+@router.post(
+    "/ws-ticket",
+    response_model=WebSocketTicketResponse,
+    summary="Generate WebSocket Connection Ticket",
+    description="Issues a short-lived, single-use ticket to authenticate a WebSocket connection without exposing long-lived tokens in URLs.",
+)
+async def create_websocket_ticket(
+    current_user: CurrentUser = Depends(get_current_user),
+) -> WebSocketTicketResponse:
+    from app.core.websocket import ws_manager
+
+    ticket, expires_at = ws_manager.create_ticket(current_user)
+    return WebSocketTicketResponse(ticket=ticket, expires_at=expires_at)
+

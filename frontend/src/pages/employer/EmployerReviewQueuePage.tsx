@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { reviewService } from '../../services/api/reviewService';
-import { applicationService } from '../../services/api/applicationService';
 import { ReviewFlagSummary } from '../../contracts/models';
 import { ReviewFlagStatus } from '../../contracts/enums';
 import { StatusBadge } from '../../components/ui/Badge';
@@ -46,17 +45,7 @@ export const EmployerReviewQueuePage: React.FC = () => {
 
   const fetchOrgFlags = async () => {
     try {
-      let rawFlags = await reviewService.listReviewFlags();
-      if (!rawFlags || rawFlags.length === 0) {
-        const apps = await applicationService.listApplications();
-        if (apps.length > 0) {
-          const flagPromises = apps.map((app) =>
-            reviewService.listReviewFlags({ application_id: app.id }).catch(() => [])
-          );
-          const flagBatches = await Promise.all(flagPromises);
-          rawFlags = flagBatches.flat();
-        }
-      }
+      const rawFlags = await reviewService.listReviewFlags();
       setFlags(deduplicateFlags(rawFlags || []));
     } catch (err) {
       console.error('Failed to load employer review cases:', err);

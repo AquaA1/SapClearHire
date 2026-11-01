@@ -179,26 +179,26 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
   };
 
   return (
-    <div className="mt-3 pt-3 border-t border-subtle space-y-3">
+    <div className="mt-5 pt-5 border-t border-subtle space-y-4">
       {/* Header and Active Status Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-elevated/70 p-3 rounded border border-subtle">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-elevated/70 p-3.5 sm:p-4 rounded-card border border-subtle">
+        <div className="flex items-center gap-2.5">
           <MessageSquare className="w-4 h-4 text-accent" />
-          <span className="text-xs font-semibold text-ink uppercase tracking-wider">
+          <span className="text-xs sm:text-[13px] font-semibold text-ink uppercase tracking-wider">
             Clarification Workflow
           </span>
         </div>
 
         <div>
           {activeState === 'AWAITING_CANDIDATE_RESPONSE' && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-warn-dim text-warn border border-warn/30">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-xs font-semibold bg-warn-dim text-warn border border-warn/30">
               <Clock className="w-3.5 h-3.5" />
               {isEmployerOrReviewer ? 'Awaiting Candidate Response' : 'Awaiting your response'}
             </span>
           )}
 
           {activeState === 'AWAITING_EMPLOYER_REVIEW' && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-accent-dim text-accent border border-accent/30">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-xs font-semibold bg-accent-dim text-accent border border-accent/30">
               <ShieldCheck className="w-3.5 h-3.5" />
               {isEmployerOrReviewer
                 ? 'Candidate Responded — Awaiting Employer Review'
@@ -207,14 +207,14 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
           )}
 
           {activeState === 'DECIDED' && lastFinalDecision?.decision === ReviewDecisionType.ACCEPTED && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-success-dim text-success border border-success/30">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-xs font-semibold bg-success-dim text-success border border-success/30">
               <CheckCircle2 className="w-3.5 h-3.5" />
               Clarification Accepted — Human Verified
             </span>
           )}
 
           {activeState === 'DECIDED' && lastFinalDecision?.decision === ReviewDecisionType.REJECTED && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold bg-danger-dim text-danger border border-danger/30">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-xs font-semibold bg-danger-dim text-danger border border-danger/30">
               <XCircle className="w-3.5 h-3.5" />
               Clarification Rejected — Human Rejected
             </span>
@@ -222,26 +222,26 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
         </div>
       </div>
 
-      {/* Chronological Message Thread */}
-      <div className="space-y-2.5 pl-1">
+      {/* Chronological Conversational Thread */}
+      <div className="space-y-3.5">
         {thread.map((entry, idx) => {
           if (entry.type === 'question') {
             return (
               <div
                 key={`q-${entry.id}-${idx}`}
-                className="bg-warn-dim/30 border border-warn/25 rounded p-3 text-xs space-y-1.5"
+                className="bg-elevated/80 border border-warn/30 rounded-card p-4 sm:p-5 space-y-2.5 shadow-xs"
               >
-                <div className="flex items-center justify-between text-[11px] font-medium text-warn">
-                  <span className="flex items-center gap-1.5 font-semibold">
-                    <HelpCircle className="w-3.5 h-3.5" />
+                <div className="flex items-center justify-between text-xs sm:text-[13px] font-semibold text-warn">
+                  <span className="flex items-center gap-2">
+                    <HelpCircle className="w-4 h-4 text-warn shrink-0" />
                     Employer Requested Clarification
                   </span>
-                  <span className="text-[10px] text-muted flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
+                  <span className="text-[12px] text-muted font-normal flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" />
                     {new Date(entry.time).toLocaleString()}
                   </span>
                 </div>
-                <p className="text-ink leading-relaxed font-normal whitespace-pre-wrap pl-5 border-l-2 border-warn/40">
+                <p className="text-[15px] text-ink leading-[1.65] font-normal whitespace-pre-wrap pl-4 border-l-2 border-warn/50">
                   "{entry.text}"
                 </p>
               </div>
@@ -252,19 +252,19 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
             return (
               <div
                 key={`r-${entry.id}-${idx}`}
-                className="bg-accent-dim/20 border border-accent/25 rounded p-3 text-xs space-y-1.5"
+                className="bg-elevated/90 border border-accent/30 rounded-card p-4 sm:p-5 space-y-2.5 shadow-xs"
               >
-                <div className="flex items-center justify-between text-[11px] font-medium text-accent">
-                  <span className="flex items-center gap-1.5 font-semibold">
-                    <CornerDownRight className="w-3.5 h-3.5" />
-                    {isEmployerOrReviewer ? 'Candidate Response' : 'Your Response'}
+                <div className="flex items-center justify-between text-xs sm:text-[13px] font-semibold text-accent">
+                  <span className="flex items-center gap-2">
+                    <CornerDownRight className="w-4 h-4 text-accent shrink-0" />
+                    {isEmployerOrReviewer ? 'Candidate Response' : 'Your Clarification Response'}
                   </span>
-                  <span className="text-[10px] text-muted flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
+                  <span className="text-[12px] text-muted font-normal flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" />
                     {new Date(entry.time).toLocaleString()}
                   </span>
                 </div>
-                <p className="text-ink leading-relaxed font-normal whitespace-pre-wrap pl-5 border-l-2 border-accent/40">
+                <p className="text-[15px] text-ink leading-[1.65] font-normal whitespace-pre-wrap pl-4 border-l-2 border-accent/50">
                   "{entry.text}"
                 </p>
               </div>
@@ -276,31 +276,31 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
             return (
               <div
                 key={`v-${entry.id}-${idx}`}
-                className={`border rounded p-3 text-xs space-y-1.5 ${
+                className={`border rounded-card p-4 sm:p-5 space-y-2.5 shadow-xs ${
                   isAccepted
-                    ? 'bg-success-dim/30 border-success/30'
-                    : 'bg-danger-dim/30 border-danger/30'
+                    ? 'bg-success-dim/20 border-success/30'
+                    : 'bg-danger-dim/20 border-danger/30'
                 }`}
               >
-                <div className="flex items-center justify-between text-[11px] font-medium">
+                <div className="flex items-center justify-between text-xs sm:text-[13px] font-semibold">
                   <span
-                    className={`flex items-center gap-1.5 font-semibold ${
+                    className={`flex items-center gap-2 ${
                       isAccepted ? 'text-success' : 'text-danger'
                     }`}
                   >
                     {isAccepted ? (
-                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <CheckCircle2 className="w-4 h-4 shrink-0" />
                     ) : (
-                      <XCircle className="w-3.5 h-3.5" />
+                      <XCircle className="w-4 h-4 shrink-0" />
                     )}
-                    Employer Determination: {isAccepted ? 'Accepted' : 'Rejected'}
+                    Reviewer Determination: {isAccepted ? 'Accepted (Verified)' : 'Rejected'}
                   </span>
-                  <span className="text-[10px] text-muted flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
+                  <span className="text-[12px] text-muted font-normal flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" />
                     {new Date(entry.time).toLocaleString()}
                   </span>
                 </div>
-                <p className="text-ink leading-relaxed font-normal italic pl-5 border-l-2 border-subtle">
+                <p className="text-[15px] text-ink leading-[1.65] font-normal italic pl-4 border-l-2 border-subtle-strong">
                   "{entry.text}"
                 </p>
               </div>
@@ -315,34 +315,34 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
       {!isEmployerOrReviewer && activeState === 'AWAITING_CANDIDATE_RESPONSE' && onCandidateSubmit && (
         <form
           onSubmit={handleCandidateResponseSubmit}
-          className="bg-elevated p-3.5 rounded border border-subtle space-y-3"
+          className="bg-surface rounded-card p-5 border border-accent/30 shadow-card space-y-4"
         >
           <div className="flex items-center justify-between">
-            <label className="text-xs font-semibold text-ink flex items-center gap-1.5">
-              <CornerDownRight className="w-3.5 h-3.5 text-accent" />
-              Write your clarification response
+            <label className="text-[14px] font-semibold text-ink flex items-center gap-2">
+              <CornerDownRight className="w-4 h-4 text-accent" />
+              Submit Your Clarification Response
             </label>
-            <span className="text-[10px] text-muted font-medium">
+            <span className="text-xs text-muted font-medium">
               Directly address the employer's question
             </span>
           </div>
 
           <textarea
-            rows={3}
+            rows={4}
             value={candidateResponse}
             onChange={(e) => {
               setCandidateResponse(e.target.value);
               if (candidateError) setCandidateError('');
             }}
-            placeholder="e.g. I used Flask to develop the Library Inventory API. I have not used FastAPI in that project, but I have recently started learning it."
-            className="w-full text-xs p-3 rounded-sm border border-subtle bg-surface text-ink placeholder:text-muted focus:outline-none focus:border-accent font-medium leading-relaxed"
+            placeholder="e.g. In my Library Inventory API project, I utilized Flask with PostgreSQL. While I did not use FastAPI on that specific project, I have built subsequent internal microservices with FastAPI..."
+            className="w-full text-[15px] p-4 rounded-sm border border-subtle bg-elevated text-ink placeholder:text-muted focus:outline-none focus:border-accent font-normal leading-[1.6]"
             disabled={isSubmittingResponse}
             required
           />
 
           {candidateError && (
-            <p className="text-xs text-danger font-medium flex items-center gap-1">
-              <AlertCircle className="w-3.5 h-3.5" />
+            <p className="text-xs sm:text-[13px] text-danger font-medium flex items-center gap-1.5">
+              <AlertCircle className="w-4 h-4 shrink-0" />
               {candidateError}
             </p>
           )}
@@ -351,10 +351,10 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
             <Button
               type="submit"
               variant="primary"
-              size="sm"
+              size="md"
               isLoading={isSubmittingResponse}
               disabled={isSubmittingResponse || !candidateResponse.trim()}
-              leftIcon={<Send className="w-3.5 h-3.5" />}
+              leftIcon={<Send className="w-4 h-4" />}
               className="font-semibold"
             >
               Submit Response

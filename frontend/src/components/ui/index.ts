@@ -4,3 +4,4 @@ export * from './Card';
 export * from './Input';
 export * from './LoadingSpinner';
 export * from './Table';
+export * from './ConnectionIndicator';

@@ -1,11 +1,17 @@
 import uuid
 
 from fastapi import APIRouter, Depends, Query, Request, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.exceptions import NotFoundError
+from app.core.logging import logger
 from app.core.security import CurrentUser, UserRole, get_current_user, require_roles
-from app.db.models.enums import ReviewFlagStatus
+from app.core.websocket import ws_manager
+from app.db.models.application import Application
+from app.db.models.enums import ReviewDecisionType, ReviewFlagStatus
+from app.db.models.job import Job
 from app.db.session import get_db_session
 from app.repositories.domain import ReviewFlagRepository
 from app.schemas.review import (
@@ -155,6 +161,31 @@ async def get_review_case_detail(
 # ============================================================================
 
 
+async def _get_application_participant_ids(
+    session: AsyncSession, application_id: uuid.UUID
+) -> tuple[str, list[str]]:
+    """Helper to retrieve candidate and employer user IDs for application WebSocket event routing."""
+    stmt = (
+        select(Application)
+        .options(selectinload(Application.job).selectinload(Job.creator))
+        .where(Application.id == application_id)
+    )
+    res = await session.execute(stmt)
+    app = res.scalar_one_or_none()
+    if not app:
+        return "", []
+    candidate_id = str(app.candidate_id)
+    employer_ids: list[str] = []
+    if app.job:
+        if app.job.employer_id:
+            employer_ids.append(str(app.job.employer_id))
+        if app.job.creator and app.job.creator.employer_id:
+            employer_ids.append(str(app.job.creator.employer_id))
+        if app.job.creator and str(app.job.creator.id) not in employer_ids:
+            employer_ids.append(str(app.job.creator.id))
+    return candidate_id, employer_ids
+
+
 @router.post(
     "/reviews/{id}/decision",
     response_model=ReviewDecisionResponse,
@@ -183,6 +214,31 @@ async def record_review_decision(
         ip_address=client_ip,
     )
     await db.commit()
+
+    # Real-time WebSocket event broadcast (post-commit)
+    try:
+        candidate_id, employer_ids = await _get_application_participant_ids(
+            db, decision_response.application_id
+        )
+        if decision_request.decision == ReviewDecisionType.ACCEPTED:
+            event_name = "clarification.accepted"
+        elif decision_request.decision == ReviewDecisionType.REJECTED:
+            event_name = "clarification.rejected"
+        elif decision_request.decision == ReviewDecisionType.REQUESTED_CLARIFICATION:
+            event_name = "clarification.created"
+        else:
+            event_name = "clarification.created"
+
+        await ws_manager.broadcast_clarification_event(
+            event=event_name,
+            application_id=decision_response.application_id,
+            clarification_id=decision_response.id,
+            candidate_id=candidate_id,
+            employer_ids=employer_ids,
+        )
+    except Exception as exc:
+        logger.warning("Failed to broadcast WebSocket event for review decision: %s", exc)
+
     return decision_response
 
 
@@ -220,6 +276,22 @@ async def submit_candidate_clarification_on_application(
         ip_address=client_ip,
     )
     await db.commit()
+
+    # Real-time WebSocket event broadcast (post-commit)
+    try:
+        candidate_id, employer_ids = await _get_application_participant_ids(
+            db, clarification_response.application_id
+        )
+        await ws_manager.broadcast_clarification_event(
+            event="clarification.responded",
+            application_id=clarification_response.application_id,
+            clarification_id=clarification_response.id,
+            candidate_id=candidate_id,
+            employer_ids=employer_ids,
+        )
+    except Exception as exc:
+        logger.warning("Failed to broadcast WebSocket event for candidate clarification: %s", exc)
+
     return clarification_response
 
 
@@ -254,4 +326,20 @@ async def submit_candidate_clarification_on_review(
         ip_address=client_ip,
     )
     await db.commit()
+
+    # Real-time WebSocket event broadcast (post-commit)
+    try:
+        candidate_id, employer_ids = await _get_application_participant_ids(
+            db, clarification_response.application_id
+        )
+        await ws_manager.broadcast_clarification_event(
+            event="clarification.responded",
+            application_id=clarification_response.application_id,
+            clarification_id=clarification_response.id,
+            candidate_id=candidate_id,
+            employer_ids=employer_ids,
+        )
+    except Exception as exc:
+        logger.warning("Failed to broadcast WebSocket event for candidate clarification: %s", exc)
+
     return clarification_response

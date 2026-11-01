@@ -42,7 +42,7 @@ export const EmployerDashboardPage: React.FC = () => {
         const [j, a, e, f] = await Promise.all([
           jobService.listJobs(),
           applicationService.listApplications(),
-          auditService.listAuditEvents().catch(() => []),
+          auditService.listAuditEvents({ limit: 6 }).catch(() => []),
           reviewService.listReviewFlags({ status: 'all' }).catch(() => []),
         ]);
         setJobs(j);

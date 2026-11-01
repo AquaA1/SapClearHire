@@ -35,43 +35,50 @@ export const ClarificationModal: React.FC<ClarificationModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/75" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-lg bg-surface border border-subtle rounded-card shadow-modal overflow-hidden p-6 space-y-4">
-        <div className="flex items-start justify-between">
+      <div className="fixed inset-0 bg-black/75 backdrop-blur-xs" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-xl bg-surface border border-subtle rounded-card shadow-modal overflow-hidden p-6 sm:p-7 space-y-5">
+        <div className="flex items-start justify-between border-b border-subtle pb-4">
           <div>
-            <h3 className="text-base font-semibold text-ink">Submit Evidence Clarification</h3>
-            <p className="text-xs text-muted mt-0.5">Contesting qualification: <span className="text-ink font-medium">{criterionName}</span></p>
+            <h3 className="text-lg sm:text-[19px] font-semibold text-ink tracking-tight">Submit Evidence Clarification</h3>
+            <p className="text-[14px] text-muted mt-1 leading-relaxed">
+              Contesting qualification: <span className="text-ink font-semibold">{criterionName}</span>
+            </p>
           </div>
-          <button onClick={onClose} className="text-muted hover:text-ink cursor-pointer p-1">
-            <X className="w-4 h-4" />
+          <button onClick={onClose} className="text-muted hover:text-ink cursor-pointer p-1.5 rounded transition-colors">
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted">Explanatory Clarification Statement</label>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <label className="block text-[13px] font-semibold text-ink uppercase tracking-wider">
+              Explanatory Clarification Statement
+            </label>
             <textarea
-              rows={4}
+              rows={5}
               value={statement}
               onChange={(e) => setStatement(e.target.value)}
               placeholder="Cite your specific experience, projects, or repository commits that verify this criterion..."
-              className="w-full bg-elevated border border-subtle rounded-sm p-3 text-xs text-ink placeholder:text-muted focus:border-accent focus:outline-none transition-colors"
+              className="w-full bg-elevated border border-subtle rounded-sm p-4 text-[15px] text-ink placeholder:text-muted focus:border-accent focus:outline-none transition-colors leading-[1.6]"
               required
             />
+            <p className="text-xs text-muted">
+              Provide factual, grounded details. Your statement will be permanently recorded in the auditable review dossier.
+            </p>
           </div>
 
-          <div className="p-3 bg-elevated/50 border border-dashed border-subtle rounded-sm flex items-center gap-3">
-            <Upload className="w-4 h-4 text-muted shrink-0" />
-            <div className="text-xs text-muted">
-              <span>Supplementary documentation or cert (optional)</span>
+          <div className="p-4 bg-elevated/60 border border-dashed border-subtle rounded-sm flex items-center gap-3.5">
+            <Upload className="w-5 h-5 text-muted shrink-0" />
+            <div className="text-xs sm:text-[13px] text-muted">
+              <span>Supplementary documentation or certification link (optional)</span>
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" size="sm" onClick={onClose}>
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <Button type="button" variant="ghost" size="md" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary" size="sm" isLoading={isSubmitting}>
+            <Button type="submit" variant="primary" size="md" isLoading={isSubmitting}>
               Submit Clarification
             </Button>
           </div>

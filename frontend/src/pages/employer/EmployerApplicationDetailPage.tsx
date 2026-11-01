@@ -24,10 +24,12 @@ import {
 import { Button, LoadingSpinner } from '../../components/ui';
 import { ResumePdfViewer } from '../../components/dossier/ResumePdfViewer';
 import { CandidateExtractedProfile } from '../../components/dossier/CandidateExtractedProfile';
+import { useWebSocket } from '../../contexts/WebSocketContext';
 
 export const EmployerApplicationDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { subscribeToApplication } = useWebSocket();
 
   const [allApps, setAllApps] = useState<Application[]>([]);
   const [activeApp, setActiveApp] = useState<Application | null>(null);
@@ -84,6 +86,34 @@ export const EmployerApplicationDetailPage: React.FC = () => {
       isMounted = false;
     };
   }, [id]);
+
+  // Real-time WebSocket subscription for live clarification updates
+  useEffect(() => {
+    const targetId = activeApp?.id || id;
+    if (!targetId) return;
+
+    const unsubscribe = subscribeToApplication(targetId, async () => {
+      try {
+        const [updatedApp, updatedEv] = await Promise.all([
+          applicationService.getApplication(targetId).catch(() => null),
+          evaluationService.getEvaluationByApplication(targetId).catch(() => null),
+        ]);
+        if (updatedApp) {
+          setActiveApp(updatedApp);
+          setAllApps((prev) => prev.map((a) => (a.id === updatedApp.id ? updatedApp : a)));
+        }
+        if (updatedEv) {
+          setEvaluation(updatedEv);
+        }
+      } catch (err) {
+        console.error('Failed to auto-refresh employer dossier via WebSocket:', err);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [activeApp?.id, id, subscribeToApplication]);
 
   const handleSelectApp = async (app: Application) => {
     setActiveApp(app);

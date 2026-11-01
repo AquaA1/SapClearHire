@@ -27,6 +27,7 @@ import {
   FileCheck,
   ChevronRight,
   ShieldCheck,
+  Loader2,
 } from 'lucide-react';
 
 export const CandidateDashboardPage: React.FC = () => {
@@ -36,7 +37,10 @@ export const CandidateDashboardPage: React.FC = () => {
   const [applications, setApplications] = useState<Application[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [primaryDocStatus, setPrimaryDocStatus] = useState<DocumentStatusResponse | null>(null);
+  const [isDocStatusLoading, setIsDocStatusLoading] = useState(false);
+  const [docStatusError, setDocStatusError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const activeDocIdRef = React.useRef<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -52,15 +56,31 @@ export const CandidateDashboardPage: React.FC = () => {
         setJobs(allJobs.slice(0, 4));
         setIsLoading(false);
 
-        if (apps.length > 0 && apps[0].primary_document_id) {
+        // Progressively load primary document status in the background
+        const docId = apps.length > 0 ? apps[0].primary_document_id : null;
+        if (docId) {
+          activeDocIdRef.current = docId;
+          setIsDocStatusLoading(true);
+          setDocStatusError(null);
           try {
-            const docStatus = await documentService.getDocumentStatus(apps[0].primary_document_id);
-            if (isMounted) {
+            const docStatus = await documentService.getDocumentStatus(docId);
+            if (isMounted && activeDocIdRef.current === docId) {
               setPrimaryDocStatus(docStatus);
             }
-          } catch {
-            // Graceful fallback
+          } catch (err: unknown) {
+            if (isMounted && activeDocIdRef.current === docId) {
+              const errObj = err as { message?: string };
+              setDocStatusError(errObj.message || 'Unable to load document status');
+            }
+          } finally {
+            if (isMounted && activeDocIdRef.current === docId) {
+              setIsDocStatusLoading(false);
+            }
           }
+        } else {
+          activeDocIdRef.current = null;
+          setPrimaryDocStatus(null);
+          setIsDocStatusLoading(false);
         }
       } catch (err) {
         console.error('Failed to load candidate dashboard data:', err);
@@ -72,6 +92,7 @@ export const CandidateDashboardPage: React.FC = () => {
 
     return () => {
       isMounted = false;
+      activeDocIdRef.current = null;
     };
   }, []);
 
@@ -161,10 +182,26 @@ export const CandidateDashboardPage: React.FC = () => {
                 <FileCheck className="w-5 h-5 text-accent shrink-0" />
                 <div className="min-w-0 flex-1">
                   <span className="text-xs font-semibold text-ink block truncate">
-                    {primaryDocStatus?.file_name || `Document #${primaryApp.primary_document_id.slice(0, 8)}.pdf`}
+                    {isDocStatusLoading ? (
+                      <span className="inline-flex items-center gap-1.5 text-muted font-normal">
+                        <Loader2 className="w-3 h-3 animate-spin text-accent" />
+                        <span>Verifying dossier status...</span>
+                      </span>
+                    ) : primaryDocStatus?.file_name ? (
+                      primaryDocStatus.file_name
+                    ) : (
+                      `Document #${primaryApp.primary_document_id.slice(0, 8)}.pdf`
+                    )}
                   </span>
                   <span className="text-[11px] text-muted font-medium block mt-0.5 truncate">
-                    Attached to {primaryApp.job_title}
+                    {docStatusError ? (
+                      <span className="text-danger flex items-center gap-1 font-normal">
+                        <AlertCircle className="w-3 h-3 shrink-0" />
+                        <span>{docStatusError}</span>
+                      </span>
+                    ) : (
+                      `Attached to ${primaryApp.job_title}`
+                    )}
                   </span>
                 </div>
                 <Link

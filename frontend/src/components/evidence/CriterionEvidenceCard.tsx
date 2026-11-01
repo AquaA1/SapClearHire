@@ -9,6 +9,9 @@ import {
   ShieldCheck,
   CheckCircle2,
   XCircle,
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
   HelpCircle as HelpIcon,
 } from 'lucide-react';
 import { EvidenceStatus, ReviewDecisionType, VerificationState } from '../../contracts/enums';
@@ -45,6 +48,7 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
   const [rationale, setRationale] = useState('');
   const [rationaleError, setRationaleError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isExcerptExpanded, setIsExcerptExpanded] = useState(false);
 
   const isAmbiguousOrMissing =
     item.status === EvidenceStatus.AMBIGUOUS || item.status === EvidenceStatus.NOT_FOUND;
@@ -139,89 +143,148 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
     item.verification_state === VerificationState.HUMAN_REJECTED ||
     !!item.human_decision;
 
+  const isLongExcerpt = (item.source_excerpt || '').length > 220;
+
   return (
-    <div className="bg-surface rounded-card p-5 border border-subtle shadow-card hover:border-subtle-strong transition-all space-y-3">
+    <div className="bg-surface rounded-card p-6 sm:p-7 border border-subtle shadow-card hover:border-subtle-strong transition-all space-y-6">
       {/* Top Header: Criterion Name, Category, Status */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 flex-wrap mb-1">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <span
-              className={`text-[10px] font-medium px-2 py-0.5 rounded-sm uppercase tracking-wider ${
+              className={`text-xs font-semibold px-2.5 py-0.5 rounded uppercase tracking-wider ${
                 item.category === 'required'
-                  ? 'bg-accent-dim text-accent border border-accent/20'
+                  ? 'bg-accent-dim text-accent border border-accent/25'
                   : 'bg-elevated text-muted border border-subtle'
               }`}
             >
               {item.category}
             </span>
-            <h4 className="text-sm font-semibold text-ink tracking-tight">{item.criterion_name}</h4>
+            <h4 className="text-lg sm:text-[20px] font-semibold text-ink tracking-tight leading-[1.3]">
+              {item.criterion_name}
+            </h4>
           </div>
-          <p className="text-xs text-muted leading-relaxed">{item.plain_language_explanation}</p>
+          <p className="text-[15px] text-ink-secondary leading-[1.6]">
+            {item.plain_language_explanation}
+          </p>
         </div>
 
-        <div className="shrink-0 flex items-center gap-2">
-          <StatusBadge status={badgeStatus} />
+        <div className="shrink-0 flex items-center gap-2 self-start">
+          <StatusBadge status={badgeStatus} size="md" />
         </div>
       </div>
 
       {/* Source Excerpt / Grounding Box */}
       {item.source_excerpt ? (
-        <div className="bg-elevated border border-subtle rounded-sm p-3.5 text-xs relative group">
-          <div className="flex items-center justify-between mb-1.5 text-[11px] font-medium text-muted">
-            <span className="flex items-center gap-1.5 text-ink font-medium">
-              <MessageSquareQuote className="w-3.5 h-3.5 text-accent" />
+        <div className="bg-elevated/80 border border-subtle rounded-card p-5 sm:p-6 text-[15px] relative group space-y-3">
+          <div className="flex items-center justify-between text-xs sm:text-[13px] font-semibold text-muted">
+            <span className="flex items-center gap-2 text-ink">
+              <MessageSquareQuote className="w-4 h-4 text-accent shrink-0" />
               Primary Grounded Evidence
             </span>
             {item.source_page && (
-              <span className="flex items-center gap-1 px-2 py-0.5 bg-surface border border-subtle rounded text-[10px] text-muted font-medium">
-                <FileText className="w-3 h-3 text-muted" />
+              <span className="flex items-center gap-1.5 px-3 py-1 bg-surface border border-subtle rounded-pill text-xs text-muted font-medium">
+                <FileText className="w-3.5 h-3.5 text-muted shrink-0" />
                 Page {item.source_page}
               </span>
             )}
           </div>
-          <p className="text-ink italic text-xs leading-relaxed font-mono">
-            "{item.source_excerpt}"
+          <p className="text-ink italic text-[15px] leading-[1.7] font-normal whitespace-pre-wrap">
+            "{!isExcerptExpanded && isLongExcerpt
+              ? `${item.source_excerpt.slice(0, 210).trim()}...`
+              : item.source_excerpt}"
           </p>
+          {isLongExcerpt && (
+            <button
+              type="button"
+              onClick={() => setIsExcerptExpanded(!isExcerptExpanded)}
+              className="inline-flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-accent hover:underline cursor-pointer pt-1"
+            >
+              {isExcerptExpanded ? (
+                <>
+                  <ChevronUp className="w-3.5 h-3.5" />
+                  <span>Show compact preview</span>
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-3.5 h-3.5" />
+                  <span>Show full evidence citation</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
       ) : (
-        <div className="bg-elevated/50 border border-dashed border-subtle rounded-sm p-3 text-xs text-muted italic">
-          No explicit matching citation found in resume text.
+        <div className="bg-elevated/40 border border-dashed border-subtle rounded-card p-4 sm:p-5 text-[14px] text-muted italic flex items-center gap-2.5">
+          <HelpCircle className="w-4 h-4 text-muted shrink-0" />
+          <span>No explicit matching citation found in resume text.</span>
         </div>
       )}
 
       {/* Subcriteria Decomposed Breakdown */}
       {item.subcriteria && item.subcriteria.length > 0 && (
-        <div className="pt-2 border-t border-subtle space-y-2">
-          <div className="flex items-center justify-between text-[11px] font-semibold text-muted">
+        <div className="pt-3 border-t border-subtle space-y-3.5">
+          <div className="flex items-center justify-between text-xs sm:text-[13px] font-semibold text-muted">
             <span>Decomposed Sub-requirements ({item.subcriteria.length})</span>
             {item.missing_requirements && item.missing_requirements.length > 0 && (
-              <span className="text-[10px] text-danger font-medium">
+              <span className="text-xs text-danger font-medium flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                 {item.missing_requirements.length} missing from evidence
               </span>
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             {item.subcriteria.map((sub) => {
               const subStatus = String(sub.status).toLowerCase();
+              const isDuplicateOfPrimary = Boolean(
+                sub.source_excerpt &&
+                  item.source_excerpt &&
+                  sub.source_excerpt.trim().toLowerCase() === item.source_excerpt.trim().toLowerCase()
+              );
+
               return (
                 <div
                   key={sub.id}
-                  className="bg-elevated/70 border border-subtle rounded p-2.5 text-xs space-y-1.5"
+                  className="bg-elevated/70 border border-subtle rounded-card p-4 sm:p-4.5 space-y-3"
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium text-ink flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <span className="text-[15px] font-medium text-ink flex items-center gap-2">
+                      {subStatus === 'supported' && (
+                        <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
+                      )}
+                      {subStatus === 'partially_supported' && (
+                        <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                      )}
+                      {subStatus === 'ambiguous' && (
+                        <HelpCircle className="w-4 h-4 text-warn shrink-0" />
+                      )}
+                      {subStatus === 'not_found' && (
+                        <XCircle className="w-4 h-4 text-danger shrink-0" />
+                      )}
+                      {!['supported', 'partially_supported', 'ambiguous', 'not_found'].includes(
+                        subStatus
+                      )}
                       {sub.name}
                     </span>
                     <StatusBadge status={subStatus} size="sm" />
                   </div>
 
-                  {sub.source_excerpt && (
-                    <div className="text-[11px] font-mono text-ink/80 italic pl-3 border-l-2 border-accent/40 bg-surface/40 p-1.5 rounded-r">
+                  {sub.source_excerpt && isDuplicateOfPrimary && (
+                    <div className="flex items-center gap-2 text-[13px] text-muted font-medium bg-surface/50 border border-subtle/60 rounded px-3.5 py-2">
+                      <ShieldCheck className="w-4 h-4 text-accent shrink-0" />
+                      <span>
+                        Grounded by primary citation above
+                        {sub.source_page ? ` (Page ${sub.source_page})` : ''}
+                      </span>
+                    </div>
+                  )}
+
+                  {sub.source_excerpt && !isDuplicateOfPrimary && (
+                    <div className="text-[14px] text-ink/90 italic pl-3.5 border-l-2 border-accent/40 bg-surface/40 p-2.5 rounded-r leading-[1.65]">
                       "{sub.source_excerpt}"
                       {sub.source_page && (
-                        <span className="ml-2 not-italic text-[10px] text-muted font-sans font-medium px-1.5 py-0.5 bg-elevated border border-subtle rounded">
+                        <span className="ml-2.5 not-italic text-[12px] text-muted font-sans font-medium px-2 py-0.5 bg-elevated border border-subtle rounded inline-block">
                           Page {sub.source_page}
                         </span>
                       )}
@@ -229,13 +292,13 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
                   )}
 
                   {sub.missing_reason && subStatus === 'not_found' && (
-                    <p className="text-[11px] text-muted leading-tight pl-3 border-l-2 border-danger/40">
+                    <p className="text-[13.5px] text-muted leading-[1.6] pl-3.5 border-l-2 border-danger/40">
                       {sub.missing_reason}
                     </p>
                   )}
 
                   {sub.explanation && subStatus !== 'not_found' && !sub.source_excerpt && (
-                    <p className="text-[11px] text-muted leading-tight pl-3 border-l-2 border-subtle">
+                    <p className="text-[13.5px] text-muted leading-[1.6] pl-3.5 border-l-2 border-subtle">
                       {sub.explanation}
                     </p>
                   )}
@@ -247,55 +310,60 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
       )}
 
       {/* Audited Reviewer Determination & Public Rationale */}
-      {item.decision_rationale && (
+      {item.decision_rationale &&
+        item.human_decision &&
+        item.human_decision !== 'requested_clarification' &&
+        item.human_decision !== ReviewDecisionType.REQUESTED_CLARIFICATION && (
         <div
-          className={`p-3.5 rounded-sm border text-xs leading-relaxed space-y-1 ${
+          className={`p-5 rounded-card border text-[15px] leading-[1.65] space-y-2.5 ${
             badgeStatus === 'human_verified'
-              ? 'bg-success-dim/30 border-success/30 text-ink'
+              ? 'bg-success-dim/20 border-success/30 text-ink'
               : badgeStatus === 'human_rejected'
-              ? 'bg-danger-dim/30 border-danger/30 text-ink'
-              : 'bg-elevated border-subtle text-ink'
+              ? 'bg-danger-dim/20 border-danger/30 text-ink'
+              : 'bg-elevated/90 border-subtle text-ink'
           }`}
         >
-          <div className="flex items-center justify-between text-[11px] font-semibold">
-            <span className="flex items-center gap-1.5 text-ink">
-              <ShieldCheck className="w-3.5 h-3.5 text-accent" />
+          <div className="flex items-center justify-between text-xs sm:text-[13px] font-semibold">
+            <span className="flex items-center gap-2 text-ink">
+              <ShieldCheck className="w-4 h-4 text-accent shrink-0" />
               Audited Human Reviewer Verdict
             </span>
             {item.decided_at && (
-              <span className="text-[10px] text-muted font-normal">
+              <span className="text-[12px] text-muted font-normal">
                 {new Date(item.decided_at).toLocaleString()}
               </span>
             )}
           </div>
-          <p className="italic font-medium text-ink/90">"{item.decision_rationale}"</p>
+          <p className="italic font-normal text-ink pl-4 border-l-2 border-subtle-strong">
+            "{item.decision_rationale}"
+          </p>
         </div>
       )}
 
       {/* Employer / Reviewer Adjudication Actions */}
       {isReviewerOrEmployer && onReviewDecision && (
-        <div className="pt-2 border-t border-subtle flex flex-wrap items-center justify-between gap-2">
-          <div className="text-[11px] text-muted font-medium flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5 text-accent" />
+        <div className="pt-3 border-t border-subtle flex flex-wrap items-center justify-between gap-3">
+          <div className="text-xs sm:text-[13px] text-muted font-medium flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-accent shrink-0" />
             <span>Reviewer Adjudication:</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <button
               type="button"
               onClick={() => handleOpenDecision(ReviewDecisionType.ACCEPTED)}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-success-dim hover:bg-success/20 text-success border border-success/30 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs sm:text-[13px] font-semibold bg-success-dim hover:bg-success/20 text-success border border-success/30 transition-colors cursor-pointer"
             >
-              <CheckCircle2 className="w-3 h-3" />
+              <CheckCircle2 className="w-3.5 h-3.5" />
               <span>{isHumanDecided && badgeStatus === 'human_verified' ? 'Verified' : 'Accept (Verify)'}</span>
             </button>
 
             <button
               type="button"
               onClick={() => handleOpenDecision(ReviewDecisionType.REJECTED)}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-danger-dim hover:bg-danger/20 text-danger border border-danger/30 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs sm:text-[13px] font-semibold bg-danger-dim hover:bg-danger/20 text-danger border border-danger/30 transition-colors cursor-pointer"
             >
-              <XCircle className="w-3 h-3" />
+              <XCircle className="w-3.5 h-3.5" />
               <span>{isHumanDecided && badgeStatus === 'human_rejected' ? 'Rejected' : 'Reject'}</span>
             </button>
 
@@ -303,13 +371,13 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
               type="button"
               disabled={hasActiveClarificationRequest}
               onClick={() => setShowEmployerClarifyModal(true)}
-              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold border transition-colors ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-xs sm:text-[13px] font-semibold border transition-colors ${
                 hasActiveClarificationRequest
                   ? 'bg-elevated text-muted border-subtle cursor-not-allowed opacity-60'
                   : 'bg-warn-dim hover:bg-warn/20 text-warn border border-warn/30 cursor-pointer'
               }`}
             >
-              <HelpIcon className="w-3 h-3" />
+              <HelpIcon className="w-3.5 h-3.5" />
               <span>{hasActiveClarificationRequest ? 'Awaiting Response' : 'Request Clarification'}</span>
             </button>
           </div>
@@ -318,17 +386,17 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
 
       {/* Candidate Clarification Trigger Button */}
       {showClarifyButton && canClarify && onClarify && (
-        <div className="pt-2 border-t border-subtle flex items-center justify-between">
-          <span className="text-[11px] text-warn flex items-center gap-1">
-            <HelpCircle className="w-3.5 h-3.5" />
-            Think this is incorrect?
+        <div className="pt-3 border-t border-subtle flex items-center justify-between flex-wrap gap-2">
+          <span className="text-xs sm:text-[13px] text-warn flex items-center gap-1.5 font-medium">
+            <HelpCircle className="w-4 h-4 text-warn shrink-0" />
+            Think this assessment is incorrect?
           </span>
           <button
             onClick={() => onClarify(item.criterion_evidence_id || item.criterion_id)}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-xs sm:text-[13px] font-semibold text-accent hover:underline cursor-pointer"
           >
             <span>Contest with clarification</span>
-            <ArrowUpRight className="w-3 h-3" />
+            <ArrowUpRight className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
