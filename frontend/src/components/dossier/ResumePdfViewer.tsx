@@ -42,6 +42,7 @@ export const ResumePdfViewer: React.FC<ResumePdfViewerProps> = ({
 
   // Keep ref of active blob URL for cleanup
   const activeBlobUrlRef = useRef<string | null>(null);
+  const isImage = /\.(png|jpe?g|webp)$/i.test(filename || docStatus?.file_name || '');
 
   useEffect(() => {
     let isCancelled = false;
@@ -275,10 +276,10 @@ export const ResumePdfViewer: React.FC<ResumePdfViewerProps> = ({
                     ? 'bg-surface text-ink shadow-sm'
                     : 'text-muted hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed'
                 }`}
-                title={blobUrl ? 'View original rendered PDF document' : 'PDF preview unavailable'}
+                title={blobUrl ? (isImage ? 'View original image document' : 'View original rendered PDF document') : 'Preview unavailable'}
               >
                 <Eye className="w-4 h-4" />
-                <span>Original PDF</span>
+                <span>{isImage ? 'Original Image' : 'Original PDF'}</span>
               </button>
               <button
                 type="button"
@@ -308,7 +309,7 @@ export const ResumePdfViewer: React.FC<ResumePdfViewerProps> = ({
               </Button>
             )}
 
-            {/* Download PDF Button */}
+            {/* Download Button */}
             {blobUrl && (
               <Button
                 variant="primary"
@@ -317,7 +318,7 @@ export const ResumePdfViewer: React.FC<ResumePdfViewerProps> = ({
                 leftIcon={<Download className="w-4 h-4" />}
                 className="font-bold"
               >
-                Download PDF
+                {isImage ? 'Download Image' : 'Download PDF'}
               </Button>
             )}
 
@@ -359,15 +360,23 @@ export const ResumePdfViewer: React.FC<ResumePdfViewerProps> = ({
         )}
       </div>
 
-      {/* ── Main Viewer Body: PDF vs Extracted Text ────────────────── */}
+      {/* ── Main Viewer Body: PDF / Image vs Extracted Text ────────────────── */}
       {viewMode === 'pdf' && blobUrl ? (
         <div className="bg-surface rounded-card border border-subtle p-2 shadow-card">
-          <div className="w-full h-[700px] rounded-md overflow-hidden bg-elevated/40 relative">
-            <iframe
-              src={`${blobUrl}#toolbar=1&navpanes=1`}
-              title={filename}
-              className="w-full h-full border-none rounded-md"
-            />
+          <div className="w-full h-[700px] rounded-md overflow-hidden bg-elevated/40 relative flex items-center justify-center p-2">
+            {isImage ? (
+              <img
+                src={blobUrl}
+                alt={filename}
+                className="max-h-full max-w-full object-contain rounded-md"
+              />
+            ) : (
+              <iframe
+                src={`${blobUrl}#toolbar=1&navpanes=1`}
+                title={filename}
+                className="w-full h-full border-none rounded-md"
+              />
+            )}
           </div>
         </div>
       ) : (

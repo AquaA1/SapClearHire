@@ -258,11 +258,16 @@ export const CandidateJobDetailPage: React.FC = () => {
 
   // Validate incoming file
   const validateFile = (file: File): string | null => {
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-      return 'Only PDF documents are supported (.pdf)';
+    const validExtensions = ['.pdf', '.png', '.jpg', '.jpeg', '.webp'];
+    const validMimes = ['application/pdf', 'image/png', 'image/jpeg', 'image/webp'];
+    const lowerName = file.name.toLowerCase();
+    const hasValidExt = validExtensions.some((ext) => lowerName.endsWith(ext));
+
+    if (!hasValidExt) {
+      return 'Only PDF and image documents are supported (.pdf, .png, .jpg, .jpeg, .webp)';
     }
-    if (file.type && file.type !== 'application/pdf') {
-      return 'Invalid MIME type. Please upload an authentic PDF document.';
+    if (file.type && !validMimes.includes(file.type)) {
+      return 'Invalid file type. Please upload a valid PDF or image resume document.';
     }
     if (file.size === 0) {
       return 'Uploaded file is empty (0 bytes). Please select a valid resume.';
@@ -648,7 +653,7 @@ export const CandidateJobDetailPage: React.FC = () => {
                   type="file"
                   ref={fileInputRef}
                   onChange={handleFileChange}
-                  accept=".pdf,application/pdf"
+                  accept=".pdf,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg,image/webp"
                   className="hidden"
                   id="resume-file-input"
                 />
@@ -671,7 +676,7 @@ export const CandidateJobDetailPage: React.FC = () => {
                     Click to browse or drag and drop your resume
                   </h3>
                   <p className="text-sm text-muted mt-1.5 font-medium">
-                    Supports authentic PDF files up to <strong className="text-ink">15 MB</strong>.
+                    Supports PDF, PNG, JPG, or WebP files up to <strong className="text-ink">15 MB</strong>.
                   </p>
                   <div className="mt-4 inline-flex items-center gap-2 text-xs font-bold text-accent bg-accent/10 px-3.5 py-1.5 rounded-pill border border-accent/20">
                     <ShieldCheck className="w-4 h-4" />
