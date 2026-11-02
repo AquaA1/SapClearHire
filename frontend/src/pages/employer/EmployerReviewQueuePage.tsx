@@ -90,7 +90,7 @@ export const EmployerReviewQueuePage: React.FC = () => {
       : flags.filter((f) => f.status === statusFilter);
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 select-none">
+    <div className="max-w-7xl mx-auto space-y-8 select-none">
       {/* ── Header ────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-subtle">
         <div>

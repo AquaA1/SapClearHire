@@ -115,7 +115,7 @@ export const CandidateDashboardPage: React.FC = () => {
   const primaryApp = applications.length > 0 ? applications[0] : null;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto select-none">
+    <div className="space-y-8 max-w-7xl mx-auto select-none">
       {/* ── Header ────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-subtle">
         <div>
