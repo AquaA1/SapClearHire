@@ -5,15 +5,33 @@ from app.core.config import get_settings
 from app.workers.base import BaseBackgroundWorker, JobRecord, JobStatus
 from app.workers.local import LocalAsyncWorker
 
-_worker_instance: LocalAsyncWorker | None = None
+_worker_instance: BaseBackgroundWorker | None = None
 
 
 def get_background_worker() -> BaseBackgroundWorker:
-    """Returns singleton worker instance."""
+    """Returns singleton worker instance based on WORKER_BACKEND configuration."""
     global _worker_instance
     if _worker_instance is None:
         settings = get_settings()
-        _worker_instance = LocalAsyncWorker(concurrency=settings.WORKER_CONCURRENCY)
+
+        # Check if Redis is requested or SAP BTP Redis is bound
+        from app.core.sap import get_sap_redis_url
+
+        sap_redis = get_sap_redis_url()
+        if settings.WORKER_BACKEND == "redis" or sap_redis:
+            try:
+                from app.workers.redis import RedisAsyncWorker
+
+                _worker_instance = RedisAsyncWorker(
+                    redis_url=sap_redis or settings.REDIS_URL,
+                    concurrency=settings.WORKER_CONCURRENCY,
+                )
+            except Exception:
+                # Fallback safely to LocalAsyncWorker if Redis connection/package unavailable
+                _worker_instance = LocalAsyncWorker(concurrency=settings.WORKER_CONCURRENCY)
+        else:
+            _worker_instance = LocalAsyncWorker(concurrency=settings.WORKER_CONCURRENCY)
+
     return _worker_instance
 
 

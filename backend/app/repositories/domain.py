@@ -4,7 +4,7 @@ from typing import Any
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import aliased, selectinload
+from sqlalchemy.orm import aliased, joinedload, selectinload
 
 from app.core.exceptions import ValidationError
 from app.core.security import UserRole
@@ -249,17 +249,11 @@ class EvaluationRepository(BaseRepository[Evaluation]):
                 selectinload(Evaluation.application)
                 .selectinload(Application.job)
                 .selectinload(Job.creator),
-                selectinload(Evaluation.criterion_evidence_items).selectinload(
-                    CriterionEvidence.criterion
-                ),
-                selectinload(Evaluation.criterion_evidence_items).selectinload(
-                    CriterionEvidence.evidence_item
-                ),
-                selectinload(Evaluation.criterion_evidence_items).selectinload(
-                    CriterionEvidence.review_decisions
-                ),
-                selectinload(Evaluation.criterion_evidence_items).selectinload(
-                    CriterionEvidence.correction_requests
+                selectinload(Evaluation.criterion_evidence_items).options(
+                    joinedload(CriterionEvidence.criterion),
+                    joinedload(CriterionEvidence.evidence_item),
+                    selectinload(CriterionEvidence.review_decisions),
+                    selectinload(CriterionEvidence.correction_requests),
                 ),
             )
         )
@@ -274,17 +268,11 @@ class EvaluationRepository(BaseRepository[Evaluation]):
                 selectinload(Evaluation.application)
                 .selectinload(Application.job)
                 .selectinload(Job.creator),
-                selectinload(Evaluation.criterion_evidence_items).selectinload(
-                    CriterionEvidence.criterion
-                ),
-                selectinload(Evaluation.criterion_evidence_items).selectinload(
-                    CriterionEvidence.evidence_item
-                ),
-                selectinload(Evaluation.criterion_evidence_items).selectinload(
-                    CriterionEvidence.review_decisions
-                ),
-                selectinload(Evaluation.criterion_evidence_items).selectinload(
-                    CriterionEvidence.correction_requests
+                selectinload(Evaluation.criterion_evidence_items).options(
+                    joinedload(CriterionEvidence.criterion),
+                    joinedload(CriterionEvidence.evidence_item),
+                    selectinload(CriterionEvidence.review_decisions),
+                    selectinload(CriterionEvidence.correction_requests),
                 ),
             )
         )

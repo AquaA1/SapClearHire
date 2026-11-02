@@ -42,8 +42,10 @@ def get_engine() -> AsyncEngine:
         else:
             _engine = create_async_engine(
                 uri,
-                pool_size=10,
-                max_overflow=20,
+                pool_size=getattr(settings, "POSTGRES_POOL_SIZE", 15),
+                max_overflow=getattr(settings, "POSTGRES_MAX_OVERFLOW", 25),
+                pool_recycle=getattr(settings, "POSTGRES_POOL_RECYCLE", 300),
+                pool_timeout=getattr(settings, "POSTGRES_POOL_TIMEOUT", 10),
                 pool_pre_ping=True,
                 echo=settings.DEBUG,
             )

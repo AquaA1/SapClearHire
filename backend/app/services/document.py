@@ -14,10 +14,12 @@ from app.db.models.enums import DocumentProcessingStatus
 from app.db.session import get_session_factory
 from app.repositories.audit import AuditEventRepository
 from app.repositories.domain import DocumentRepository
-from app.services.storage import LocalStorageService
+from app.services.storage import BaseStorageService, get_storage_service
 from app.utils.document import (
     PDFProcessingError,
     extract_text_by_page,
+    extract_text_by_page_async,
+    validate_uploaded_document,
     validate_uploaded_pdf,
 )
 
@@ -30,9 +32,9 @@ class DocumentService:
 
     def __init__(
         self,
-        storage_service: LocalStorageService | None = None,
+        storage_service: BaseStorageService | None = None,
     ):
-        self.storage = storage_service or LocalStorageService()
+        self.storage = storage_service or get_storage_service()
         self.settings = get_settings()
 
     async def create_and_store_document(
@@ -52,7 +54,7 @@ class DocumentService:
             raise ValidationError(f"Failed to read uploaded file: {str(exc)}") from exc
 
         # Validate file size, extension, and magic bytes
-        validate_uploaded_pdf(
+        validate_uploaded_document(
             filename=filename,
             content=content,
             max_size_mb=self.settings.MAX_UPLOAD_SIZE_MB,
@@ -163,7 +165,12 @@ class DocumentService:
                 extraction_succeeded = False
                 file_path = Path(doc.file_path)
                 try:
-                    pages_dict = extract_text_by_page(file_path, max_pages=self.settings.MAX_PDF_PAGES)
+                    enable_ocr = getattr(self.settings, "OCR_PROVIDER", "auto") != "disabled"
+                    pages_dict = await extract_text_by_page_async(
+                        file_path,
+                        max_pages=self.settings.MAX_PDF_PAGES,
+                        enable_ocr=enable_ocr,
+                    )
                     # Store pages with string keys for JSON serialization
                     extracted_pages: dict[str, Any] = {
                         str(page_num): text for page_num, text in pages_dict.items()

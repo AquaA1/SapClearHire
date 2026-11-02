@@ -2,7 +2,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Query, UploadFile, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -26,7 +26,7 @@ from app.schemas.document import (
 )
 from app.services.document import DocumentService
 from app.services.extraction import AIExtractionService
-from app.services.storage import LocalStorageService
+from app.services.storage import LocalStorageService, get_storage_service
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
@@ -380,30 +380,42 @@ async def get_document_file(
     # - Auditors can view
     await verify_document_access(doc, current_user, db, write_access=False)
 
-    storage = LocalStorageService()
-    file_path = storage.get_file_path(document_id).resolve()
-
-    # Prevent path traversal and verify containment within storage documents directory
-    if not file_path.is_relative_to(storage.documents_dir.resolve()):
-        raise NotFoundError("Invalid document file location")
-
-    if not file_path.exists() or not file_path.is_file():
-        raise NotFoundError(f"Document file for {document_id} was not found in storage")
+    storage = get_storage_service()
 
     # Safe sanitize filename for Content-Disposition header
     safe_filename = Path(doc.file_name).name.replace('"', '').replace('\n', '').replace('\r', '')
     if not safe_filename:
         safe_filename = f"resume_{document_id}.pdf"
 
-    return FileResponse(
-        path=file_path,
-        media_type=doc.mime_type or "application/pdf",
-        filename=safe_filename,
-        content_disposition_type=disposition,
-        headers={
-            "Cache-Control": "private, no-cache, no-store, must-revalidate",
-            "Pragma": "no-cache",
-            "Expires": "0",
-        },
-    )
+    content_type = doc.mime_type or "application/pdf"
+    cache_headers = {
+        "Cache-Control": "private, no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
+    }
+
+    # If storage is LocalStorageService, stream via FileResponse with security checks
+    if isinstance(storage, LocalStorageService):
+        file_path = storage.get_file_path(document_id).resolve()
+        if not file_path.is_relative_to(storage.documents_dir.resolve()):
+            raise NotFoundError("Invalid document file location")
+        if not file_path.exists() or not file_path.is_file():
+            raise NotFoundError(f"Document file for {document_id} was not found in storage")
+        return FileResponse(
+            path=file_path,
+            media_type=content_type,
+            filename=safe_filename,
+            content_disposition_type=disposition,
+            headers=cache_headers,
+        )
+
+    # Cloud / S3 storage: stream raw bytes
+    try:
+        content_bytes = storage.get_file_bytes(document_id, doc.file_path)
+    except Exception as exc:
+        raise NotFoundError(f"Document file for {document_id} was not found: {str(exc)}")
+
+    headers = dict(cache_headers)
+    headers["Content-Disposition"] = f'{disposition}; filename="{safe_filename}"'
+    return Response(content=content_bytes, media_type=content_type, headers=headers)
 
