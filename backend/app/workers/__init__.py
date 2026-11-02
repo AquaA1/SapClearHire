@@ -74,9 +74,18 @@ def register_default_worker_handlers(worker: BaseBackgroundWorker) -> None:
             "status": "evaluated",
         }
 
+    async def handle_analyze_transcript(payload: dict[str, Any]) -> dict[str, Any]:
+        from app.services.transcript import InterviewTranscriptService
+
+        transcript_id = uuid.UUID(str(payload["transcript_id"]))
+        service = InterviewTranscriptService()
+        await service.process_transcript_analysis(transcript_id)
+        return {"transcript_id": str(transcript_id), "status": "analyzed"}
+
     worker.register_handler("process_document", handle_process_document)
     worker.register_handler("extract_evidence", handle_extract_evidence)
     worker.register_handler("evaluate_application", handle_evaluate_application)
+    worker.register_handler("analyze_transcript", handle_analyze_transcript)
 
 
 __all__ = [

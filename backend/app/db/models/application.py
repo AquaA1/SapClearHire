@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from app.db.models.evaluation import Evaluation
     from app.db.models.job import Job
     from app.db.models.review import CorrectionRequest, ReviewDecision, ReviewFlag
+    from app.db.models.transcript import InterviewTranscript
     from app.db.models.user import User
 
 
@@ -88,6 +89,12 @@ class Application(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     )
     review_decisions: Mapped[list["ReviewDecision"]] = relationship(
         "ReviewDecision",
+        back_populates="application",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    transcripts: Mapped[list["InterviewTranscript"]] = relationship(
+        "InterviewTranscript",
         back_populates="application",
         cascade="all, delete-orphan",
         lazy="selectin",

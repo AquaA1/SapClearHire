@@ -16,6 +16,7 @@ from app.db.models.enums import (
 from app.db.models.evaluation import CriterionEvidence, Evaluation
 from app.db.models.job import Job, JobCriterion
 from app.db.models.review import CorrectionRequest, ReviewDecision, ReviewFlag
+from app.db.models.transcript import InterviewTranscript, TranscriptQAItem
 from app.db.models.user import User
 
 __all__ = [
@@ -35,6 +36,8 @@ __all__ = [
     "ReviewFlag",
     "CorrectionRequest",
     "ReviewDecision",
+    "InterviewTranscript",
+    "TranscriptQAItem",
     "AuditEvent",
     "EvidenceStatus",
     "VerificationState",
