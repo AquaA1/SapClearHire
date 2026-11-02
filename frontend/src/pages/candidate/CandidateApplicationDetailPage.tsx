@@ -21,6 +21,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Button, LoadingSpinner } from '../../components/ui';
+import { InterviewTranscriptSection } from '../../components/interview/InterviewTranscriptSection';
 import { useWebSocket } from '../../contexts/WebSocketContext';
 
 export const CandidateApplicationDetailPage: React.FC = () => {
@@ -528,6 +529,13 @@ export const CandidateApplicationDetailPage: React.FC = () => {
               </Button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Interview Transparency & Coaching (Phase 3) ──────────── */}
+      {application && (
+        <div className="pt-4 border-t border-subtle">
+          <InterviewTranscriptSection applicationId={application.id} isCandidate={true} />
         </div>
       )}
 

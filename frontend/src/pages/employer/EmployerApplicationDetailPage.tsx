@@ -24,6 +24,7 @@ import {
 import { Button, LoadingSpinner } from '../../components/ui';
 import { ResumePdfViewer } from '../../components/dossier/ResumePdfViewer';
 import { CandidateExtractedProfile } from '../../components/dossier/CandidateExtractedProfile';
+import { InterviewTranscriptSection } from '../../components/interview/InterviewTranscriptSection';
 import { useWebSocket } from '../../contexts/WebSocketContext';
 
 export const EmployerApplicationDetailPage: React.FC = () => {
@@ -34,7 +35,7 @@ export const EmployerApplicationDetailPage: React.FC = () => {
   const [allApps, setAllApps] = useState<Application[]>([]);
   const [activeApp, setActiveApp] = useState<Application | null>(null);
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
-  const [activeTab, setActiveTab] = useState<'DETAILS' | 'RESUME' | 'HIRING PIPELINE' | 'EVIDENCE'>('DETAILS');
+  const [activeTab, setActiveTab] = useState<'DETAILS' | 'RESUME' | 'HIRING PIPELINE' | 'EVIDENCE' | 'INTERVIEW COACH'>('DETAILS');
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [isResolvingPrereq, setIsResolvingPrereq] = useState(false);
   const [evalError, setEvalError] = useState<string | null>(null);
@@ -426,7 +427,7 @@ export const EmployerApplicationDetailPage: React.FC = () => {
 
             {/* Dossier Tabs: Subtle and compact */}
             <div className="flex items-center gap-1.5 pt-2.5 border-t border-subtle flex-wrap">
-              {(['DETAILS', 'EVIDENCE', 'RESUME', 'HIRING PIPELINE'] as const).map((tab) => {
+              {(['DETAILS', 'EVIDENCE', 'RESUME', 'INTERVIEW COACH', 'HIRING PIPELINE'] as const).map((tab) => {
                 const tabLabel =
                   tab === 'DETAILS'
                     ? 'Details'
@@ -434,6 +435,8 @@ export const EmployerApplicationDetailPage: React.FC = () => {
                     ? 'Evidence'
                     : tab === 'RESUME'
                     ? 'Resume'
+                    : tab === 'INTERVIEW COACH'
+                    ? 'Interview Coach'
                     : 'Hiring Pipeline';
                 return (
                   <button
@@ -629,6 +632,11 @@ export const EmployerApplicationDetailPage: React.FC = () => {
               documentId={activeApp.primary_document_id}
               applicationId={activeApp.id}
             />
+          )}
+
+          {/* Tab Content: INTERVIEW COACH */}
+          {activeTab === 'INTERVIEW COACH' && (
+            <InterviewTranscriptSection applicationId={activeApp.id} isCandidate={false} />
           )}
 
           {/* Tab Content: HIRING PIPELINE */}
