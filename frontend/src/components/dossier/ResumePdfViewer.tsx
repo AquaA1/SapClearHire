@@ -230,23 +230,23 @@ export const ResumePdfViewer: React.FC<ResumePdfViewerProps> = ({
   return (
     <div className="space-y-4">
       {/* ── Document Control Header Bar ────────────────────────────── */}
-      <div className="bg-surface rounded-card border border-subtle p-4 shadow-card">
+      <div className="bg-surface rounded-card border border-subtle p-5 shadow-card">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           {/* File Metadata */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded bg-elevated border border-subtle flex items-center justify-center text-accent shrink-0">
-              <FileText className="w-5 h-5" />
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-xl bg-elevated border border-subtle flex items-center justify-center text-accent shrink-0">
+              <FileText className="w-6 h-6" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h4 className="text-xs font-semibold text-ink truncate max-w-xs sm:max-w-md">
+              <div className="flex items-center gap-2.5">
+                <h4 className="text-sm sm:text-base font-bold text-ink truncate max-w-xs sm:max-w-md">
                   {docStatus?.file_name || filename}
                 </h4>
                 {docStatus?.processing_status && (
                   <StatusBadge status={docStatus.processing_status} size="sm" />
                 )}
               </div>
-              <div className="flex items-center gap-2 mt-0.5 text-[11px] text-muted font-medium">
+              <div className="flex items-center gap-2.5 mt-1 text-xs sm:text-sm text-muted font-medium">
                 <span>{docStatus?.page_count ? `${docStatus.page_count} Pages` : '1 Page'}</span>
                 {docStatus?.file_size_bytes && (
                   <>
@@ -257,40 +257,40 @@ export const ResumePdfViewer: React.FC<ResumePdfViewerProps> = ({
                 <span>•</span>
                 <span>Uploaded {docStatus?.created_at ? new Date(docStatus.created_at).toLocaleDateString() : 'Recently'}</span>
                 <span>•</span>
-                <span className="font-mono text-[10px]">Doc #{documentId.slice(0, 8)}</span>
+                <span className="font-mono text-xs text-muted">Doc #{documentId.slice(0, 8)}</span>
               </div>
             </div>
           </div>
 
           {/* Actions & View Mode Toggle */}
-          <div className="flex items-center flex-wrap gap-2">
+          <div className="flex items-center flex-wrap gap-2.5">
             {/* View Mode Toggle */}
-            <div className="bg-elevated p-0.5 rounded border border-subtle flex items-center">
+            <div className="bg-elevated p-1 rounded-pill border border-subtle flex items-center">
               <button
                 type="button"
                 onClick={() => setViewMode('pdf')}
                 disabled={!blobUrl}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-xs sm:text-sm font-semibold transition-all ${
                   viewMode === 'pdf'
                     ? 'bg-surface text-ink shadow-sm'
                     : 'text-muted hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed'
                 }`}
                 title={blobUrl ? 'View original rendered PDF document' : 'PDF preview unavailable'}
               >
-                <Eye className="w-3.5 h-3.5" />
+                <Eye className="w-4 h-4" />
                 <span>Original PDF</span>
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode('text')}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-xs sm:text-sm font-semibold transition-all ${
                   viewMode === 'text'
                     ? 'bg-surface text-ink shadow-sm'
                     : 'text-muted hover:text-ink'
                 }`}
                 title="View page-by-page extracted OCR text"
               >
-                <FileCode className="w-3.5 h-3.5" />
+                <FileCode className="w-4 h-4" />
                 <span>Extracted Text</span>
               </button>
             </div>
@@ -301,8 +301,8 @@ export const ResumePdfViewer: React.FC<ResumePdfViewerProps> = ({
                 variant="secondary"
                 size="sm"
                 onClick={handleOpenInNewTab}
-                leftIcon={<ExternalLink className="w-3.5 h-3.5" />}
-                className="text-xs"
+                leftIcon={<ExternalLink className="w-4 h-4" />}
+                className="font-semibold"
               >
                 Open in Tab
               </Button>
@@ -314,8 +314,8 @@ export const ResumePdfViewer: React.FC<ResumePdfViewerProps> = ({
                 variant="primary"
                 size="sm"
                 onClick={handleDownload}
-                leftIcon={<Download className="w-3.5 h-3.5" />}
-                className="text-xs"
+                leftIcon={<Download className="w-4 h-4" />}
+                className="font-bold"
               >
                 Download PDF
               </Button>
@@ -328,8 +328,8 @@ export const ResumePdfViewer: React.FC<ResumePdfViewerProps> = ({
                 size="sm"
                 onClick={handleRetry}
                 isLoading={isRetrying}
-                leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
-                className="text-xs text-danger"
+                leftIcon={<RefreshCw className="w-4 h-4" />}
+                className="font-semibold text-danger"
               >
                 Retry Processing
               </Button>
@@ -339,10 +339,10 @@ export const ResumePdfViewer: React.FC<ResumePdfViewerProps> = ({
 
         {/* Processing Warning if Failed or Processing */}
         {docStatus?.processing_status === 'failed' && (
-          <div className="mt-3 p-3 rounded bg-danger-dim border border-danger/30 text-xs text-danger flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div className="mt-3.5 p-3.5 rounded-md bg-danger-dim border border-danger/30 text-sm text-danger flex items-start gap-2.5">
+            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
             <div>
-              <strong className="font-semibold block">Text Extraction Failed</strong>
+              <strong className="font-bold block">Text Extraction Failed</strong>
               <span>
                 {docStatus?.processing_error?.message ||
                   'The automated text extractor encountered an error with this file. Click Retry to re-run extraction.'}
@@ -352,8 +352,8 @@ export const ResumePdfViewer: React.FC<ResumePdfViewerProps> = ({
         )}
 
         {error && viewMode === 'text' && (
-          <div className="mt-3 p-3 rounded bg-warn-dim border border-warn/30 text-xs text-warn flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div className="mt-3.5 p-3.5 rounded-md bg-warn-dim border border-warn/30 text-sm text-warn flex items-start gap-2.5">
+            <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
         )}
@@ -362,27 +362,27 @@ export const ResumePdfViewer: React.FC<ResumePdfViewerProps> = ({
       {/* ── Main Viewer Body: PDF vs Extracted Text ────────────────── */}
       {viewMode === 'pdf' && blobUrl ? (
         <div className="bg-surface rounded-card border border-subtle p-2 shadow-card">
-          <div className="w-full h-[700px] rounded overflow-hidden bg-elevated/40 relative">
+          <div className="w-full h-[700px] rounded-md overflow-hidden bg-elevated/40 relative">
             <iframe
               src={`${blobUrl}#toolbar=1&navpanes=1`}
               title={filename}
-              className="w-full h-full border-none rounded"
+              className="w-full h-full border-none rounded-md"
             />
           </div>
         </div>
       ) : (
         /* ── Page-by-Page Extracted Text Viewer ──────────────────── */
-        <div className="bg-surface rounded-card border border-subtle p-5 shadow-card space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-subtle">
+        <div className="bg-surface rounded-card border border-subtle p-6 shadow-card space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-subtle">
             {/* Page Tabs */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
               {pageEntries.length > 0 ? (
                 pageEntries.map(([pageNum]) => (
                   <button
                     key={pageNum}
                     type="button"
                     onClick={() => setSelectedPage(pageNum)}
-                    className={`px-3 py-1 rounded text-xs font-semibold transition-all ${
+                    className={`px-3.5 py-1.5 rounded-pill text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                       selectedPage === pageNum
                         ? 'bg-accent text-surface shadow-sm'
                         : 'bg-elevated/60 text-muted hover:text-ink border border-subtle'
@@ -392,25 +392,25 @@ export const ResumePdfViewer: React.FC<ResumePdfViewerProps> = ({
                   </button>
                 ))
               ) : (
-                <span className="text-xs text-muted">Page 1 (No pages detected)</span>
+                <span className="text-sm text-muted">Page 1 (No pages detected)</span>
               )}
             </div>
 
             {/* Search Input & Copy Button */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <div className="relative">
-                <Search className="w-3.5 h-3.5 text-muted absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Search page text..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-elevated border border-subtle rounded pl-8 pr-3 py-1 text-xs text-ink placeholder:text-muted focus:outline-none focus:border-accent w-48 font-medium"
+                  className="bg-elevated border border-subtle rounded-md pl-9 pr-3 h-9 text-xs sm:text-sm text-ink placeholder:text-muted focus:outline-none focus:border-accent w-52 font-medium"
                 />
               </div>
 
               {searchQuery.trim() && (
-                <span className="text-[11px] text-muted font-medium shrink-0">
+                <span className="text-xs text-muted font-semibold shrink-0">
                   {matchCount} match{matchCount === 1 ? '' : 'es'}
                 </span>
               )}
@@ -419,8 +419,8 @@ export const ResumePdfViewer: React.FC<ResumePdfViewerProps> = ({
                 variant="secondary"
                 size="sm"
                 onClick={() => handleCopyText(activePageText)}
-                leftIcon={copied ? <Check className="w-3.5 h-3.5 text-accent" /> : <Copy className="w-3.5 h-3.5" />}
-                className="text-xs"
+                leftIcon={copied ? <Check className="w-4 h-4 text-accent" /> : <Copy className="w-4 h-4" />}
+                className="font-semibold"
               >
                 {copied ? 'Copied' : 'Copy Page'}
               </Button>
@@ -429,7 +429,7 @@ export const ResumePdfViewer: React.FC<ResumePdfViewerProps> = ({
 
           {/* Text Container with Monospace Styling */}
           <div className="relative">
-            <div className="bg-elevated/60 border border-subtle rounded p-5 max-h-[550px] overflow-y-auto font-mono text-xs text-ink/90 whitespace-pre-wrap leading-relaxed select-text">
+            <div className="bg-elevated/60 border border-subtle rounded-md p-6 max-h-[550px] overflow-y-auto font-mono text-xs sm:text-sm text-ink/90 whitespace-pre-wrap leading-relaxed select-text">
               {activePageText ? (
                 matchesSearch(activePageText) ? (
                   activePageText
@@ -446,11 +446,11 @@ export const ResumePdfViewer: React.FC<ResumePdfViewerProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-[11px] text-muted pt-2 border-t border-subtle">
+          <div className="flex items-center justify-between text-xs sm:text-sm text-muted pt-2.5 border-t border-subtle">
             <span>
               Verbatim extraction provided by backend PyMuPDF engine with page anchors.
             </span>
-            <span className="font-mono">
+            <span className="font-mono font-medium">
               Page {selectedPage} of {pageEntries.length || 1}
             </span>
           </div>

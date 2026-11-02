@@ -39,8 +39,8 @@ export const ClarificationModal: React.FC<ClarificationModalProps> = ({
       <div className="relative z-10 w-full max-w-xl bg-surface border border-subtle rounded-card shadow-modal overflow-hidden p-6 sm:p-7 space-y-5">
         <div className="flex items-start justify-between border-b border-subtle pb-4">
           <div>
-            <h3 className="text-lg sm:text-[19px] font-semibold text-ink tracking-tight">Submit Evidence Clarification</h3>
-            <p className="text-[14px] text-muted mt-1 leading-relaxed">
+            <h3 className="text-xl sm:text-2xl font-bold text-ink tracking-tight">Submit Evidence Clarification</h3>
+            <p className="text-sm sm:text-base text-muted mt-1 leading-relaxed">
               Contesting qualification: <span className="text-ink font-semibold">{criterionName}</span>
             </p>
           </div>
@@ -51,7 +51,7 @@ export const ClarificationModal: React.FC<ClarificationModalProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
-            <label className="block text-[13px] font-semibold text-ink uppercase tracking-wider">
+            <label className="block text-sm sm:text-base font-semibold text-ink uppercase tracking-wider">
               Explanatory Clarification Statement
             </label>
             <textarea
@@ -59,17 +59,17 @@ export const ClarificationModal: React.FC<ClarificationModalProps> = ({
               value={statement}
               onChange={(e) => setStatement(e.target.value)}
               placeholder="Cite your specific experience, projects, or repository commits that verify this criterion..."
-              className="w-full bg-elevated border border-subtle rounded-sm p-4 text-[15px] text-ink placeholder:text-muted focus:border-accent focus:outline-none transition-colors leading-[1.6]"
+              className="w-full bg-elevated border border-subtle rounded-md p-4 text-base text-ink placeholder:text-muted focus:border-accent focus:outline-none transition-colors leading-relaxed"
               required
             />
-            <p className="text-xs text-muted">
+            <p className="text-xs sm:text-sm text-muted">
               Provide factual, grounded details. Your statement will be permanently recorded in the auditable review dossier.
             </p>
           </div>
 
-          <div className="p-4 bg-elevated/60 border border-dashed border-subtle rounded-sm flex items-center gap-3.5">
+          <div className="p-4 bg-elevated/60 border border-dashed border-subtle rounded-md flex items-center gap-3.5">
             <Upload className="w-5 h-5 text-muted shrink-0" />
-            <div className="text-xs sm:text-[13px] text-muted">
+            <div className="text-sm text-muted font-medium">
               <span>Supplementary documentation or certification link (optional)</span>
             </div>
           </div>

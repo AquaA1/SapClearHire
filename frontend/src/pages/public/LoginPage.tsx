@@ -104,12 +104,12 @@ export const LoginPage: React.FC = () => {
           </div>
 
           {/* Bottom Headline */}
-          <div className="text-left mt-2">
-            <h2 className="text-lg sm:text-xl font-semibold text-ink tracking-tight leading-snug">
+          <div className="text-left mt-3">
+            <h2 className="text-xl sm:text-2xl font-bold text-ink tracking-tight leading-snug">
               Every qualification claim.<br />
               <span className="text-accent">Verifiably grounded.</span>
             </h2>
-            <p className="text-muted text-xs mt-1 leading-relaxed font-medium">
+            <p className="text-muted text-sm mt-1.5 leading-relaxed font-medium">
               Factual candidate screening anchored directly to verbatim resume excerpts with human reviewer oversight.
             </p>
           </div>
@@ -120,10 +120,10 @@ export const LoginPage: React.FC = () => {
           <div className="space-y-6">
             {/* Header */}
             <div>
-              <h1 className="text-2xl sm:text-3xl font-semibold text-ink tracking-tight">
+              <h1 className="text-3xl sm:text-4xl font-bold text-ink tracking-tight">
                 Welcome back
               </h1>
-              <p className="text-muted text-xs mt-1 font-medium">
+              <p className="text-muted text-sm sm:text-base mt-1.5 font-medium">
                 Please enter your credentials or select a demo role
               </p>
             </div>
@@ -132,15 +132,15 @@ export const LoginPage: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Error Banner */}
               {errorMessage && (
-                <div className="p-3 rounded-card bg-danger/10 border border-danger/30 text-danger text-xs font-medium flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <div className="p-3.5 rounded-card bg-danger/10 border border-danger/30 text-danger text-sm font-medium flex items-start gap-2.5">
+                  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                   <span className="leading-snug">{errorMessage}</span>
                 </div>
               )}
 
               {/* Email Field */}
-              <div className="text-left space-y-1">
-                <label className="block text-xs font-semibold text-muted">
+              <div className="text-left space-y-1.5">
+                <label className="block text-sm sm:text-base font-semibold text-ink/90">
                   Email Address
                 </label>
                 <input
@@ -150,14 +150,14 @@ export const LoginPage: React.FC = () => {
                   onFocus={() => setFocusedField('email')}
                   onBlur={() => setFocusedField(null)}
                   required
-                  className="w-full text-xs py-2.5 px-3 bg-elevated border border-subtle rounded-sm text-ink font-medium focus:border-accent focus:outline-none placeholder:text-muted"
+                  className="w-full h-11 text-sm sm:text-base px-4 bg-elevated border border-subtle rounded-md text-ink font-medium focus:border-accent focus:outline-none placeholder:text-muted"
                   placeholder="name@example.com"
                 />
               </div>
 
               {/* Password Field */}
-              <div className="text-left space-y-1 relative">
-                <label className="block text-xs font-semibold text-muted">
+              <div className="text-left space-y-1.5 relative">
+                <label className="block text-sm sm:text-base font-semibold text-ink/90">
                   Password
                 </label>
                 <div className="relative">
@@ -168,28 +168,28 @@ export const LoginPage: React.FC = () => {
                     onFocus={() => setFocusedField('password')}
                     onBlur={() => setFocusedField(null)}
                     required
-                    className="w-full text-xs py-2.5 px-3 bg-elevated border border-subtle rounded-sm text-ink font-medium focus:border-accent focus:outline-none placeholder:text-muted pr-10"
+                    className="w-full h-11 text-sm sm:text-base px-4 bg-elevated border border-subtle rounded-md text-ink font-medium focus:border-accent focus:outline-none placeholder:text-muted pr-11"
                     placeholder="••••••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-ink p-1 transition-colors cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-ink p-1 transition-colors cursor-pointer"
                     title={showPassword ? 'Hide password' : 'Peek password'}
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
               </div>
 
               {/* Remember Me */}
-              <div className="flex items-center justify-between text-xs pt-1 font-medium">
+              <div className="flex items-center justify-between text-xs sm:text-sm pt-1 font-medium">
                 <label className="flex items-center gap-2 cursor-pointer text-muted">
                   <input
                     type="checkbox"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="rounded-sm border-subtle bg-elevated text-accent focus:ring-0 w-3.5 h-3.5 accent-accent"
+                    className="rounded border-subtle bg-elevated text-accent focus:ring-0 w-4 h-4 accent-accent"
                   />
                   <span>Remember session</span>
                 </label>
@@ -205,11 +205,11 @@ export const LoginPage: React.FC = () => {
                 isLoading={isLoading}
                 variant="primary"
                 size="md"
-                className="w-full justify-center font-semibold mt-2"
+                className="w-full justify-center font-bold text-base mt-2"
               >
                 {isSuccess ? (
                   <span className="flex items-center gap-2 text-canvas">
-                    <Check className="w-4 h-4" /> Authenticated!
+                    <Check className="w-5 h-5" /> Authenticated!
                   </span>
                 ) : (
                   'Sign In'
@@ -219,10 +219,10 @@ export const LoginPage: React.FC = () => {
 
             {/* Demo Credential Quick Fill */}
             <div className="pt-4 border-t border-subtle">
-              <span className="text-[10px] font-semibold text-muted uppercase tracking-wider block mb-2 text-center">
+              <span className="text-xs font-bold text-muted uppercase tracking-wider block mb-2.5 text-center">
                 Quick-Fill Test Credentials
               </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[
                   { role: UserRole.CANDIDATE, label: 'Candidate' },
                   { role: UserRole.EMPLOYER_ADMIN, label: 'Employer' },
@@ -233,7 +233,7 @@ export const LoginPage: React.FC = () => {
                     key={role}
                     type="button"
                     onClick={() => handleRolePreset(role)}
-                    className={`py-1.5 px-2 rounded-pill text-[11px] font-semibold border transition-all text-center cursor-pointer ${
+                    className={`py-2 px-2.5 rounded-pill text-xs sm:text-sm font-bold border transition-all text-center cursor-pointer ${
                       selectedRole === role
                         ? 'bg-accent text-canvas border-accent shadow-sm'
                         : 'bg-elevated text-muted border-subtle hover:text-ink'
@@ -247,7 +247,7 @@ export const LoginPage: React.FC = () => {
           </div>
 
           {/* Registration Link */}
-          <div className="text-center pt-6 text-xs text-muted font-medium">
+          <div className="text-center pt-6 text-xs sm:text-sm text-muted font-medium">
             Don't have an account?{' '}
             <Link to="/register" className="font-semibold text-accent hover:underline">
               Create an Account

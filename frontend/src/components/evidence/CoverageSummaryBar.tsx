@@ -16,29 +16,29 @@ export const CoverageSummaryBar: React.FC<CoverageSummaryBarProps> = ({ coverage
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
         <div>
           <div className="flex items-center gap-2.5">
-            <ShieldCheck className="w-5 h-5 text-accent shrink-0" />
-            <h3 className="font-semibold text-ink text-lg sm:text-[19px] tracking-tight leading-[1.3]">
+            <ShieldCheck className="w-6 h-6 text-accent shrink-0" />
+            <h3 className="font-bold text-ink text-xl sm:text-2xl tracking-tight leading-snug">
               Factual Evidence Coverage
             </h3>
           </div>
-          <p className="text-[14px] text-muted mt-1 leading-[1.6]">
+          <p className="text-sm sm:text-base text-ink-secondary mt-1 leading-relaxed">
             ClearHire maps structured claims directly to versioned criteria. No opaque AI scoring.
           </p>
         </div>
 
         {/* Counts summary pills */}
-        <div className="flex items-center gap-2.5 flex-wrap text-xs sm:text-[13px] font-medium">
-          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-pill bg-success-dim text-success border border-success/30">
+        <div className="flex items-center gap-3 flex-wrap text-sm sm:text-base font-semibold">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-pill bg-success-dim text-success border border-success/30">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{coverage.supported_count} Supported</span>
           </div>
 
-          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-pill bg-warn-dim text-warn border border-warn/30">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-pill bg-warn-dim text-warn border border-warn/30">
             <AlertTriangle className="w-4 h-4 shrink-0" />
             <span>{coverage.ambiguous_count} Ambiguous</span>
           </div>
 
-          <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-pill bg-danger-dim text-danger border border-danger/30">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-pill bg-danger-dim text-danger border border-danger/30">
             <XCircle className="w-4 h-4 shrink-0" />
             <span>{coverage.not_found_count} Not Found</span>
           </div>
@@ -46,7 +46,7 @@ export const CoverageSummaryBar: React.FC<CoverageSummaryBarProps> = ({ coverage
       </div>
 
       {/* Segmented Progress Bar */}
-      <div className="w-full h-3 rounded-pill bg-elevated overflow-hidden flex mb-3">
+      <div className="w-full h-4 rounded-pill bg-elevated overflow-hidden flex mb-3">
         <div
           style={{ width: `${supportedPercent}%` }}
           className="bg-success h-full transition-all duration-500"
@@ -64,9 +64,9 @@ export const CoverageSummaryBar: React.FC<CoverageSummaryBarProps> = ({ coverage
         />
       </div>
 
-      <div className="flex items-center justify-between text-xs sm:text-[13px] text-muted">
+      <div className="flex items-center justify-between text-sm sm:text-base text-muted font-medium">
         <span>Criteria Evaluated: {coverage.total_criteria} Total</span>
-        <span className="font-semibold text-ink">{supportedPercent}% Grounded</span>
+        <span className="font-bold text-ink text-base sm:text-lg">{supportedPercent}% Grounded</span>
       </div>
     </div>
   );

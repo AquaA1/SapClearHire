@@ -8,7 +8,7 @@ import {
 
 export interface StatusBadgeProps {
   status: EvidenceStatus | VerificationState | ApplicationStatus | ReviewFlagStatus | string;
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
 
@@ -91,13 +91,21 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
     label   = label.toUpperCase();
   }
 
-  const sizeClass = size === 'sm' ? 'px-2.5 py-0.5 text-[10px]' : 'px-3 py-1 text-xs';
+  const sizeClass =
+    size === 'lg'
+      ? 'px-4 py-2 text-base sm:text-lg font-bold gap-2.5'
+      : size === 'sm'
+      ? 'px-3 py-1 text-xs sm:text-sm font-semibold gap-1.5'
+      : 'px-3.5 py-1.5 text-sm sm:text-base font-semibold gap-2';
+
+  const dotSizeClass =
+    size === 'lg' ? 'w-2.5 h-2.5' : size === 'sm' ? 'w-2 h-2' : 'w-2.5 h-2.5';
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-pill border tracking-wide uppercase ${sizeClass} ${pillCls} ${className}`}
+      className={`inline-flex items-center rounded-pill border tracking-wide uppercase ${sizeClass} ${pillCls} ${className}`}
     >
-      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotCls}`} />
+      <span className={`${dotSizeClass} rounded-full shrink-0 ${dotCls}`} />
       {label}
     </span>
   );
@@ -105,7 +113,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant?: 'default' | 'success' | 'info' | 'pending' | 'warn' | 'danger' | 'accent' | 'outline';
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'md' | 'lg';
   dot?: boolean;
 }
 
@@ -117,7 +125,15 @@ export const Badge: React.FC<BadgeProps> = ({
   className = '',
   ...props
 }) => {
-  const sizeClass = size === 'sm' ? 'px-2.5 py-0.5 text-[10px]' : 'px-3 py-1 text-xs';
+  const sizeClass =
+    size === 'lg'
+      ? 'px-4 py-2 text-base sm:text-lg font-bold gap-2.5'
+      : size === 'sm'
+      ? 'px-3 py-1 text-xs sm:text-sm font-semibold gap-1.5'
+      : 'px-3.5 py-1.5 text-sm sm:text-base font-semibold gap-2';
+
+  const dotSizeClass =
+    size === 'lg' ? 'w-2.5 h-2.5' : size === 'sm' ? 'w-2 h-2' : 'w-2.5 h-2.5';
 
   const variantClass: Record<string, string> = {
     default: 'bg-elevated text-ink border-subtle',
@@ -143,10 +159,10 @@ export const Badge: React.FC<BadgeProps> = ({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-pill border tracking-wide ${sizeClass} ${variantClass[variant]} ${className}`}
+      className={`inline-flex items-center rounded-pill border tracking-wide ${sizeClass} ${variantClass[variant]} ${className}`}
       {...props}
     >
-      {dot && <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotClass[variant]}`} />}
+      {dot && <span className={`${dotSizeClass} rounded-full shrink-0 ${dotClass[variant]}`} />}
       {children}
     </span>
   );

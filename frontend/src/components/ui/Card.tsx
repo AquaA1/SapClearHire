@@ -18,11 +18,11 @@ export const CardHeader: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({ cla
 );
 
 export const CardTitle: React.FC<React.HTMLAttributes<HTMLHeadingElement>> = ({ className = '', children, ...props }) => (
-  <h3 className={`text-base font-semibold text-ink tracking-tight ${className}`} {...props}>{children}</h3>
+  <h3 className={`text-xl sm:text-2xl font-bold text-ink tracking-tight ${className}`} {...props}>{children}</h3>
 );
 
 export const CardDescription: React.FC<React.HTMLAttributes<HTMLParagraphElement>> = ({ className = '', children, ...props }) => (
-  <p className={`text-xs text-muted leading-relaxed ${className}`} {...props}>{children}</p>
+  <p className={`text-sm sm:text-base text-ink-secondary leading-relaxed ${className}`} {...props}>{children}</p>
 );
 
 export const CardContent: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({ className = '', children, ...props }) => (

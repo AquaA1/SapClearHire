@@ -11,9 +11,9 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ variant = 'primary', size = 'md', isLoading, leftIcon, rightIcon, children, className = '', disabled, ...props }, ref) => {
     const sizeClass = {
-      sm: 'h-8 px-4 text-xs gap-1.5',
-      md: 'h-10 px-5 text-sm gap-2',
-      lg: 'h-12 px-6 text-base gap-2',
+      sm: 'h-9 px-4 text-sm font-semibold gap-2',
+      md: 'h-11 px-5 text-base font-semibold gap-2.5',
+      lg: 'h-13 px-7 text-lg font-bold gap-3',
     }[size];
 
     const variantClass = {

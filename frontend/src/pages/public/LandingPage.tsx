@@ -60,24 +60,21 @@ export const LandingPage: React.FC = () => {
           </Link>
 
           {/* Centered Translucent Navigation Pill */}
-          <nav className="hidden md:flex items-center gap-7 bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-full px-6 py-2 shadow-lg">
-            <Link to="/benchmark" className="text-xs font-medium text-zinc-300 hover:text-white transition-colors">
+          <nav className="hidden md:flex items-center gap-8 bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-full px-7 py-2.5 shadow-lg">
+            <Link to="/benchmark" className="text-sm font-semibold text-zinc-300 hover:text-white transition-colors">
               Evidence Engine
             </Link>
-            <Link to="/auditor/chain" className="text-xs font-medium text-zinc-300 hover:text-white transition-colors">
+            <Link to="/auditor/chain" className="text-sm font-semibold text-zinc-300 hover:text-white transition-colors">
               Audit Chain
             </Link>
-            <Link to="/candidate/jobs" className="text-xs font-medium text-zinc-300 hover:text-white transition-colors">
+            <Link to="/candidate/jobs" className="text-sm font-semibold text-zinc-300 hover:text-white transition-colors">
               Openings
             </Link>
-            <Link to="/benchmark" className="text-xs font-medium text-zinc-300 hover:text-white transition-colors">
-              Benchmark
-            </Link>
             
-            <div className="h-3.5 w-[1px] bg-white/15" />
+            <div className="h-4 w-[1px] bg-white/15" />
 
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-white text-xs font-semibold">
-              <ShieldCheck className="w-3.5 h-3.5 text-zinc-300" />
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 text-white text-xs sm:text-sm font-bold">
+              <ShieldCheck className="w-4 h-4 text-zinc-300" />
               <span>Transparency ↗</span>
             </div>
           </nav>
@@ -86,9 +83,9 @@ export const LandingPage: React.FC = () => {
           <div className="flex items-center gap-4">
             <Link
               to="/register"
-              className="flex items-center gap-2 text-xs font-medium text-zinc-300 hover:text-white transition-colors"
+              className="flex items-center gap-2 text-sm font-semibold text-zinc-300 hover:text-white transition-colors"
             >
-              <User className="w-3.5 h-3.5" />
+              <User className="w-4 h-4" />
               <span>Create Account</span>
             </Link>
           </div>
@@ -98,45 +95,45 @@ export const LandingPage: React.FC = () => {
         {/* DECORATIVE CONNECTED NODES (MATCHING REFERENCE COMPOSITION) */}
         {/* ========================================================= */}
         {/* Left Node: Criteria Grounding */}
-        <div className="absolute top-1/3 left-10 hidden xl:flex items-center gap-3 z-10 pointer-events-none opacity-70">
-          <div className="w-7 h-7 rounded-full border border-white/20 bg-white/5 flex items-center justify-center text-xs">
+        <div className="absolute top-1/3 left-10 hidden xl:flex items-center gap-3 z-10 pointer-events-none opacity-80">
+          <div className="w-8 h-8 rounded-full border border-white/20 bg-white/5 flex items-center justify-center text-sm font-bold">
             ▲
           </div>
           <div>
-            <span className="text-xs font-semibold text-white block">• Criteria Grounding</span>
-            <span className="text-[10px] font-mono text-zinc-400">20.945 coordinates</span>
+            <span className="text-sm font-bold text-white block">• Criteria Grounding</span>
+            <span className="text-xs font-mono text-zinc-400">20.945 coordinates</span>
           </div>
         </div>
 
         {/* Left Bottom Node: OCR Extractor */}
-        <div className="absolute bottom-1/3 left-12 hidden xl:flex items-center gap-3 z-10 pointer-events-none opacity-70">
-          <div className="w-7 h-7 rounded-full border border-white/20 bg-white/5 flex items-center justify-center text-xs">
+        <div className="absolute bottom-1/3 left-12 hidden xl:flex items-center gap-3 z-10 pointer-events-none opacity-80">
+          <div className="w-8 h-8 rounded-full border border-white/20 bg-white/5 flex items-center justify-center text-sm font-bold">
             ❖
           </div>
           <div>
-            <span className="text-xs font-semibold text-white block">• Verbatim Citation</span>
-            <span className="text-[10px] font-mono text-zinc-400">19.346 parsed</span>
+            <span className="text-sm font-bold text-white block">• Verbatim Citation</span>
+            <span className="text-xs font-mono text-zinc-400">19.346 parsed</span>
           </div>
         </div>
 
         {/* Right Top Node: Human Triage */}
-        <div className="absolute top-1/3 right-10 hidden xl:flex items-center gap-3 z-10 pointer-events-none opacity-70">
+        <div className="absolute top-1/3 right-10 hidden xl:flex items-center gap-3 z-10 pointer-events-none opacity-80">
           <div className="text-right">
-            <span className="text-xs font-semibold text-white block">• Human Oversight</span>
-            <span className="text-[10px] font-mono text-zinc-400">2.945 verified</span>
+            <span className="text-sm font-bold text-white block">• Human Oversight</span>
+            <span className="text-xs font-mono text-zinc-400">2.945 verified</span>
           </div>
-          <div className="w-7 h-7 rounded-full border border-white/20 bg-white/5 flex items-center justify-center text-xs">
+          <div className="w-8 h-8 rounded-full border border-white/20 bg-white/5 flex items-center justify-center text-sm font-bold">
             ✦
           </div>
         </div>
 
         {/* Right Bottom Node: Cryptographic Ledger */}
-        <div className="absolute bottom-1/3 right-12 hidden xl:flex items-center gap-3 z-10 pointer-events-none opacity-70">
+        <div className="absolute bottom-1/3 right-12 hidden xl:flex items-center gap-3 z-10 pointer-events-none opacity-80">
           <div className="text-right">
-            <span className="text-xs font-semibold text-white block">• SHA-256 Chain</span>
-            <span className="text-[10px] font-mono text-zinc-400">440 blocks sealed</span>
+            <span className="text-sm font-bold text-white block">• SHA-256 Chain</span>
+            <span className="text-xs font-mono text-zinc-400">440 blocks sealed</span>
           </div>
-          <div className="w-7 h-7 rounded-full border border-white/20 bg-white/5 flex items-center justify-center text-xs">
+          <div className="w-8 h-8 rounded-full border border-white/20 bg-white/5 flex items-center justify-center text-sm font-bold">
             ⬡
           </div>
         </div>
@@ -144,37 +141,37 @@ export const LandingPage: React.FC = () => {
         {/* ========================================================= */}
         {/* CENTER HERO SECTION                                       */}
         {/* ========================================================= */}
-        <div className="relative z-20 my-auto text-center max-w-3xl mx-auto space-y-6">
+        <div className="relative z-20 my-auto text-center max-w-3xl mx-auto space-y-7">
           {/* Subtle Pill Sparkle Badge matching reference */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.06] border border-white/15 text-xs text-zinc-200 backdrop-blur-md shadow-sm">
-            <Sparkles className="w-3.5 h-3.5 text-white" />
+          <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/[0.06] border border-white/15 text-sm text-zinc-200 backdrop-blur-md shadow-sm font-semibold">
+            <Sparkles className="w-4 h-4 text-white" />
             <span>Unlock Your Hiring Evidence Spark! →</span>
           </div>
 
           {/* Hero Headline from User Prompt */}
-          <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white leading-[1.08]">
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-extrabold tracking-tight text-white leading-[1.08]">
             See the Evidence.<br />
             Recognize the Potential.
           </h1>
 
           {/* Supporting Text from User Prompt */}
-          <p className="text-sm sm:text-base text-zinc-300 max-w-xl mx-auto font-normal leading-relaxed">
+          <p className="text-base sm:text-lg text-zinc-300 max-w-xl mx-auto font-normal leading-relaxed">
             Transparent hiring starts with understanding the evidence behind every candidate. Zero black-box filters, zero fabricated scores.
           </p>
 
           {/* Two Prominent Action Buttons matching reference */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-3">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-3">
             <Link
               to="/login"
-              className="w-full sm:w-auto px-8 py-3.5 bg-white hover:bg-zinc-200 text-black font-semibold text-xs rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 group"
+              className="w-full sm:w-auto px-9 py-4 bg-white hover:bg-zinc-200 text-black font-bold text-sm sm:text-base rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2.5 group"
             >
               <span>Login</span>
-              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
 
             <Link
               to="/register"
-              className="w-full sm:w-auto px-7 py-3.5 bg-white/[0.06] hover:bg-white/[0.12] text-white font-semibold text-xs rounded-full border border-white/20 backdrop-blur-md transition-all flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-8 py-4 bg-white/[0.06] hover:bg-white/[0.12] text-white font-bold text-sm sm:text-base rounded-full border border-white/20 backdrop-blur-md transition-all flex items-center justify-center gap-2"
             >
               <span>Create Account</span>
             </Link>

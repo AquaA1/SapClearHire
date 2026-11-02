@@ -78,12 +78,12 @@ export const EmployerDashboardPage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto select-none">
       {/* ── Header ────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-subtle">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-subtle">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-ink tracking-tight">
+          <h1 className="text-3xl sm:text-4xl font-bold text-ink tracking-tight">
             Employer Command Center
           </h1>
-          <p className="text-xs text-muted mt-1 font-medium">
+          <p className="text-base sm:text-lg text-ink-secondary mt-1 font-normal">
             Manage open requisitions, inspect candidate qualification evidence, and triage human reviews.
           </p>
         </div>
@@ -91,8 +91,8 @@ export const EmployerDashboardPage: React.FC = () => {
         <Button
           onClick={() => navigate('/employer/jobs')}
           variant="primary"
-          size="sm"
-          leftIcon={<Plus className="w-4 h-4" />}
+          size="md"
+          leftIcon={<Plus className="w-5 h-5" />}
           className="shrink-0 self-start sm:self-auto cursor-pointer font-semibold shadow-sm"
         >
           Manage Requisitions
@@ -104,59 +104,59 @@ export const EmployerDashboardPage: React.FC = () => {
         {/* Left Column: Stats & The One Mint Highlighted Card (4 Cols) */}
         <div className="lg:col-span-4 flex flex-col gap-5">
           {/* Bento Stat Card 1: Split Stat (Total Apps & Active Jobs) */}
-          <div className="bg-surface border border-subtle rounded-card p-5 shadow-card">
+          <div className="bg-surface border border-subtle rounded-card p-6 shadow-card">
             <div className="grid grid-cols-2 divide-x divide-subtle">
               <div className="pr-4">
-                <span className="text-3xl sm:text-4xl font-semibold text-ink tracking-tight block">
+                <span className="text-4xl sm:text-5xl font-bold text-ink tracking-tight block">
                   {totalAppsCount}
                 </span>
-                <span className="text-xs text-muted mt-1.5 font-medium block">
+                <span className="text-sm font-semibold text-muted mt-2 block">
                   Total Applicants
                 </span>
               </div>
               <div className="pl-4">
-                <span className="text-3xl sm:text-4xl font-semibold text-ink tracking-tight block">
+                <span className="text-4xl sm:text-5xl font-bold text-ink tracking-tight block">
                   {activeJobsCount}
                 </span>
-                <span className="text-xs text-muted mt-1.5 font-medium block">Active Jobs</span>
+                <span className="text-sm font-semibold text-muted mt-2 block">Active Jobs</span>
               </div>
             </div>
           </div>
 
           {/* Bento Stat Card 2: Resolved Reviews Stat */}
-          <div className="bg-surface border border-subtle rounded-card p-5 shadow-card flex items-center justify-between">
+          <div className="bg-surface border border-subtle rounded-card p-6 shadow-card flex items-center justify-between">
             <div>
-              <span className="text-3xl sm:text-4xl font-semibold text-ink tracking-tight block">
+              <span className="text-4xl sm:text-5xl font-bold text-ink tracking-tight block">
                 {resolvedReviewsCount}
               </span>
-              <span className="text-xs text-muted mt-1 font-medium block">
+              <span className="text-sm font-semibold text-muted mt-1.5 font-medium block">
                 Resolved Adjudications
               </span>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-elevated border border-subtle flex items-center justify-center text-accent">
-              <ShieldCheck className="w-5 h-5" />
+            <div className="w-12 h-12 rounded-xl bg-elevated border border-subtle flex items-center justify-center text-accent">
+              <ShieldCheck className="w-6 h-6" />
             </div>
           </div>
 
           {/* ── THE ONE MINT HIGHLIGHTED CARD FOR PRIORITY ACTION ── */}
-          <div className="bg-accent-dim border border-accent/30 rounded-card p-5 shadow-card flex flex-col justify-between space-y-4">
+          <div className="bg-accent-dim border border-accent/30 rounded-card p-6 shadow-card flex flex-col justify-between space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-accent uppercase tracking-wider flex items-center gap-1.5">
-                <AlertCircle className="w-3.5 h-3.5" />
+              <span className="text-xs sm:text-sm font-bold text-accent uppercase tracking-wider flex items-center gap-1.5">
+                <AlertCircle className="w-4 h-4" />
                 Priority Review Triage
               </span>
-              <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-pill bg-accent/20 text-accent border border-accent/40">
+              <span className="text-xs font-bold px-3 py-1 rounded-pill bg-accent/20 text-accent border border-accent/40">
                 {pendingReviewsCount > 0 ? `${pendingReviewsCount} Action Required` : 'Ledger Healthy'}
               </span>
             </div>
 
             <div>
-              <h3 className="text-base font-semibold text-ink leading-snug">
+              <h3 className="text-xl sm:text-2xl font-bold text-ink leading-snug">
                 {pendingReviewsCount > 0
                   ? 'Ambiguous Evidence Requires Human Verdict'
                   : 'All Candidate Evidence Grounded'}
               </h3>
-              <p className="text-xs text-ink/90 mt-1.5 leading-relaxed">
+              <p className="text-sm sm:text-base text-ink/90 mt-2 leading-relaxed">
                 {pendingReviewsCount > 0
                   ? 'Adjudicate missing qualifications with mandatory reviewer justification before final candidate determination.'
                   : 'Candidate claims match verbatim resume excerpts with cryptographic SHA-256 proof.'}
@@ -166,8 +166,8 @@ export const EmployerDashboardPage: React.FC = () => {
             <Button
               onClick={() => navigate('/employer/reviews')}
               variant="primary"
-              size="sm"
-              rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+              size="md"
+              rightIcon={<ArrowRight className="w-4 h-4" />}
               className="w-full justify-between font-semibold"
             >
               <span>{pendingReviewsCount > 0 ? 'Triage Review Cases' : 'Inspect Review Triage'}</span>
@@ -179,20 +179,20 @@ export const EmployerDashboardPage: React.FC = () => {
         <div className="lg:col-span-8 flex flex-col gap-5">
           {/* Recent Screenings Table */}
           <div className="bg-surface border border-subtle rounded-card shadow-card overflow-hidden">
-            <div className="p-5 border-b border-subtle flex items-center justify-between">
+            <div className="p-5 sm:p-6 border-b border-subtle flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-semibold text-ink">Recent Candidate Screenings</h2>
-                <p className="text-xs text-muted font-medium mt-0.5">
+                <h2 className="text-lg sm:text-xl font-bold text-ink">Recent Candidate Screenings</h2>
+                <p className="text-sm text-muted font-medium mt-0.5">
                   Applicants and deterministic evidence verification states
                 </p>
               </div>
               {applications.length > 0 && (
                 <Link
                   to={`/employer/applications/${applications[0].id}`}
-                  className="text-xs font-semibold text-muted hover:text-ink flex items-center gap-1 transition-colors"
+                  className="text-sm font-semibold text-muted hover:text-ink flex items-center gap-1.5 transition-colors"
                 >
                   <span>View Dossiers</span>
-                  <ArrowRight className="w-3 h-3" />
+                  <ArrowRight className="w-4 h-4" />
                 </Link>
               )}
             </div>
@@ -212,8 +212,8 @@ export const EmployerDashboardPage: React.FC = () => {
                     <TableCell colSpan={4} className="py-12 text-center text-muted font-medium">
                       <div className="max-w-xs mx-auto space-y-2">
                         <Users className="w-8 h-8 text-muted mx-auto opacity-40" />
-                        <p className="text-xs text-muted">No candidate applications submitted yet.</p>
-                        <p className="text-[11px] text-muted">
+                        <p className="text-sm text-muted">No candidate applications submitted yet.</p>
+                        <p className="text-xs text-muted">
                           Candidates will appear here as soon as they apply to your open job requisitions.
                         </p>
                       </div>
@@ -223,15 +223,15 @@ export const EmployerDashboardPage: React.FC = () => {
                   applications.slice(0, 5).map((app) => (
                     <TableRow key={app.id}>
                       <TableCell>
-                        <div className="font-semibold text-ink text-xs">
+                        <div className="font-bold text-ink text-sm sm:text-base">
                           {app.candidate_name || `Candidate #${app.candidate_id.slice(0, 8)}`}
                         </div>
-                        <div className="text-[11px] text-muted font-medium mt-0.5">
+                        <div className="text-xs text-muted font-medium mt-0.5">
                           App #{app.id.slice(0, 8)}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className="text-xs font-medium text-ink/90 truncate block max-w-[220px]">
+                        <span className="text-sm font-medium text-ink/90 truncate block max-w-[220px]">
                           {app.job_title}
                         </span>
                       </TableCell>
@@ -241,10 +241,10 @@ export const EmployerDashboardPage: React.FC = () => {
                       <TableCell className="text-right">
                         <Link
                           to={`/employer/applications/${app.id}`}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline transition-colors"
+                          className="inline-flex items-center gap-1 text-sm font-bold text-accent hover:underline transition-colors"
                         >
                           <span>Inspect</span>
-                          <ChevronRight className="w-3.5 h-3.5" />
+                          <ChevronRight className="w-4 h-4" />
                         </Link>
                       </TableCell>
                     </TableRow>

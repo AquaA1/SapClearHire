@@ -11,6 +11,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { ExpandableText } from '../ui/ExpandableText';
 import { CriterionEvaluationItem } from '../../contracts/models';
 import { ReviewDecisionType, VerificationState } from '../../contracts/enums';
 import { EmployerClarificationModal } from './EmployerClarificationModal';
@@ -181,25 +182,25 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
   return (
     <div className="mt-5 pt-5 border-t border-subtle space-y-4">
       {/* Header and Active Status Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-elevated/70 p-3.5 sm:p-4 rounded-card border border-subtle">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-elevated/70 p-4 rounded-card border border-subtle">
         <div className="flex items-center gap-2.5">
-          <MessageSquare className="w-4 h-4 text-accent" />
-          <span className="text-xs sm:text-[13px] font-semibold text-ink uppercase tracking-wider">
+          <MessageSquare className="w-5 h-5 text-accent" />
+          <span className="text-sm sm:text-base font-bold text-ink uppercase tracking-wider">
             Clarification Workflow
           </span>
         </div>
 
         <div>
           {activeState === 'AWAITING_CANDIDATE_RESPONSE' && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-xs font-semibold bg-warn-dim text-warn border border-warn/30">
-              <Clock className="w-3.5 h-3.5" />
+            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-pill text-xs sm:text-sm font-semibold bg-warn-dim text-warn border border-warn/30">
+              <Clock className="w-4 h-4" />
               {isEmployerOrReviewer ? 'Awaiting Candidate Response' : 'Awaiting your response'}
             </span>
           )}
 
           {activeState === 'AWAITING_EMPLOYER_REVIEW' && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-xs font-semibold bg-accent-dim text-accent border border-accent/30">
-              <ShieldCheck className="w-3.5 h-3.5" />
+            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-pill text-xs sm:text-sm font-semibold bg-accent-dim text-accent border border-accent/30">
+              <ShieldCheck className="w-4 h-4" />
               {isEmployerOrReviewer
                 ? 'Candidate Responded — Awaiting Employer Review'
                 : 'Submitted — Awaiting Employer Review'}
@@ -207,15 +208,15 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
           )}
 
           {activeState === 'DECIDED' && lastFinalDecision?.decision === ReviewDecisionType.ACCEPTED && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-xs font-semibold bg-success-dim text-success border border-success/30">
-              <CheckCircle2 className="w-3.5 h-3.5" />
+            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-pill text-xs sm:text-sm font-semibold bg-success-dim text-success border border-success/30">
+              <CheckCircle2 className="w-4 h-4" />
               Clarification Accepted — Human Verified
             </span>
           )}
 
           {activeState === 'DECIDED' && lastFinalDecision?.decision === ReviewDecisionType.REJECTED && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-xs font-semibold bg-danger-dim text-danger border border-danger/30">
-              <XCircle className="w-3.5 h-3.5" />
+            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-pill text-xs sm:text-sm font-semibold bg-danger-dim text-danger border border-danger/30">
+              <XCircle className="w-4 h-4" />
               Clarification Rejected — Human Rejected
             </span>
           )}
@@ -223,27 +224,32 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
       </div>
 
       {/* Chronological Conversational Thread */}
-      <div className="space-y-3.5">
+      <div className="space-y-4">
         {thread.map((entry, idx) => {
           if (entry.type === 'question') {
             return (
               <div
                 key={`q-${entry.id}-${idx}`}
-                className="bg-elevated/80 border border-warn/30 rounded-card p-4 sm:p-5 space-y-2.5 shadow-xs"
+                className="bg-elevated/80 border border-warn/30 rounded-card p-4 sm:p-5 space-y-3 shadow-xs"
               >
-                <div className="flex items-center justify-between text-xs sm:text-[13px] font-semibold text-warn">
+                <div className="flex items-center justify-between text-sm sm:text-base font-bold text-warn">
                   <span className="flex items-center gap-2">
                     <HelpCircle className="w-4 h-4 text-warn shrink-0" />
                     Employer Requested Clarification
                   </span>
-                  <span className="text-[12px] text-muted font-normal flex items-center gap-1.5">
+                  <span className="text-xs sm:text-sm text-muted font-normal flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5" />
                     {new Date(entry.time).toLocaleString()}
                   </span>
                 </div>
-                <p className="text-[15px] text-ink leading-[1.65] font-normal whitespace-pre-wrap pl-4 border-l-2 border-warn/50">
-                  "{entry.text}"
-                </p>
+                <div className="pl-4 border-l-2 border-warn/50">
+                  <ExpandableText
+                    text={entry.text}
+                    maxChars={220}
+                    quote
+                    className="text-base sm:text-[18px] text-ink leading-relaxed font-normal"
+                  />
+                </div>
               </div>
             );
           }
@@ -252,21 +258,26 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
             return (
               <div
                 key={`r-${entry.id}-${idx}`}
-                className="bg-elevated/90 border border-accent/30 rounded-card p-4 sm:p-5 space-y-2.5 shadow-xs"
+                className="bg-elevated/90 border border-accent/30 rounded-card p-4 sm:p-5 space-y-3 shadow-xs"
               >
-                <div className="flex items-center justify-between text-xs sm:text-[13px] font-semibold text-accent">
+                <div className="flex items-center justify-between text-sm sm:text-base font-bold text-accent">
                   <span className="flex items-center gap-2">
                     <CornerDownRight className="w-4 h-4 text-accent shrink-0" />
                     {isEmployerOrReviewer ? 'Candidate Response' : 'Your Clarification Response'}
                   </span>
-                  <span className="text-[12px] text-muted font-normal flex items-center gap-1.5">
+                  <span className="text-xs sm:text-sm text-muted font-normal flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5" />
                     {new Date(entry.time).toLocaleString()}
                   </span>
                 </div>
-                <p className="text-[15px] text-ink leading-[1.65] font-normal whitespace-pre-wrap pl-4 border-l-2 border-accent/50">
-                  "{entry.text}"
-                </p>
+                <div className="pl-4 border-l-2 border-accent/50">
+                  <ExpandableText
+                    text={entry.text}
+                    maxChars={220}
+                    quote
+                    className="text-base sm:text-[18px] text-ink leading-relaxed font-normal"
+                  />
+                </div>
               </div>
             );
           }
@@ -276,13 +287,13 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
             return (
               <div
                 key={`v-${entry.id}-${idx}`}
-                className={`border rounded-card p-4 sm:p-5 space-y-2.5 shadow-xs ${
+                className={`border rounded-card p-4 sm:p-5 space-y-3 shadow-xs ${
                   isAccepted
                     ? 'bg-success-dim/20 border-success/30'
                     : 'bg-danger-dim/20 border-danger/30'
                 }`}
               >
-                <div className="flex items-center justify-between text-xs sm:text-[13px] font-semibold">
+                <div className="flex items-center justify-between text-sm sm:text-base font-bold">
                   <span
                     className={`flex items-center gap-2 ${
                       isAccepted ? 'text-success' : 'text-danger'
@@ -295,14 +306,20 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
                     )}
                     Reviewer Determination: {isAccepted ? 'Accepted (Verified)' : 'Rejected'}
                   </span>
-                  <span className="text-[12px] text-muted font-normal flex items-center gap-1.5">
+                  <span className="text-xs sm:text-sm text-muted font-normal flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5" />
                     {new Date(entry.time).toLocaleString()}
                   </span>
                 </div>
-                <p className="text-[15px] text-ink leading-[1.65] font-normal italic pl-4 border-l-2 border-subtle-strong">
-                  "{entry.text}"
-                </p>
+                <div className="pl-4 border-l-2 border-subtle-strong">
+                  <ExpandableText
+                    text={entry.text}
+                    maxChars={220}
+                    quote
+                    italic
+                    className="text-base sm:text-[18px] text-ink leading-relaxed font-normal"
+                  />
+                </div>
               </div>
             );
           }
@@ -315,14 +332,14 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
       {!isEmployerOrReviewer && activeState === 'AWAITING_CANDIDATE_RESPONSE' && onCandidateSubmit && (
         <form
           onSubmit={handleCandidateResponseSubmit}
-          className="bg-surface rounded-card p-5 border border-accent/30 shadow-card space-y-4"
+          className="bg-surface rounded-card p-5 sm:p-6 border border-accent/30 shadow-card space-y-4"
         >
-          <div className="flex items-center justify-between">
-            <label className="text-[14px] font-semibold text-ink flex items-center gap-2">
-              <CornerDownRight className="w-4 h-4 text-accent" />
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <label className="text-base sm:text-lg font-bold text-ink flex items-center gap-2">
+              <CornerDownRight className="w-5 h-5 text-accent" />
               Submit Your Clarification Response
             </label>
-            <span className="text-xs text-muted font-medium">
+            <span className="text-xs sm:text-sm text-muted font-medium">
               Directly address the employer's question
             </span>
           </div>
@@ -335,13 +352,13 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
               if (candidateError) setCandidateError('');
             }}
             placeholder="e.g. In my Library Inventory API project, I utilized Flask with PostgreSQL. While I did not use FastAPI on that specific project, I have built subsequent internal microservices with FastAPI..."
-            className="w-full text-[15px] p-4 rounded-sm border border-subtle bg-elevated text-ink placeholder:text-muted focus:outline-none focus:border-accent font-normal leading-[1.6]"
+            className="w-full text-base sm:text-[17px] p-4 rounded-md border border-subtle bg-elevated text-ink placeholder:text-muted focus:outline-none focus:border-accent font-normal leading-relaxed"
             disabled={isSubmittingResponse}
             required
           />
 
           {candidateError && (
-            <p className="text-xs sm:text-[13px] text-danger font-medium flex items-center gap-1.5">
+            <p className="text-xs sm:text-sm text-danger font-medium flex items-center gap-1.5">
               <AlertCircle className="w-4 h-4 shrink-0" />
               {candidateError}
             </p>
@@ -365,13 +382,13 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
 
       {/* Employer Actions when Candidate has Responded (Awaiting Employer Review) */}
       {isEmployerOrReviewer && activeState === 'AWAITING_EMPLOYER_REVIEW' && onReviewDecision && (
-        <div className="p-3 bg-surface rounded border border-accent/20 flex flex-wrap items-center justify-between gap-3">
-          <div className="text-xs font-semibold text-ink flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-accent" />
+        <div className="p-4 bg-surface rounded-card border border-accent/20 flex flex-wrap items-center justify-between gap-3">
+          <div className="text-sm sm:text-base font-semibold text-ink flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-accent" />
             Evaluate Candidate Clarification:
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <button
               type="button"
               onClick={() => {
@@ -379,9 +396,9 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
                 setDecisionRationale('');
                 setDecisionError('');
               }}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded text-xs font-semibold bg-success-dim hover:bg-success/20 text-success border border-success/30 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-pill text-xs sm:text-sm font-semibold bg-success-dim hover:bg-success/20 text-success border border-success/30 transition-colors cursor-pointer"
             >
-              <CheckCircle2 className="w-3.5 h-3.5" />
+              <CheckCircle2 className="w-4 h-4" />
               <span>Accept Clarification</span>
             </button>
 
@@ -392,18 +409,18 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
                 setDecisionRationale('');
                 setDecisionError('');
               }}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded text-xs font-semibold bg-danger-dim hover:bg-danger/20 text-danger border border-danger/30 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-pill text-xs sm:text-sm font-semibold bg-danger-dim hover:bg-danger/20 text-danger border border-danger/30 transition-colors cursor-pointer"
             >
-              <XCircle className="w-3.5 h-3.5" />
+              <XCircle className="w-4 h-4" />
               <span>Reject Clarification</span>
             </button>
 
             <button
               type="button"
               onClick={() => setShowFurtherClarifyModal(true)}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded text-xs font-semibold bg-warn-dim hover:bg-warn/20 text-warn border border-warn/30 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-pill text-xs sm:text-sm font-semibold bg-warn-dim hover:bg-warn/20 text-warn border border-warn/30 transition-colors cursor-pointer"
             >
-              <HelpCircle className="w-3.5 h-3.5" />
+              <HelpCircle className="w-4 h-4" />
               <span>Request Further Clarification</span>
             </button>
           </div>
@@ -413,26 +430,26 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
       {/* Employer Decision Rationale Modal */}
       {decisionModalType && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-surface border border-subtle rounded-card shadow-modal max-w-lg w-full p-6 space-y-4">
+          <div className="bg-surface border border-subtle rounded-card shadow-modal max-w-xl w-full p-6 sm:p-7 space-y-5">
             <div className="border-b border-subtle pb-3">
-              <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-accent" />
+              <h3 className="text-base sm:text-lg font-bold text-ink flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-accent" />
                 Sign Clarification Determination:{' '}
                 <span className="capitalize">{decisionModalType}</span>
               </h3>
-              <p className="text-xs text-muted mt-0.5 font-medium">
-                Criterion: <span className="text-ink font-medium">{item.criterion_name}</span>
+              <p className="text-sm text-muted mt-1 font-medium">
+                Criterion: <span className="text-ink font-semibold">{item.criterion_name}</span>
               </p>
             </div>
 
             <form onSubmit={handleDecisionSubmit} className="space-y-4">
               <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="text-xs font-semibold text-ink">
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="text-sm sm:text-base font-semibold text-ink">
                     Mandatory Auditable Rationale <span className="text-danger">*</span>
                   </label>
                   <span
-                    className={`text-[10px] font-medium ${
+                    className={`text-xs font-medium ${
                       decisionRationale.trim().length >= 25 ? 'text-accent' : 'text-muted'
                     }`}
                   >
@@ -447,7 +464,7 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
                   }}
                   rows={4}
                   placeholder={`State your factual observation on why the candidate's clarification is ${decisionModalType} and how it aligns with requirement standards...`}
-                  className={`w-full text-xs p-3 rounded-sm border ${
+                  className={`w-full text-sm sm:text-base p-3.5 rounded-md border ${
                     decisionError
                       ? 'border-danger bg-danger-dim/30'
                       : 'border-subtle bg-elevated'
@@ -455,15 +472,15 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
                   required
                 />
                 {decisionError && (
-                  <p className="text-xs text-danger mt-1 font-medium">{decisionError}</p>
+                  <p className="text-xs sm:text-sm text-danger mt-1.5 font-medium">{decisionError}</p>
                 )}
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-subtle">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-subtle">
                 <Button
                   type="button"
                   variant="secondary"
-                  size="sm"
+                  size="md"
                   onClick={() => setDecisionModalType(null)}
                   disabled={isSubmittingDecision}
                 >
@@ -472,10 +489,10 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
                 <Button
                   type="submit"
                   variant="primary"
-                  size="sm"
+                  size="md"
                   isLoading={isSubmittingDecision}
                   disabled={isSubmittingDecision || decisionRationale.trim().length < 25}
-                  leftIcon={<ShieldCheck className="w-3.5 h-3.5" />}
+                  leftIcon={<ShieldCheck className="w-4 h-4" />}
                   className="font-semibold"
                 >
                   Commit Determination

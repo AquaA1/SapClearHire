@@ -10,7 +10,7 @@ import { ReviewCaseDetail } from '../../contracts/models';
 import { StatusBadge } from '../../components/ui/Badge';
 import { ReviewDecisionType, UserRole } from '../../contracts/enums';
 import { useAuth } from '../../stores/authStore';
-import { Button, LoadingSpinner } from '../../components/ui';
+import { Button, LoadingSpinner, ExpandableText } from '../../components/ui';
 
 export const ReviewCaseDetailPage: React.FC = () => {
   const { caseId } = useParams<{ caseId: string }>();
@@ -115,24 +115,24 @@ export const ReviewCaseDetailPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto select-none">
+    <div className="space-y-8 max-w-7xl mx-auto select-none">
       {/* ── Top Header & Breadcrumb ───────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface p-6 rounded-card border border-subtle shadow-card">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 bg-surface p-6 sm:p-7 rounded-card border border-subtle shadow-card">
         <div className="flex items-center gap-4">
           <Link
             to={queueRoute}
-            className="p-2.5 rounded-sm bg-elevated border border-subtle text-muted hover:text-ink transition-colors cursor-pointer"
+            className="p-3 rounded-md bg-elevated border border-subtle text-muted hover:text-ink transition-colors cursor-pointer"
             title="Return to triage queue"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-medium px-2 py-0.5 rounded-pill bg-elevated text-muted border border-subtle">
+            <div className="flex items-center gap-2.5 mb-1.5">
+              <span className="text-xs sm:text-sm font-semibold px-3 py-1 rounded-pill bg-elevated text-muted border border-subtle">
                 FLAG #{reviewCase.flag_id.slice(0, 8)}
               </span>
               <StatusBadge status={reviewCase.flag_status} size="sm" />
-              <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-pill uppercase tracking-wider ${
+              <span className={`text-xs sm:text-sm font-bold px-3 py-1 rounded-pill uppercase tracking-wider ${
                 reviewCase.priority?.toLowerCase() === 'high'
                   ? 'bg-danger-dim text-danger border border-danger/30'
                   : 'bg-warn-dim text-warn border border-warn/30'
@@ -140,20 +140,20 @@ export const ReviewCaseDetailPage: React.FC = () => {
                 {reviewCase.priority} PRIORITY
               </span>
             </div>
-            <h1 className="text-xl font-semibold text-ink flex items-center gap-2">
-              Decision Studio: <span className="text-accent font-medium">{reviewCase.criterion_name}</span>
+            <h1 className="text-2xl sm:text-3xl font-bold text-ink flex items-center gap-2">
+              Decision Studio: <span className="text-accent font-semibold">{reviewCase.criterion_name}</span>
             </h1>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3.5">
           <div className="text-right">
-            <p className="text-xs text-muted font-medium">Assigned Candidate</p>
-            <p className="text-sm font-semibold text-ink">
+            <p className="text-xs sm:text-sm text-muted font-medium">Assigned Candidate</p>
+            <p className="text-base sm:text-lg font-bold text-ink">
               {reviewCase.candidate_name || `Candidate #${reviewCase.candidate_id.slice(0, 8)}`}
             </p>
           </div>
-          <div className="w-10 h-10 rounded-pill bg-elevated border border-subtle text-accent flex items-center justify-center font-semibold text-xs">
+          <div className="w-12 h-12 rounded-pill bg-elevated border border-subtle text-accent flex items-center justify-center font-bold text-sm sm:text-base">
             {reviewCase.candidate_name
               ? reviewCase.candidate_name.split(' ').map((n: string) => n[0]).join('')
               : 'C'}
@@ -162,11 +162,11 @@ export const ReviewCaseDetailPage: React.FC = () => {
       </div>
 
       {submittedSuccess && (
-        <div className="p-4 bg-surface border border-accent/40 rounded-card flex items-center gap-3 text-ink shadow-modal">
-          <CheckCircle2 className="w-5 h-5 text-accent shrink-0" />
+        <div className="p-5 bg-surface border border-accent/40 rounded-card flex items-center gap-3.5 text-ink shadow-modal">
+          <CheckCircle2 className="w-6 h-6 text-accent shrink-0" />
           <div>
-            <h4 className="font-semibold text-sm text-ink">Audit Record Sealed & SHA-256 Hash Committed</h4>
-            <p className="text-xs text-muted font-medium">Your determination has been written to the immutable hash ledger. Redirecting...</p>
+            <h4 className="font-bold text-base sm:text-lg text-ink">Audit Record Sealed & SHA-256 Hash Committed</h4>
+            <p className="text-sm text-muted font-medium mt-0.5">Your determination has been written to the immutable hash ledger. Redirecting...</p>
           </div>
         </div>
       )}
@@ -176,59 +176,59 @@ export const ReviewCaseDetailPage: React.FC = () => {
         {/* PANEL 1 (LEFT): Candidate Context & Rubric (3 Cols) */}
         <div className="lg:col-span-3 space-y-5">
           {/* Candidate Dossier Mini-card */}
-          <div className="bg-surface rounded-card border border-subtle p-5 shadow-card space-y-3.5">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted flex items-center gap-2">
-              <User className="w-3.5 h-3.5 text-accent" /> Candidate Profile
+          <div className="bg-surface rounded-card border border-subtle p-5 sm:p-6 shadow-card space-y-4">
+            <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-muted flex items-center gap-2">
+              <User className="w-4 h-4 text-accent" /> Candidate Profile
             </h3>
             
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div>
-                <p className="text-[11px] text-muted font-medium">Full Name</p>
-                <p className="text-sm font-semibold text-ink">
+                <p className="text-xs text-muted font-medium">Full Name</p>
+                <p className="text-base font-bold text-ink">
                   {reviewCase.candidate_name || `Candidate #${reviewCase.candidate_id.slice(0, 8)}`}
                 </p>
               </div>
               <div>
-                <p className="text-[11px] text-muted font-medium">Target Requisition</p>
-                <p className="text-sm font-medium text-ink">{reviewCase.job_title}</p>
+                <p className="text-xs text-muted font-medium">Target Requisition</p>
+                <p className="text-sm sm:text-base font-semibold text-ink">{reviewCase.job_title}</p>
               </div>
               <div>
-                <p className="text-[11px] text-muted font-medium">Reference</p>
-                <p className="text-xs font-medium text-muted truncate">App #{reviewCase.application_id.slice(0, 8)}</p>
+                <p className="text-xs text-muted font-medium">Reference</p>
+                <p className="text-xs sm:text-sm font-medium text-muted truncate">App #{reviewCase.application_id.slice(0, 8)}</p>
               </div>
             </div>
 
             {isEmployerRoute && (
-              <div className="pt-2 border-t border-subtle">
+              <div className="pt-3 border-t border-subtle">
                 <Link 
                   to={`/employer/applications/${reviewCase.application_id}`}
-                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-elevated hover:bg-elevated/80 text-ink rounded-pill text-xs font-semibold border border-subtle transition-colors"
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-elevated hover:bg-elevated/80 text-ink rounded-pill text-xs sm:text-sm font-bold border border-subtle transition-colors"
                 >
-                  <ExternalLink className="w-3.5 h-3.5" /> Full Application Dossier
+                  <ExternalLink className="w-4 h-4" /> Full Application Dossier
                 </Link>
               </div>
             )}
           </div>
 
           {/* Benchmark Rubric */}
-          <div className="bg-surface rounded-card border border-subtle p-5 shadow-card space-y-3.5">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted flex items-center gap-2">
-              <ShieldCheck className="w-3.5 h-3.5 text-accent" /> Benchmark Rubric
+          <div className="bg-surface rounded-card border border-subtle p-5 sm:p-6 shadow-card space-y-4">
+            <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-muted flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-accent" /> Benchmark Rubric
             </h3>
 
-            <div className="space-y-3">
+            <div className="space-y-3.5">
               <div>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-pill bg-elevated text-accent border border-accent/20 uppercase">
+                <span className="text-xs font-bold px-3 py-1 rounded-pill bg-elevated text-accent border border-accent/20 uppercase">
                   {reviewCase.criterion_category}
                 </span>
-                <h4 className="text-sm font-semibold text-ink mt-2">{reviewCase.criterion_name}</h4>
-                <p className="text-xs text-muted mt-1 leading-relaxed font-medium">{reviewCase.criterion_description || 'No description specified'}</p>
+                <h4 className="text-base sm:text-lg font-bold text-ink mt-2.5">{reviewCase.criterion_name}</h4>
+                <p className="text-sm sm:text-base text-ink-secondary mt-1.5 leading-relaxed font-medium">{reviewCase.criterion_description || 'No description specified'}</p>
               </div>
 
-              <div className="p-3 bg-elevated rounded-sm space-y-1.5 border border-subtle text-xs font-medium">
+              <div className="p-3.5 bg-elevated rounded-md space-y-2 border border-subtle text-sm font-medium">
                 <div className="flex justify-between">
                   <span className="text-muted">Weight Multiplier:</span>
-                  <span className="font-semibold text-ink">{reviewCase.criterion_weight}x</span>
+                  <span className="font-bold text-ink">{reviewCase.criterion_weight}x</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-muted">Current State:</span>
@@ -237,11 +237,11 @@ export const ReviewCaseDetailPage: React.FC = () => {
               </div>
 
               {/* Escalation Reason */}
-              <div className="p-3.5 bg-warn-dim rounded-sm border border-warn/30">
-                <div className="flex items-center gap-1.5 text-warn text-xs font-semibold mb-1">
-                  <AlertOctagon className="w-3.5 h-3.5" /> Escalation Reason
+              <div className="p-4 bg-warn-dim rounded-md border border-warn/30">
+                <div className="flex items-center gap-2 text-warn text-xs sm:text-sm font-bold mb-1.5">
+                  <AlertOctagon className="w-4 h-4" /> Escalation Reason
                 </div>
-                <p className="text-xs text-ink leading-relaxed font-medium">{reviewCase.reason}</p>
+                <p className="text-xs sm:text-sm text-ink leading-relaxed font-medium">{reviewCase.reason}</p>
               </div>
             </div>
           </div>
@@ -253,24 +253,30 @@ export const ReviewCaseDetailPage: React.FC = () => {
             <div className="flex items-center justify-between pb-3 border-b border-subtle">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-accent" />
-                <h3 className="text-sm font-semibold text-ink">Grounded Evidence Verification</h3>
+                <h3 className="text-base sm:text-lg font-bold text-ink">Grounded Evidence Verification</h3>
               </div>
-              <span className="text-xs font-medium px-2.5 py-0.5 bg-elevated rounded-pill text-muted border border-subtle">
+              <span className="text-xs sm:text-sm font-semibold px-3 py-1 bg-elevated rounded-pill text-muted border border-subtle">
                 Page {reviewCase.source_page || 1} • Verbatim
               </span>
             </div>
 
             {/* Verbatim Quote Display */}
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted mb-2">
+              <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-muted mb-2">
                 Verbatim Resume Citation
               </p>
               {reviewCase.source_excerpt ? (
-                <div className="p-4 rounded-sm bg-elevated border border-subtle italic text-xs text-ink leading-relaxed font-normal">
-                  "{reviewCase.source_excerpt}"
+                <div className="p-4 rounded-md bg-elevated border border-subtle">
+                  <ExpandableText
+                    text={reviewCase.source_excerpt}
+                    maxChars={220}
+                    quote
+                    italic
+                    className="text-sm sm:text-base text-ink leading-relaxed"
+                  />
                 </div>
               ) : (
-                <div className="p-4 rounded-sm bg-elevated border border-dashed border-subtle text-center text-xs text-muted italic font-medium">
+                <div className="p-4 rounded-md bg-elevated border border-dashed border-subtle text-center text-xs sm:text-sm text-muted italic font-medium">
                   No verbatim quote extracted. Flagged as ambiguous or ungrounded claim.
                 </div>
               )}
@@ -279,51 +285,60 @@ export const ReviewCaseDetailPage: React.FC = () => {
             {/* Extracted Claim Text */}
             {reviewCase.claim_text && (
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted mb-2">
+                <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-muted mb-2">
                   Extracted Candidate Claim
                 </p>
-                <div className="p-3 rounded-sm bg-elevated border border-subtle text-xs text-ink font-medium">
-                  {reviewCase.claim_text}
+                <div className="p-4 rounded-md bg-elevated border border-subtle">
+                  <ExpandableText
+                    text={reviewCase.claim_text}
+                    maxChars={200}
+                    className="text-sm sm:text-base text-ink font-medium leading-relaxed"
+                  />
                 </div>
               </div>
             )}
 
             {/* AI Claim Extraction Explanation */}
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted mb-2 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-accent" /> AI Grounding Assessment
+              <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-muted mb-2 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-accent" /> AI Grounding Assessment
               </p>
-              <div className="p-3.5 rounded-sm bg-elevated border border-subtle text-xs text-muted leading-relaxed font-medium">
+              <div className="p-4 rounded-md bg-elevated border border-subtle text-sm sm:text-base text-muted leading-relaxed font-medium">
                 {reviewCase.ai_reasoning || 'Automated OCR extracted candidate resume text. Claim lacks explicit duration verification.'}
               </div>
             </div>
 
             {/* Clarification Thread */}
             {reviewCase.clarifications && reviewCase.clarifications.length > 0 && (
-              <div className="p-4 rounded-sm bg-accent-dim border border-accent/30 space-y-2">
+              <div className="p-4 rounded-md bg-accent-dim border border-accent/30 space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-accent flex items-center gap-1.5">
-                    <MessageSquare className="w-3.5 h-3.5" /> Candidate Clarification Statement
+                  <span className="text-xs sm:text-sm font-bold text-accent flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4" /> Candidate Clarification Statement
                   </span>
-                  <span className="text-[10px] font-medium text-accent">Contested Proof</span>
+                  <span className="text-xs font-semibold text-accent">Contested Proof</span>
                 </div>
-                <p className="text-xs text-ink italic bg-surface p-3 rounded-sm border border-subtle leading-relaxed font-medium">
-                  "{reviewCase.clarifications[0].candidate_statement}"
-                </p>
+                <div className="bg-surface p-4 rounded-md border border-subtle">
+                  <ExpandableText
+                    text={reviewCase.clarifications[0].candidate_statement}
+                    maxChars={200}
+                    quote
+                    className="text-sm sm:text-base text-ink leading-relaxed font-medium"
+                  />
+                </div>
               </div>
             )}
 
             {/* Confidence Indicators */}
-            <div className="pt-2 grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3 rounded-sm bg-elevated border border-subtle font-medium">
+            <div className="pt-2 grid grid-cols-2 gap-3.5 text-xs sm:text-sm">
+              <div className="p-4 rounded-md bg-elevated border border-subtle font-medium">
                 <span className="text-muted block mb-1">OCR Parser Confidence</span>
-                <span className="font-semibold text-ink text-sm">
+                <span className="font-bold text-ink text-base sm:text-lg">
                   {Math.round((reviewCase.ai_confidence || 0.72) * 100)}%
                 </span>
               </div>
-              <div className="p-3 rounded-sm bg-elevated border border-subtle font-medium">
+              <div className="p-4 rounded-md bg-elevated border border-subtle font-medium">
                 <span className="text-muted block mb-1">Initial AI Status</span>
-                <div className="mt-0.5">
+                <div className="mt-1">
                   <StatusBadge status={reviewCase.ai_status} size="sm" />
                 </div>
               </div>
@@ -335,10 +350,10 @@ export const ReviewCaseDetailPage: React.FC = () => {
         <div className="lg:col-span-4 space-y-5">
           <div className="bg-surface rounded-card border border-subtle p-6 shadow-card space-y-4">
             <div className="border-b border-subtle pb-3">
-              <h3 className="text-base font-semibold text-ink flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-accent" /> Human Determination
+              <h3 className="text-lg sm:text-xl font-bold text-ink flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-accent" /> Human Determination
               </h3>
-              <p className="text-xs text-muted mt-1 font-medium">
+              <p className="text-xs sm:text-sm text-muted mt-1 font-medium">
                 Mandatory human-in-the-loop audit sign-off
               </p>
             </div>
@@ -346,14 +361,14 @@ export const ReviewCaseDetailPage: React.FC = () => {
             <form onSubmit={handleDecisionSubmit} className="space-y-4">
               {/* Determination Action */}
               <div>
-                <label className="block text-xs font-semibold text-muted uppercase tracking-wider mb-2">
+                <label className="block text-xs sm:text-sm font-bold text-muted uppercase tracking-wider mb-2">
                   Determination Verdict
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => setDecision(ReviewDecisionType.ACCEPTED)}
-                    className={`py-2 px-2.5 rounded-pill text-xs font-semibold border transition-all text-center cursor-pointer ${
+                    className={`py-2.5 px-3 rounded-pill text-xs sm:text-sm font-bold border transition-all text-center cursor-pointer ${
                       decision === ReviewDecisionType.ACCEPTED
                         ? 'bg-success-dim text-success border-success/40'
                         : 'bg-elevated text-muted border-subtle hover:text-ink'
@@ -364,7 +379,7 @@ export const ReviewCaseDetailPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setDecision(ReviewDecisionType.REJECTED)}
-                    className={`py-2 px-2.5 rounded-pill text-xs font-semibold border transition-all text-center cursor-pointer ${
+                    className={`py-2.5 px-3 rounded-pill text-xs sm:text-sm font-bold border transition-all text-center cursor-pointer ${
                       decision === ReviewDecisionType.REJECTED
                         ? 'bg-danger-dim text-danger border-danger/40'
                         : 'bg-elevated text-muted border-subtle hover:text-ink'
@@ -375,7 +390,7 @@ export const ReviewCaseDetailPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setDecision(ReviewDecisionType.REQUESTED_CLARIFICATION)}
-                    className={`py-2 px-2.5 rounded-pill text-xs font-semibold border transition-all text-center cursor-pointer ${
+                    className={`py-2.5 px-3 rounded-pill text-xs sm:text-sm font-bold border transition-all text-center cursor-pointer ${
                       decision === ReviewDecisionType.REQUESTED_CLARIFICATION
                         ? 'bg-warn-dim text-warn border-warn/40'
                         : 'bg-elevated text-muted border-subtle hover:text-ink'
@@ -388,11 +403,11 @@ export const ReviewCaseDetailPage: React.FC = () => {
 
               {/* Mandatory Rationale */}
               <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="text-xs font-semibold text-ink">
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="text-sm font-bold text-ink">
                     Auditable Rationale <span className="text-danger">*</span>
                   </label>
-                  <span className={`text-[11px] font-medium ${rationale.length >= 25 ? 'text-accent' : 'text-muted'}`}>
+                  <span className={`text-xs font-semibold ${rationale.length >= 25 ? 'text-accent' : 'text-muted'}`}>
                     {rationale.length}/25 min chars
                   </span>
                 </div>
@@ -404,18 +419,18 @@ export const ReviewCaseDetailPage: React.FC = () => {
                   }}
                   rows={4}
                   placeholder="Detail your exact factual observation, comparison against job requirements, and why the automated check was verified or overridden..."
-                  className={`w-full text-xs p-3 rounded-sm border ${
+                  className={`w-full text-sm sm:text-base p-3.5 rounded-md border ${
                     rationaleError ? 'border-danger bg-danger-dim' : 'border-subtle bg-elevated'
                   } focus:outline-none focus:border-accent text-ink placeholder:text-muted font-medium`}
                 />
                 {rationaleError && (
-                  <p className="text-xs text-danger mt-1 font-medium">{rationaleError}</p>
+                  <p className="text-xs sm:text-sm text-danger mt-1.5 font-medium">{rationaleError}</p>
                 )}
               </div>
 
               {/* Reviewer Internal Notes */}
               <div>
-                <label className="block text-xs font-semibold text-muted mb-1">
+                <label className="block text-xs sm:text-sm font-semibold text-muted mb-1.5">
                   Internal Review Notes (Optional)
                 </label>
                 <input
@@ -423,16 +438,16 @@ export const ReviewCaseDetailPage: React.FC = () => {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="e.g. Consulted hiring manager regarding qualification scale"
-                  className="w-full text-xs p-3 rounded-sm border border-subtle bg-elevated focus:outline-none focus:border-accent text-ink placeholder:text-muted font-medium"
+                  className="w-full text-sm sm:text-base p-3 rounded-md border border-subtle bg-elevated focus:outline-none focus:border-accent text-ink placeholder:text-muted font-medium"
                 />
               </div>
 
               {/* Cryptographic Signature Notice */}
-              <div className="p-3.5 bg-elevated rounded-sm border border-subtle text-muted space-y-1">
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-ink">
-                  <ShieldCheck className="w-3.5 h-3.5 text-accent" /> Tamper-Proof Audit Event
+              <div className="p-4 bg-elevated rounded-md border border-subtle text-muted space-y-1">
+                <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-ink">
+                  <ShieldCheck className="w-4 h-4 text-accent" /> Tamper-Proof Audit Event
                 </div>
-                <p className="text-[11px] leading-relaxed font-medium">
+                <p className="text-xs text-muted leading-relaxed font-medium">
                   Signing as <strong className="text-ink">{user?.full_name} ({user?.role})</strong>. Submitting appends a cryptographic SHA-256 event to the immutable chain.
                 </p>
               </div>
@@ -444,7 +459,7 @@ export const ReviewCaseDetailPage: React.FC = () => {
                 isLoading={submitting}
                 variant="primary"
                 size="md"
-                className="w-full justify-center font-semibold"
+                className="w-full justify-center font-bold text-base"
               >
                 Finalize Determination
               </Button>

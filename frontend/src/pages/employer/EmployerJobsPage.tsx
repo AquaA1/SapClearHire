@@ -188,23 +188,23 @@ export const EmployerJobsPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 select-none">
+    <div className="max-w-7xl mx-auto space-y-8 select-none">
       {/* ── Header ────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-subtle">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-subtle">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-ink tracking-tight">Job Requisitions Console</h1>
-          <p className="text-xs text-muted mt-1 font-medium">
+          <h1 className="text-3xl sm:text-4xl font-bold text-ink tracking-tight">Job Requisitions Console</h1>
+          <p className="text-sm sm:text-base text-ink-secondary mt-1.5 font-medium leading-relaxed">
             Manage organization postings, inspect versioned criteria benchmarks, and create requisitions.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Button
             onClick={() => fetchJobs(true)}
             variant="secondary"
-            size="sm"
-            leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />}
-            className="cursor-pointer font-medium"
+            size="md"
+            leftIcon={<RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />}
+            className="cursor-pointer font-semibold"
             title="Refresh Requisitions"
           >
             Refresh
@@ -216,9 +216,9 @@ export const EmployerJobsPage: React.FC = () => {
               setIsCreateModalOpen(true);
             }}
             variant="primary"
-            size="sm"
+            size="md"
             leftIcon={<Plus className="w-4 h-4" />}
-            className="shrink-0 self-start sm:self-auto cursor-pointer font-semibold shadow-sm"
+            className="shrink-0 self-start sm:self-auto cursor-pointer font-bold shadow-sm"
           >
             New Requisition
           </Button>
@@ -227,9 +227,9 @@ export const EmployerJobsPage: React.FC = () => {
 
       {/* Global Success / Feedback Notice */}
       {feedbackNotice && (
-        <div className="p-3.5 rounded-card bg-success-dim border border-success/30 text-success text-xs font-medium flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
+        <div className="p-4 rounded-card bg-success-dim border border-success/30 text-success text-sm font-medium flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 className="w-5 h-5 shrink-0" />
             <span>{feedbackNotice}</span>
           </div>
           <button
@@ -243,9 +243,9 @@ export const EmployerJobsPage: React.FC = () => {
 
       {/* Global Error Banner */}
       {error && (
-        <div className="p-4 rounded-card bg-danger/10 border border-danger/30 text-danger text-xs font-medium flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
+        <div className="p-4 rounded-card bg-danger/10 border border-danger/30 text-danger text-sm font-medium flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <AlertCircle className="w-5 h-5 shrink-0" />
             <span>{error}</span>
           </div>
           <Button
@@ -264,34 +264,34 @@ export const EmployerJobsPage: React.FC = () => {
         
         {/* Left: Requisitions Table (7 cols) */}
         <div className="lg:col-span-7 bg-surface rounded-card p-6 border border-subtle shadow-card space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-subtle">
-            <h3 className="text-sm font-semibold text-ink">
+          <div className="flex items-center justify-between pb-3 border-b border-subtle">
+            <h3 className="text-base sm:text-lg font-bold text-ink">
               Organization Postings ({jobs.length})
             </h3>
-            <span className="text-xs text-muted font-medium">Click row to preview criteria</span>
+            <span className="text-xs sm:text-sm text-muted font-medium">Click row to preview criteria</span>
           </div>
 
           {isLoading ? (
             <div className="space-y-3 py-6">
               {[1, 2, 3].map((n) => (
-                <div key={n} className="h-14 rounded-sm bg-elevated/60 animate-pulse" />
+                <div key={n} className="h-16 rounded-md bg-elevated/60 animate-pulse" />
               ))}
             </div>
           ) : jobs.length === 0 ? (
             <div className="text-center py-12 px-4 space-y-3">
-              <div className="w-10 h-10 rounded-full bg-elevated border border-subtle text-muted flex items-center justify-center mx-auto">
-                <Layers className="w-5 h-5" />
+              <div className="w-12 h-12 rounded-full bg-elevated border border-subtle text-muted flex items-center justify-center mx-auto">
+                <Layers className="w-6 h-6" />
               </div>
-              <h4 className="text-xs font-semibold text-ink">No Job Requisitions Found</h4>
-              <p className="text-xs text-muted max-w-sm mx-auto font-medium leading-relaxed">
+              <h4 className="text-base font-bold text-ink">No Job Requisitions Found</h4>
+              <p className="text-xs sm:text-sm text-muted max-w-sm mx-auto font-medium leading-relaxed">
                 No active or draft requisitions exist in this organization. Click "New Requisition" to publish your first benchmarked position.
               </p>
               <Button
                 variant="primary"
-                size="sm"
+                size="md"
                 leftIcon={<Plus className="w-4 h-4" />}
                 onClick={() => setIsCreateModalOpen(true)}
-                className="mt-2"
+                className="mt-3 font-bold"
               >
                 Create Requisition
               </Button>
@@ -319,17 +319,17 @@ export const EmployerJobsPage: React.FC = () => {
                       }`}
                     >
                       <TableCell>
-                        <div className="font-semibold text-ink text-xs">{job.title}</div>
-                        <div className="text-[11px] text-muted font-medium mt-0.5">REQ #{job.id.slice(0, 8)}</div>
+                        <div className="font-bold text-ink text-sm sm:text-base">{job.title}</div>
+                        <div className="text-xs font-mono text-muted font-medium mt-1">REQ #{job.id.slice(0, 8)}</div>
                       </TableCell>
                       <TableCell>
-                        <span className="text-xs font-medium text-ink">
+                        <span className="text-sm sm:text-base font-semibold text-ink">
                           {job.department || 'General'}
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className="inline-flex items-center gap-1.5 font-medium text-ink bg-elevated border border-subtle px-2.5 py-0.5 rounded-pill text-[11px]">
-                          <Layers className="w-3 h-3 text-accent" />
+                        <span className="inline-flex items-center gap-1.5 font-semibold text-ink bg-elevated border border-subtle px-3 py-1 rounded-pill text-xs sm:text-sm">
+                          <Layers className="w-3.5 h-3.5 text-accent" />
                           {job.criteria ? job.criteria.length : 0}
                         </span>
                       </TableCell>
@@ -342,10 +342,10 @@ export const EmployerJobsPage: React.FC = () => {
                             e.stopPropagation();
                             navigate('/employer/applications');
                           }}
-                          className="text-xs font-semibold text-accent hover:underline inline-flex items-center gap-1 cursor-pointer"
+                          className="text-sm sm:text-base font-bold text-accent hover:underline inline-flex items-center gap-1.5 cursor-pointer"
                           title="View candidate dossier"
                         >
-                          <Users className="w-3.5 h-3.5" />
+                          <Users className="w-4 h-4" />
                           <span>Applicants</span>
                         </button>
                       </TableCell>
@@ -358,38 +358,38 @@ export const EmployerJobsPage: React.FC = () => {
         </div>
 
         {/* Right: Selected Job Criteria Inspector (5 cols) */}
-        <div className="lg:col-span-5 bg-surface rounded-card p-6 border border-subtle shadow-card space-y-4">
+        <div className="lg:col-span-5 bg-surface rounded-card p-6 border border-subtle shadow-card space-y-5">
           {selectedJob ? (
             <>
-              <div className="flex items-center justify-between pb-3 border-b border-subtle">
+              <div className="flex items-center justify-between pb-3.5 border-b border-subtle">
                 <div>
-                  <span className="text-[10px] font-semibold text-accent uppercase tracking-wider block">
+                  <span className="text-xs font-bold text-accent uppercase tracking-wider block">
                     Versioned Benchmark Inspector
                   </span>
-                  <h3 className="text-base font-semibold text-ink mt-0.5">{selectedJob.title}</h3>
+                  <h3 className="text-xl sm:text-2xl font-bold text-ink mt-1">{selectedJob.title}</h3>
                 </div>
-                <span className="text-xs font-medium text-muted bg-elevated px-2.5 py-0.5 rounded-pill border border-subtle">
+                <span className="text-xs sm:text-sm font-semibold text-muted bg-elevated px-3 py-1 rounded-pill border border-subtle">
                   v1.0 Immutable
                 </span>
               </div>
 
-              <p className="text-xs text-muted leading-relaxed font-medium">
+              <p className="text-sm sm:text-base text-ink-secondary leading-relaxed font-medium">
                 {selectedJob.description || 'Active requisition evaluated strictly against explicit resume citations.'}
               </p>
 
-              <div className="pt-2 border-t border-subtle space-y-3">
-                <span className="text-xs font-semibold text-ink uppercase tracking-wider block">
+              <div className="pt-3 border-t border-subtle space-y-3.5">
+                <span className="text-xs sm:text-sm font-bold text-ink uppercase tracking-wider block">
                   Configured Criteria ({selectedJob.criteria ? selectedJob.criteria.length : 0})
                 </span>
 
-                <div className="space-y-2.5 max-h-[460px] overflow-y-auto pr-1">
+                <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1">
                   {selectedJob.criteria && selectedJob.criteria.length > 0 ? (
                     selectedJob.criteria.map((c, i) => (
-                      <div key={c.id || i} className="p-3.5 rounded-sm border border-subtle bg-elevated space-y-1">
+                      <div key={c.id || i} className="p-4 rounded-md border border-subtle bg-elevated space-y-1.5">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-[10px] font-medium text-muted">#0{i + 1}</span>
+                          <span className="text-xs font-mono font-medium text-muted">#0{i + 1}</span>
                           <span
-                            className={`text-[9px] font-semibold px-2 py-0.5 rounded-pill uppercase tracking-wider ${
+                            className={`text-xs font-bold px-2.5 py-0.5 rounded-pill uppercase tracking-wider ${
                               c.category === 'required'
                                 ? 'bg-accent-dim text-accent border border-accent/30'
                                 : 'bg-surface text-muted border border-subtle'
@@ -398,35 +398,35 @@ export const EmployerJobsPage: React.FC = () => {
                             {c.category}
                           </span>
                         </div>
-                        <h4 className="text-xs font-semibold text-ink">{c.name}</h4>
+                        <h4 className="text-base font-bold text-ink">{c.name}</h4>
                         {c.description && (
-                          <p className="text-[11px] text-muted leading-relaxed font-medium">{c.description}</p>
+                          <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed font-medium">{c.description}</p>
                         )}
                       </div>
                     ))
                   ) : (
-                    <div className="text-xs text-muted py-4 text-center">
+                    <div className="text-sm text-muted py-4 text-center">
                       No criteria defined on this requisition.
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-subtle flex justify-between items-center">
-                <span className="text-xs text-muted font-medium">Screen candidates for this role</span>
+              <div className="pt-4 border-t border-subtle flex justify-between items-center">
+                <span className="text-xs sm:text-sm text-muted font-medium">Screen candidates for this role</span>
                 <Button
                   onClick={() => navigate('/employer/applications')}
                   variant="primary"
-                  size="sm"
-                  rightIcon={<ChevronRight className="w-3.5 h-3.5" />}
-                  className="font-semibold"
+                  size="md"
+                  rightIcon={<ChevronRight className="w-4 h-4" />}
+                  className="font-bold text-sm sm:text-base"
                 >
                   Candidate Dossier
                 </Button>
               </div>
             </>
           ) : (
-            <div className="text-center py-12 text-muted text-xs font-medium">
+            <div className="text-center py-12 text-muted text-sm font-medium">
               Select a requisition on the left to inspect its criteria benchmarks.
             </div>
           )}

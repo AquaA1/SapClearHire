@@ -32,23 +32,23 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="text-xs font-medium text-muted select-none"
+            className="text-sm sm:text-base font-semibold text-ink/90 select-none"
           >
             {label}
           </label>
         )}
         <div className="relative flex items-center">
           {leftIcon && (
-            <div className="absolute left-3 flex items-center pointer-events-none text-muted">
+            <div className="absolute left-3.5 flex items-center pointer-events-none text-muted">
               {leftIcon}
             </div>
           )}
           <input
             ref={ref}
             id={inputId}
-            className={`w-full h-10 px-3.5 text-sm rounded-sm bg-elevated text-ink placeholder:text-muted border transition-all duration-150 outline-none
-              ${leftIcon ? 'pl-9' : ''}
-              ${rightIcon ? 'pr-9' : ''}
+            className={`w-full h-11 px-4 text-sm sm:text-base rounded-md bg-elevated text-ink placeholder:text-muted border transition-all duration-150 outline-none
+              ${leftIcon ? 'pl-10' : ''}
+              ${rightIcon ? 'pr-10' : ''}
               ${
                 error
                   ? 'border-danger focus:border-danger focus:ring-1 focus:ring-danger/30'
@@ -58,15 +58,15 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
           {rightIcon && (
-            <div className="absolute right-3 flex items-center text-muted">
+            <div className="absolute right-3.5 flex items-center text-muted">
               {rightIcon}
             </div>
           )}
         </div>
         {error ? (
-          <p className="text-xs text-danger mt-0.5">{error}</p>
+          <p className="text-xs sm:text-sm text-danger mt-1">{error}</p>
         ) : helperText ? (
-          <p className="text-xs text-muted mt-0.5">{helperText}</p>
+          <p className="text-xs sm:text-sm text-muted mt-1">{helperText}</p>
         ) : null}
       </div>
     );

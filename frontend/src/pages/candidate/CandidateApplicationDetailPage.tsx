@@ -302,9 +302,9 @@ export const CandidateApplicationDetailPage: React.FC = () => {
       <div>
         <button
           onClick={() => navigate('/candidate/applications')}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-muted hover:text-ink transition-colors cursor-pointer py-1"
+          className="inline-flex items-center gap-2 text-base font-semibold text-muted hover:text-ink transition-colors cursor-pointer py-1"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to applications
+          <ArrowLeft className="w-5 h-5" /> Back to applications
         </button>
       </div>
 
@@ -312,16 +312,16 @@ export const CandidateApplicationDetailPage: React.FC = () => {
       <div className="bg-surface rounded-card p-6 md:p-8 border border-subtle shadow-card space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-subtle">
           <div>
-            <div className="flex items-center gap-2.5 mb-2.5 flex-wrap">
-              <span className="text-xs font-semibold px-3 py-1 rounded-pill bg-elevated text-muted border border-subtle uppercase tracking-wider">
+            <div className="flex items-center gap-3 mb-3 flex-wrap">
+              <span className="text-xs sm:text-sm font-semibold px-3.5 py-1 rounded-pill bg-elevated text-muted border border-subtle uppercase tracking-wider">
                 {application.department || 'General'}
               </span>
               <StatusBadge status={application.status} size="md" />
             </div>
-            <h1 className="text-2xl md:text-3xl font-semibold text-ink tracking-tight">
+            <h1 className="text-3xl md:text-4xl font-bold text-ink tracking-tight">
               {application.job_title}
             </h1>
-            <p className="text-xs sm:text-[13.5px] text-muted mt-2 flex items-center gap-2.5 font-medium flex-wrap">
+            <p className="text-sm sm:text-base text-muted mt-2 flex items-center gap-2.5 font-medium flex-wrap">
               <Clock className="w-4 h-4 shrink-0" />
               <span>
                 Submitted on{' '}
@@ -336,12 +336,12 @@ export const CandidateApplicationDetailPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="bg-elevated/70 border border-subtle px-4.5 py-3 rounded-card text-right self-start md:self-center">
-            <span className="block text-xs font-semibold text-muted uppercase tracking-wider">
+          <div className="bg-elevated/70 border border-subtle px-5 py-3.5 rounded-card text-right self-start md:self-center">
+            <span className="block text-xs sm:text-sm font-semibold text-muted uppercase tracking-wider">
               Transparency Status
             </span>
-            <span className="text-xs sm:text-[13px] font-semibold text-ink flex items-center gap-1.5 justify-end mt-1">
-              <ShieldCheck className="w-4 h-4 text-accent" />
+            <span className="text-sm sm:text-base font-bold text-ink flex items-center gap-2 justify-end mt-1">
+              <ShieldCheck className="w-5 h-5 text-accent" />
               Verbatim Grounding Enforced
             </span>
           </div>
@@ -349,7 +349,7 @@ export const CandidateApplicationDetailPage: React.FC = () => {
 
         {/* Horizontal Pipeline Progression */}
         <div>
-          <span className="block text-xs font-semibold text-muted uppercase tracking-wider mb-3.5">
+          <span className="block text-xs sm:text-sm font-semibold text-muted uppercase tracking-wider mb-3.5">
             Hiring Transparency Progression
           </span>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -373,9 +373,9 @@ export const CandidateApplicationDetailPage: React.FC = () => {
             ].map((step, idx) => (
               <div
                 key={idx}
-                className={`py-2.5 px-3.5 rounded-sm text-center text-xs sm:text-[13px] font-medium border transition-all ${
+                className={`py-3 px-4 rounded-md text-center text-sm sm:text-base font-semibold border transition-all ${
                   step.done
-                    ? 'bg-accent-dim text-accent border-accent/40 font-semibold'
+                    ? 'bg-accent-dim text-accent border-accent/40'
                     : step.active
                     ? 'bg-elevated text-ink border-subtle-strong'
                     : 'bg-elevated/40 text-muted border-subtle'
@@ -391,19 +391,19 @@ export const CandidateApplicationDetailPage: React.FC = () => {
       {/* ── Linked Verified Document Card ─────────────────────── */}
       <div className="bg-surface rounded-card p-5 sm:p-6 border border-subtle shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-card bg-accent-dim text-accent border border-accent/30 flex items-center justify-center shrink-0">
-            <FileText className="w-6 h-6" />
+          <div className="w-14 h-14 rounded-card bg-accent-dim text-accent border border-accent/30 flex items-center justify-center shrink-0">
+            <FileText className="w-7 h-7" />
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h3 className="text-sm sm:text-[15px] font-semibold text-ink">
+              <h3 className="text-base sm:text-lg font-bold text-ink">
                 {documentStatus?.file_name || `Document #${application.primary_document_id.slice(0, 8)}.pdf`}
               </h3>
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-pill bg-success-dim text-success border border-success/30">
+              <span className="text-xs sm:text-sm font-semibold px-3 py-1 rounded-pill bg-success-dim text-success border border-success/30">
                 Verified Evidence Source
               </span>
             </div>
-            <p className="text-xs sm:text-[13px] text-muted font-medium flex items-center gap-2 flex-wrap">
+            <p className="text-sm text-muted font-medium flex items-center gap-2 flex-wrap">
               <span>Doc ID: {application.primary_document_id.slice(0, 8)}</span>
               {documentStatus?.page_count && (
                 <>
@@ -417,7 +417,7 @@ export const CandidateApplicationDetailPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="text-xs sm:text-[13px] text-muted font-medium bg-elevated px-3.5 py-1.5 rounded-pill border border-subtle self-start sm:self-auto">
+        <div className="text-xs sm:text-sm text-muted font-semibold bg-elevated px-4 py-2 rounded-pill border border-subtle self-start sm:self-auto">
           Bound to Requisition #{application.job_id.slice(0, 8)}
         </div>
       </div>
@@ -430,26 +430,26 @@ export const CandidateApplicationDetailPage: React.FC = () => {
 
           {/* Criteria Breakdown Section */}
           <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-xl sm:text-[22px] font-semibold text-ink tracking-tight leading-[1.3]">
+                <h2 className="text-2xl sm:text-[28px] font-bold text-ink tracking-tight leading-snug">
                   Criteria Evidence Audit
                 </h2>
-                <p className="text-sm sm:text-[15px] text-muted font-normal mt-1 leading-[1.6]">
+                <p className="text-base sm:text-[18px] text-ink-secondary font-normal mt-1 leading-relaxed">
                   Each requirement is matched strictly against citations in your resume. Click "Contest with clarification" to submit proof.
                 </p>
               </div>
-              <div className="flex items-center gap-2.5 self-start sm:self-auto">
+              <div className="flex items-center gap-3 self-start sm:self-auto">
                 <Button
                   onClick={handleRefresh}
                   variant="secondary"
-                  size="sm"
+                  size="md"
                   isLoading={isRefreshing}
-                  leftIcon={<RotateCw className="w-3.5 h-3.5" />}
+                  leftIcon={<RotateCw className="w-4 h-4" />}
                 >
                   Sync Status
                 </Button>
-                <span className="text-xs sm:text-[13px] font-medium text-muted bg-elevated border border-subtle px-3.5 py-1.5 rounded-pill">
+                <span className="text-sm font-semibold text-muted bg-elevated border border-subtle px-4 py-2 rounded-pill">
                   {evaluation.criteria_evaluations.length} Criteria Evaluated
                 </span>
               </div>

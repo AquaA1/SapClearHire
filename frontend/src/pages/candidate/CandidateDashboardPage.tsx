@@ -117,12 +117,12 @@ export const CandidateDashboardPage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto select-none">
       {/* ── Header ────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-subtle">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-subtle">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-ink tracking-tight">
+          <h1 className="text-3xl sm:text-4xl font-bold text-ink tracking-tight">
             Welcome back, {user?.full_name || 'Candidate'}
           </h1>
-          <p className="text-xs text-muted mt-1 font-medium">
+          <p className="text-base sm:text-lg text-ink-secondary mt-1 font-normal">
             Track your candidate qualification evidence, application progress, and reviewer requests.
           </p>
         </div>
@@ -130,8 +130,8 @@ export const CandidateDashboardPage: React.FC = () => {
         <Button
           onClick={() => navigate('/candidate/jobs')}
           variant="primary"
-          size="sm"
-          leftIcon={<Briefcase className="w-4 h-4" />}
+          size="md"
+          leftIcon={<Briefcase className="w-5 h-5" />}
           className="shrink-0 self-start sm:self-auto cursor-pointer font-semibold shadow-sm"
         >
           Explore Openings
@@ -143,48 +143,48 @@ export const CandidateDashboardPage: React.FC = () => {
         {/* Left Column: Stats, Resume & Mint Highlighted Card (4 Cols) */}
         <div className="lg:col-span-4 flex flex-col gap-5">
           {/* Bento Stat Card 1: Split Stat (Total Apps & In Progress) */}
-          <div className="bg-surface border border-subtle rounded-card p-5 shadow-card">
+          <div className="bg-surface border border-subtle rounded-card p-6 shadow-card">
             <div className="grid grid-cols-2 divide-x divide-subtle">
               <div className="pr-4">
-                <span className="text-3xl sm:text-4xl font-semibold text-ink tracking-tight block">
+                <span className="text-4xl sm:text-5xl font-bold text-ink tracking-tight block">
                   {totalAppsCount}
                 </span>
-                <span className="text-xs text-muted mt-1.5 font-medium block">Submitted Apps</span>
+                <span className="text-sm font-semibold text-muted mt-2 block">Submitted Apps</span>
               </div>
               <div className="pl-4">
-                <span className="text-3xl sm:text-4xl font-semibold text-ink tracking-tight block">
+                <span className="text-4xl sm:text-5xl font-bold text-ink tracking-tight block">
                   {inProgressCount}
                 </span>
-                <span className="text-xs text-muted mt-1.5 font-medium block">In Screening</span>
+                <span className="text-sm font-semibold text-muted mt-2 block">In Screening</span>
               </div>
             </div>
           </div>
 
           {/* Bento Card 2: Primary Resume Document Status */}
-          <div className="bg-surface border border-subtle rounded-card p-5 shadow-card space-y-3">
+          <div className="bg-surface border border-subtle rounded-card p-6 shadow-card space-y-3.5">
             <div className="flex items-center justify-between pb-2 border-b border-subtle">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+              <span className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-muted">
                 Primary Resume
               </span>
               {primaryApp ? (
-                <span className="text-[10px] font-medium px-2 py-0.5 rounded-pill bg-success-dim text-success border border-success/30">
+                <span className="text-xs sm:text-sm font-semibold px-2.5 py-0.5 rounded-pill bg-success-dim text-success border border-success/30">
                   Registered
                 </span>
               ) : (
-                <span className="text-[10px] font-medium px-2 py-0.5 rounded-pill bg-elevated text-muted border border-subtle">
+                <span className="text-xs sm:text-sm font-semibold px-2.5 py-0.5 rounded-pill bg-elevated text-muted border border-subtle">
                   Not Uploaded
                 </span>
               )}
             </div>
 
             {primaryApp ? (
-              <div className="flex items-center gap-3 p-3 rounded-sm bg-elevated border border-subtle">
-                <FileCheck className="w-5 h-5 text-accent shrink-0" />
+              <div className="flex items-center gap-3.5 p-3.5 rounded-md bg-elevated border border-subtle">
+                <FileCheck className="w-6 h-6 text-accent shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <span className="text-xs font-semibold text-ink block truncate">
+                  <span className="text-sm sm:text-base font-bold text-ink block truncate">
                     {isDocStatusLoading ? (
                       <span className="inline-flex items-center gap-1.5 text-muted font-normal">
-                        <Loader2 className="w-3 h-3 animate-spin text-accent" />
+                        <Loader2 className="w-4 h-4 animate-spin text-accent" />
                         <span>Verifying dossier status...</span>
                       </span>
                     ) : primaryDocStatus?.file_name ? (
@@ -193,10 +193,10 @@ export const CandidateDashboardPage: React.FC = () => {
                       `Document #${primaryApp.primary_document_id.slice(0, 8)}.pdf`
                     )}
                   </span>
-                  <span className="text-[11px] text-muted font-medium block mt-0.5 truncate">
+                  <span className="text-xs sm:text-sm text-muted font-medium block mt-0.5 truncate">
                     {docStatusError ? (
                       <span className="text-danger flex items-center gap-1 font-normal">
-                        <AlertCircle className="w-3 h-3 shrink-0" />
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                         <span>{docStatusError}</span>
                       </span>
                     ) : (
@@ -206,18 +206,18 @@ export const CandidateDashboardPage: React.FC = () => {
                 </div>
                 <Link
                   to={`/candidate/applications/${primaryApp.id}`}
-                  className="text-muted hover:text-ink p-1 transition-colors"
+                  className="text-muted hover:text-ink p-1.5 transition-colors"
                   title="View verified application evidence"
                 >
-                  <ArrowUpRight className="w-4 h-4" />
+                  <ArrowUpRight className="w-5 h-5" />
                 </Link>
               </div>
             ) : (
-              <div className="p-4 rounded-sm bg-elevated/40 border border-subtle text-center space-y-2">
-                <FileText className="w-6 h-6 text-muted mx-auto opacity-50" />
+              <div className="p-5 rounded-md bg-elevated/40 border border-subtle text-center space-y-2.5">
+                <FileText className="w-8 h-8 text-muted mx-auto opacity-50" />
                 <div>
-                  <span className="text-xs font-semibold text-ink block">No Resume on File</span>
-                  <span className="text-[11px] text-muted font-medium block mt-0.5">
+                  <span className="text-sm font-bold text-ink block">No Resume on File</span>
+                  <span className="text-xs sm:text-sm text-muted font-medium block mt-1">
                     Upload your resume when applying to active job requisitions.
                   </span>
                 </div>
@@ -225,7 +225,7 @@ export const CandidateDashboardPage: React.FC = () => {
                   onClick={() => navigate('/candidate/jobs')}
                   variant="secondary"
                   size="sm"
-                  className="w-full text-xs mt-1"
+                  className="w-full mt-1.5"
                 >
                   Browse Openings
                 </Button>
@@ -234,13 +234,13 @@ export const CandidateDashboardPage: React.FC = () => {
           </div>
 
           {/* ── THE ONE MINT HIGHLIGHTED CARD ── */}
-          <div className="bg-accent-dim border border-accent/30 rounded-card p-5 shadow-card flex flex-col justify-between space-y-4">
+          <div className="bg-accent-dim border border-accent/30 rounded-card p-6 shadow-card flex flex-col justify-between space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-accent uppercase tracking-wider flex items-center gap-1.5">
-                <AlertCircle className="w-3.5 h-3.5" />
+              <span className="text-xs sm:text-sm font-bold text-accent uppercase tracking-wider flex items-center gap-1.5">
+                <AlertCircle className="w-4 h-4" />
                 Evidence Status
               </span>
-              <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-pill bg-accent/20 text-accent border border-accent/40">
+              <span className="text-xs font-bold px-3 py-1 rounded-pill bg-accent/20 text-accent border border-accent/40">
                 {actionRequiredCount > 0
                   ? `${actionRequiredCount} Action Required`
                   : totalAppsCount > 0
@@ -250,14 +250,14 @@ export const CandidateDashboardPage: React.FC = () => {
             </div>
 
             <div>
-              <h3 className="text-base font-semibold text-ink leading-snug">
+              <h3 className="text-xl sm:text-2xl font-bold text-ink leading-snug">
                 {actionRequiredCount > 0
                   ? `Clarification: ${actionRequiredApps[0].job_title}`
                   : totalAppsCount > 0
                   ? 'All Evidence Grounded'
                   : 'Start Your Transparent Application'}
               </h3>
-              <p className="text-xs text-ink/90 mt-1.5 leading-relaxed">
+              <p className="text-sm sm:text-base text-ink/90 mt-2 leading-relaxed">
                 {actionRequiredCount > 0
                   ? 'A human reviewer requested clarification on an ambiguous qualification. Providing written proof updates your dossier.'
                   : totalAppsCount > 0
@@ -270,8 +270,8 @@ export const CandidateDashboardPage: React.FC = () => {
               <Button
                 onClick={() => navigate(`/candidate/applications/${actionRequiredApps[0].id}`)}
                 variant="primary"
-                size="sm"
-                rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+                size="md"
+                rightIcon={<ArrowRight className="w-4 h-4" />}
                 className="w-full justify-between font-semibold"
               >
                 <span>Provide Clarification</span>
@@ -280,8 +280,8 @@ export const CandidateDashboardPage: React.FC = () => {
               <Button
                 onClick={() => navigate('/candidate/applications')}
                 variant="primary"
-                size="sm"
-                rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+                size="md"
+                rightIcon={<ArrowRight className="w-4 h-4" />}
                 className="w-full justify-between font-semibold"
               >
                 <span>Inspect My Applications</span>
@@ -290,8 +290,8 @@ export const CandidateDashboardPage: React.FC = () => {
               <Button
                 onClick={() => navigate('/candidate/jobs')}
                 variant="primary"
-                size="sm"
-                rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+                size="md"
+                rightIcon={<ArrowRight className="w-4 h-4" />}
                 className="w-full justify-between font-semibold"
               >
                 <span>Browse New Openings</span>
@@ -304,19 +304,19 @@ export const CandidateDashboardPage: React.FC = () => {
         <div className="lg:col-span-8 flex flex-col gap-5">
           {/* Applications Table */}
           <div className="bg-surface border border-subtle rounded-card shadow-card overflow-hidden">
-            <div className="p-5 border-b border-subtle flex items-center justify-between">
+            <div className="p-5 sm:p-6 border-b border-subtle flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-semibold text-ink">My Applications</h2>
-                <p className="text-xs text-muted font-medium mt-0.5">
+                <h2 className="text-lg sm:text-xl font-bold text-ink">My Applications</h2>
+                <p className="text-sm text-muted font-medium mt-0.5">
                   Current screening status and grounded dossiers
                 </p>
               </div>
               <Link
                 to="/candidate/applications"
-                className="text-xs font-semibold text-muted hover:text-ink flex items-center gap-1 transition-colors"
+                className="text-sm font-semibold text-muted hover:text-ink flex items-center gap-1.5 transition-colors"
               >
                 <span>All Applications</span>
-                <ArrowRight className="w-3 h-3" />
+                <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
 
