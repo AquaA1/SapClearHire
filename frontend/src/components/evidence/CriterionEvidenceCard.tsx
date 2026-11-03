@@ -144,45 +144,45 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
     !!item.human_decision;
 
   return (
-    <div className="bg-surface rounded-card p-6 sm:p-7 border border-subtle shadow-card hover:border-subtle-strong transition-all space-y-6">
+    <div className="bg-surface rounded-card p-4 sm:p-5 border border-subtle shadow-card hover:border-subtle-strong transition-all space-y-4">
       {/* Top Header: Criterion Name, Category, Status */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3.5">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2.5 flex-wrap">
             <span
-              className={`text-xs sm:text-sm font-semibold px-3 py-1 rounded uppercase tracking-wider ${
+              className={`text-[11px] font-medium px-2 py-0.5 rounded uppercase tracking-wider ${
                 item.category === 'required'
                   ? 'bg-accent-dim text-accent border border-accent/25'
-                  : 'bg-elevated text-muted border border-subtle'
+                  : 'bg-elevated text-ink-secondary border border-subtle'
               }`}
             >
               {item.category}
             </span>
-            <h4 className="text-xl sm:text-[24px] font-bold text-ink tracking-tight leading-snug">
+            <h4 className="text-lg sm:text-xl font-bold text-ink tracking-tight leading-snug">
               {item.criterion_name}
             </h4>
           </div>
-          <p className="text-base sm:text-[18px] text-ink-secondary leading-relaxed">
+          <p className="text-sm sm:text-base text-ink-secondary leading-relaxed">
             {item.plain_language_explanation}
           </p>
         </div>
 
         <div className="shrink-0 flex items-center gap-2 self-start">
-          <StatusBadge status={badgeStatus} size="md" />
+          <StatusBadge status={badgeStatus} size="sm" />
         </div>
       </div>
 
-      {/* Source Excerpt / Grounding Box */}
+      {/* Primary Grounded Evidence Citation (Subtle left-border styling) */}
       {item.source_excerpt ? (
-        <div className="bg-elevated/80 border border-subtle rounded-card p-5 sm:p-6 relative group space-y-3">
-          <div className="flex items-center justify-between text-sm sm:text-base font-semibold text-muted">
-            <span className="flex items-center gap-2 text-ink">
-              <MessageSquareQuote className="w-5 h-5 text-accent shrink-0" />
+        <div className="pl-3.5 py-2 border-l-2 border-accent/50 bg-elevated/30 rounded-r-md space-y-1.5">
+          <div className="flex items-center justify-between text-xs sm:text-sm font-semibold text-ink-secondary">
+            <span className="flex items-center gap-1.5 text-ink font-medium">
+              <MessageSquareQuote className="w-4 h-4 text-accent shrink-0" />
               Primary Grounded Evidence
             </span>
             {item.source_page && (
-              <span className="flex items-center gap-1.5 px-3.5 py-1 bg-surface border border-subtle rounded-pill text-xs sm:text-sm text-muted font-medium">
-                <FileText className="w-4 h-4 text-muted shrink-0" />
+              <span className="text-xs text-ink-secondary font-medium flex items-center gap-1">
+                <FileText className="w-3.5 h-3.5 text-muted shrink-0" />
                 Page {item.source_page}
               </span>
             )}
@@ -192,32 +192,32 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
             maxChars={220}
             quote
             italic
-            className="text-base sm:text-[18px] text-ink leading-relaxed font-normal"
+            className="text-sm sm:text-base text-ink/95 leading-relaxed font-normal"
             expandLabel="Show full evidence citation"
             collapseLabel="Show compact preview"
           />
         </div>
       ) : (
-        <div className="bg-elevated/40 border border-dashed border-subtle rounded-card p-4 sm:p-5 text-sm sm:text-base text-muted italic flex items-center gap-2.5">
-          <HelpCircle className="w-5 h-5 text-muted shrink-0" />
+        <div className="pl-3.5 py-2 border-l-2 border-muted/30 bg-elevated/20 rounded-r-md text-xs sm:text-sm text-ink-secondary italic flex items-center gap-2">
+          <HelpCircle className="w-4 h-4 text-muted shrink-0" />
           <span>No explicit matching citation found in resume text.</span>
         </div>
       )}
 
-      {/* Subcriteria Decomposed Breakdown */}
+      {/* Subcriteria Decomposed Breakdown: Clean list layout with subtle dividers */}
       {item.subcriteria && item.subcriteria.length > 0 && (
-        <div className="pt-4 border-t border-subtle space-y-4">
-          <div className="flex items-center justify-between text-sm sm:text-base font-semibold text-muted">
+        <div className="pt-3 border-t border-subtle/80 space-y-2.5">
+          <div className="flex items-center justify-between text-xs sm:text-sm font-semibold text-ink-secondary">
             <span>Decomposed Sub-requirements ({item.subcriteria.length})</span>
             {item.missing_requirements && item.missing_requirements.length > 0 && (
-              <span className="text-xs sm:text-sm text-danger font-medium flex items-center gap-1.5">
-                <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span className="text-xs text-danger font-medium flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                 {item.missing_requirements.length} missing from evidence
               </span>
             )}
           </div>
 
-          <div className="space-y-3">
+          <div className="divide-y divide-subtle/40 rounded-lg bg-elevated/25 border border-subtle/60">
             {item.subcriteria.map((sub) => {
               const subStatus = String(sub.status).toLowerCase();
               const isDuplicateOfPrimary = Boolean(
@@ -227,23 +227,20 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
               );
 
               return (
-                <div
-                  key={sub.id}
-                  className="bg-elevated/50 border border-subtle/80 hover:border-subtle rounded-card p-4 sm:p-5 space-y-3"
-                >
+                <div key={sub.id} className="p-3 sm:p-3.5 space-y-2">
                   <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <span className="text-base sm:text-lg font-semibold text-ink flex items-center gap-2.5">
+                    <span className="text-sm sm:text-base font-semibold text-ink flex items-center gap-2">
                       {subStatus === 'supported' && (
-                        <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
+                        <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
                       )}
                       {subStatus === 'partially_supported' && (
-                        <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+                        <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
                       )}
                       {subStatus === 'ambiguous' && (
-                        <HelpCircle className="w-5 h-5 text-warn shrink-0" />
+                        <HelpCircle className="w-4 h-4 text-warn shrink-0" />
                       )}
                       {subStatus === 'not_found' && (
-                        <XCircle className="w-5 h-5 text-danger shrink-0" />
+                        <XCircle className="w-4 h-4 text-danger shrink-0" />
                       )}
                       {!['supported', 'partially_supported', 'ambiguous', 'not_found'].includes(
                         subStatus
@@ -254,8 +251,8 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
                   </div>
 
                   {sub.source_excerpt && isDuplicateOfPrimary && (
-                    <div className="flex items-center gap-2 text-sm text-muted font-medium bg-surface/50 border border-subtle/60 rounded px-3.5 py-2">
-                      <ShieldCheck className="w-4 h-4 text-accent shrink-0" />
+                    <div className="flex items-center gap-1.5 text-xs text-ink-secondary font-medium">
+                      <ShieldCheck className="w-3.5 h-3.5 text-accent shrink-0" />
                       <span>
                         Grounded by primary citation above
                         {sub.source_page ? ` (Page ${sub.source_page})` : ''}
@@ -264,19 +261,19 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
                   )}
 
                   {sub.source_excerpt && !isDuplicateOfPrimary && (
-                    <div className="pl-3.5 border-l-2 border-accent/40 bg-surface/40 p-3 rounded-r space-y-1">
+                    <div className="pl-3 py-1.5 border-l-2 border-accent/40 bg-surface/30 rounded-r text-xs sm:text-sm space-y-1">
                       <ExpandableText
                         text={sub.source_excerpt}
                         maxChars={180}
                         quote
                         italic
-                        className="text-sm sm:text-base text-ink/90 leading-relaxed"
+                        className="text-ink/90 leading-relaxed font-normal"
                         expandLabel="View citation"
                         collapseLabel="Collapse citation"
                       />
                       {sub.source_page && (
-                        <div className="pt-1">
-                          <span className="text-xs text-muted font-sans font-medium px-2 py-0.5 bg-elevated border border-subtle rounded inline-block">
+                        <div className="pt-0.5">
+                          <span className="text-[11px] text-ink-secondary font-mono">
                             Page {sub.source_page}
                           </span>
                         </div>
@@ -285,13 +282,13 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
                   )}
 
                   {sub.missing_reason && subStatus === 'not_found' && (
-                    <p className="text-sm sm:text-base text-muted leading-relaxed pl-3.5 border-l-2 border-danger/40">
+                    <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed pl-3 border-l-2 border-danger/40">
                       {sub.missing_reason}
                     </p>
                   )}
 
                   {sub.explanation && subStatus !== 'not_found' && !sub.source_excerpt && (
-                    <p className="text-sm sm:text-base text-muted leading-relaxed pl-3.5 border-l-2 border-subtle">
+                    <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed pl-3 border-l-2 border-subtle">
                       {sub.explanation}
                     </p>
                   )}
@@ -308,32 +305,32 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
         item.human_decision !== 'requested_clarification' &&
         item.human_decision !== ReviewDecisionType.REQUESTED_CLARIFICATION && (
         <div
-          className={`p-5 sm:p-6 rounded-card border space-y-3 ${
+          className={`p-3.5 sm:p-4 rounded-md border space-y-2 ${
             badgeStatus === 'human_verified'
-              ? 'bg-success-dim/20 border-success/30 text-ink'
+              ? 'bg-success-dim/15 border-success/30 text-ink'
               : badgeStatus === 'human_rejected'
-              ? 'bg-danger-dim/20 border-danger/30 text-ink'
-              : 'bg-elevated/90 border-subtle text-ink'
+              ? 'bg-danger-dim/15 border-danger/30 text-ink'
+              : 'bg-elevated/60 border-subtle text-ink'
           }`}
         >
-          <div className="flex items-center justify-between text-sm sm:text-base font-semibold">
-            <span className="flex items-center gap-2 text-ink">
-              <ShieldCheck className="w-5 h-5 text-accent shrink-0" />
+          <div className="flex items-center justify-between text-xs sm:text-sm font-semibold">
+            <span className="flex items-center gap-1.5 text-ink">
+              <ShieldCheck className="w-4 h-4 text-accent shrink-0" />
               Audited Human Reviewer Verdict
             </span>
             {item.decided_at && (
-              <span className="text-xs sm:text-sm text-muted font-normal">
+              <span className="text-xs text-ink-secondary font-normal">
                 {new Date(item.decided_at).toLocaleString()}
               </span>
             )}
           </div>
-          <div className="pl-4 border-l-2 border-subtle-strong">
+          <div className="pl-3 border-l-2 border-subtle-strong">
             <ExpandableText
               text={item.decision_rationale}
               maxChars={220}
               quote
               italic
-              className="text-base sm:text-[18px] text-ink leading-relaxed"
+              className="text-xs sm:text-sm text-ink leading-relaxed"
             />
           </div>
         </div>
@@ -341,28 +338,28 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
 
       {/* Employer / Reviewer Adjudication Actions */}
       {isReviewerOrEmployer && onReviewDecision && (
-        <div className="pt-4 border-t border-subtle flex flex-wrap items-center justify-between gap-3">
-          <div className="text-sm sm:text-base text-muted font-medium flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-accent shrink-0" />
+        <div className="pt-3 border-t border-subtle flex flex-wrap items-center justify-between gap-2.5">
+          <div className="text-xs sm:text-sm text-ink-secondary font-medium flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-accent shrink-0" />
             <span>Reviewer Adjudication:</span>
           </div>
 
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
               onClick={() => handleOpenDecision(ReviewDecisionType.ACCEPTED)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-pill text-sm sm:text-base font-semibold bg-success-dim hover:bg-success/20 text-success border border-success/30 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-semibold bg-success-dim hover:bg-success/25 text-success border border-success/30 transition-colors cursor-pointer"
             >
-              <CheckCircle2 className="w-4 h-4" />
+              <CheckCircle2 className="w-3.5 h-3.5" />
               <span>{isHumanDecided && badgeStatus === 'human_verified' ? 'Verified' : 'Accept (Verify)'}</span>
             </button>
 
             <button
               type="button"
               onClick={() => handleOpenDecision(ReviewDecisionType.REJECTED)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-pill text-sm sm:text-base font-semibold bg-danger-dim hover:bg-danger/20 text-danger border border-danger/30 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-semibold bg-danger-dim hover:bg-danger/25 text-danger border border-danger/30 transition-colors cursor-pointer"
             >
-              <XCircle className="w-4 h-4" />
+              <XCircle className="w-3.5 h-3.5" />
               <span>{isHumanDecided && badgeStatus === 'human_rejected' ? 'Rejected' : 'Reject'}</span>
             </button>
 
@@ -370,13 +367,13 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
               type="button"
               disabled={hasActiveClarificationRequest}
               onClick={() => setShowEmployerClarifyModal(true)}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-pill text-sm sm:text-base font-semibold border transition-colors ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-semibold border transition-colors ${
                 hasActiveClarificationRequest
                   ? 'bg-elevated text-muted border-subtle cursor-not-allowed opacity-60'
-                  : 'bg-warn-dim hover:bg-warn/20 text-warn border border-warn/30 cursor-pointer'
+                  : 'bg-warn-dim hover:bg-warn/25 text-warn border border-warn/30 cursor-pointer'
               }`}
             >
-              <HelpIcon className="w-4 h-4" />
+              <HelpIcon className="w-3.5 h-3.5" />
               <span>{hasActiveClarificationRequest ? 'Awaiting Response' : 'Request Clarification'}</span>
             </button>
           </div>
@@ -385,17 +382,17 @@ export const CriterionEvidenceCard: React.FC<CriterionEvidenceCardProps> = ({
 
       {/* Candidate Clarification Trigger Button */}
       {showClarifyButton && canClarify && onClarify && (
-        <div className="pt-4 border-t border-subtle flex items-center justify-between flex-wrap gap-2">
-          <span className="text-sm sm:text-base text-warn flex items-center gap-2 font-medium">
-            <HelpCircle className="w-5 h-5 text-warn shrink-0" />
+        <div className="pt-3 border-t border-subtle flex items-center justify-between flex-wrap gap-2">
+          <span className="text-xs sm:text-sm text-warn flex items-center gap-1.5 font-medium">
+            <HelpCircle className="w-4 h-4 text-warn shrink-0" />
             Think this assessment is incorrect?
           </span>
           <button
             onClick={() => onClarify(item.criterion_evidence_id || item.criterion_id)}
-            className="inline-flex items-center gap-1.5 text-sm sm:text-base font-bold text-accent hover:underline cursor-pointer"
+            className="inline-flex items-center gap-1 text-xs sm:text-sm font-bold text-accent hover:underline cursor-pointer"
           >
             <span>Contest with clarification</span>
-            <ArrowUpRight className="w-4 h-4" />
+            <ArrowUpRight className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
