@@ -18,10 +18,10 @@
   --border-strong:    #434B47;           /* Subtle highlight borders on hover/focus */
 
   /* ── Strict Text ──────────────────────────────────────── */
-  --ink:              #F3F6F5;           /* Primary text: Headings and important content */
-  --ink-secondary:    #A5AEAA;           /* Secondary text: Descriptions and metadata */
-  --muted:            #77817D;           /* Muted text: Subtle labels and supporting information */
-  --muted-dim:        #5C6562;           /* Subtle fine print / disabled labels */
+  --ink:              #F5F8F7;           /* Primary text: Headings and important content */
+  --ink-secondary:    #B4BEBA;           /* Secondary text: Descriptions and metadata */
+  --muted:            #8E9894;           /* Muted text: Subtle labels and supporting information */
+  --muted-dim:        #727D78;           /* Subtle fine print / disabled labels */
 
   /* ── Mint Highlights ──────────────────────────────────── */
   --accent:           #C8FFF5;           /* Primary mint: Primary actions and important highlights */

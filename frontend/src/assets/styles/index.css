@@ -5,10 +5,18 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
   body {
     background-color: var(--canvas);
     color: var(--ink);
     font-family: var(--font-sans);
+    font-size: 1.05rem;
+    line-height: 1.6;
+    letter-spacing: -0.005em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -16,6 +24,16 @@
     background-color: var(--accent);
     color: var(--canvas);
   }
+}
+
+/* Ensure minimum legible font sizes for legacy arbitrary micro-text */
+[class*="text-[10px]"] {
+  font-size: 12.5px !important;
+  line-height: 1.25rem !important;
+}
+[class*="text-[11px]"] {
+  font-size: 13.5px !important;
+  line-height: 1.35rem !important;
 }
 
 /* Custom dark scrollbars */

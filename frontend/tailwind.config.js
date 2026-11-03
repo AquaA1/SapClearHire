@@ -62,6 +62,18 @@ export default {
         mono: ['Manrope', 'monospace'],
       },
 
+      fontSize: {
+        '2xs': ['0.75rem', { lineHeight: '1.1rem' }],
+        xs:    ['0.84rem', { lineHeight: '1.25rem' }],
+        sm:    ['0.94rem', { lineHeight: '1.4rem' }],
+        base:  ['1.0625rem', { lineHeight: '1.65rem' }],
+        lg:    ['1.2rem', { lineHeight: '1.75rem' }],
+        xl:    ['1.35rem', { lineHeight: '1.875rem' }],
+        '2xl': ['1.65rem', { lineHeight: '2.15rem' }],
+        '3xl': ['2.1rem', { lineHeight: '2.5rem' }],
+        '4xl': ['2.65rem', { lineHeight: '3rem' }],
+      },
+
       borderRadius: {
         card:  'var(--radius-card)',  /* 22px */
         sm:    'var(--radius-sm)',    /* 10px */
