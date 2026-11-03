@@ -65,10 +65,13 @@ class InterviewTranscriptService:
             document_id=transcript_id,
         )
 
+        app_uuid = uuid.UUID(str(application_id)) if application_id else None
+        uploader_uuid = uuid.UUID(str(uploader_id)) if uploader_id else None
+
         transcript = InterviewTranscript(
             id=transcript_id,
-            application_id=application_id,
-            uploader_id=uploader_id,
+            application_id=app_uuid,
+            uploader_id=uploader_uuid,
             round_name=round_name.strip() or "Technical Interview",
             file_name=filename,
             file_path=storage_path,
@@ -263,13 +266,21 @@ class InterviewTranscriptService:
 
         import httpx
 
+        base_url = self.settings.LLM_BASE_URL.rstrip('/')
+        model = self.settings.LLM_MODEL
+        if self.settings.LLM_PROVIDER == "gemini":
+            if not base_url or "api.openai.com" in base_url:
+                base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
+            if not model or model == "gpt-4o-mini":
+                model = "gemini-2.5-flash"
+
         prompt = build_interview_analysis_prompt(transcript_text, job_criteria_names)
         headers = {
             "Authorization": f"Bearer {self.settings.LLM_API_KEY}",
             "Content-Type": "application/json",
         }
         payload = {
-            "model": self.settings.LLM_MODEL,
+            "model": model,
             "messages": [
                 {"role": "system", "content": INTERVIEW_ANALYSIS_SYSTEM_PROMPT},
                 {"role": "user", "content": prompt},
@@ -280,7 +291,7 @@ class InterviewTranscriptService:
 
         async with httpx.AsyncClient(timeout=60.0) as client:
             resp = await client.post(
-                f"{self.settings.LLM_BASE_URL.rstrip('/')}/chat/completions",
+                f"{base_url}/chat/completions",
                 headers=headers,
                 json=payload,
             )
@@ -386,7 +397,7 @@ class InterviewTranscriptService:
             raise NotFoundError(f"Transcript Q&A item {qa_item_id} not found")
 
         # Verify candidate ownership
-        if qa.transcript.application.candidate_id != candidate_id:
+        if str(qa.transcript.application.candidate_id) != str(candidate_id):
             raise AuthorizationError("You are not authorized to submit clarification for this transcript.")
 
         qa.clarification_requested = True

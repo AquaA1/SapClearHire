@@ -99,7 +99,22 @@ async def upload_interview_transcript(
         session=db,
     )
 
-    return InterviewTranscriptResponse.model_validate(transcript)
+    return InterviewTranscriptResponse(
+        id=transcript.id,
+        application_id=transcript.application_id,
+        uploader_id=transcript.uploader_id,
+        round_name=transcript.round_name,
+        file_name=transcript.file_name,
+        file_hash=transcript.file_hash,
+        file_size_bytes=transcript.file_size_bytes,
+        mime_type=transcript.mime_type,
+        processing_status=transcript.processing_status.value,
+        raw_text=transcript.raw_text,
+        processing_error=transcript.processing_error,
+        qa_items=[],
+        created_at=transcript.created_at,
+        updated_at=transcript.updated_at,
+    )
 
 
 @router.get(

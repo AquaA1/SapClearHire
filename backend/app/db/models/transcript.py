@@ -77,6 +77,7 @@ class InterviewTranscript(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         back_populates="transcript",
         cascade="all, delete-orphan",
         order_by="TranscriptQAItem.question_index",
+        lazy="selectin",
     )
 
 
