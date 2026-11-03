@@ -18,42 +18,25 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
+def _create_index_if_not_exists(name: str, table_name: str, columns: list) -> None:
+    bind = op.get_bind()
+    insp = sa.inspect(bind)
+    indexes = [idx["name"] for idx in insp.get_indexes(table_name)]
+    if name not in indexes:
+        op.create_index(name, table_name, columns, unique=False)
+
+
 def upgrade() -> None:
     # 1. Applications query optimization (job_id, status)
-    op.create_index(
-        "ix_applications_job_status",
-        "applications",
-        ["job_id", "status"],
-        unique=False,
-    )
+    _create_index_if_not_exists("ix_applications_job_status", "applications", ["job_id", "status"])
     # 2. Criterion evidence lookup by evaluation
-    op.create_index(
-        "ix_criterion_evidence_evaluation_id",
-        "criterion_evidence",
-        ["evaluation_id"],
-        unique=False,
-    )
+    _create_index_if_not_exists("ix_criterion_evidence_evaluation_id", "criterion_evidence", ["evaluation_id"])
     # 3. Review decisions lookup by criterion evidence
-    op.create_index(
-        "ix_review_decisions_ce_id",
-        "review_decisions",
-        ["criterion_evidence_id"],
-        unique=False,
-    )
+    _create_index_if_not_exists("ix_review_decisions_ce_id", "review_decisions", ["criterion_evidence_id"])
     # 4. Correction requests lookup by criterion evidence
-    op.create_index(
-        "ix_correction_requests_ce_id",
-        "correction_requests",
-        ["criterion_evidence_id"],
-        unique=False,
-    )
+    _create_index_if_not_exists("ix_correction_requests_ce_id", "correction_requests", ["criterion_evidence_id"])
     # 5. Jobs query optimization by employer and status
-    op.create_index(
-        "ix_jobs_employer_status",
-        "jobs",
-        ["employer_id", "status"],
-        unique=False,
-    )
+    _create_index_if_not_exists("ix_jobs_employer_status", "jobs", ["employer_id", "status"])
 
 
 def downgrade() -> None:
