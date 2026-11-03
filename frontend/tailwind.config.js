@@ -37,17 +37,17 @@ export default {
         subtle:          'var(--border)',
         'subtle-strong': 'var(--border-strong)',
 
-        /* ── Evidence domain (aligned to pastel palette) ─ */
+        /* ── Evidence domain (aligned to tokens) ──────── */
         evidence: {
-          supported:    '#A5EDE3',
-          supportedBg:  'rgba(165, 237, 227, 0.12)',
-          ambiguous:    '#C5D9E8',
-          ambiguousBg:  'rgba(197, 217, 232, 0.12)',
-          notfound:     '#D6B9CF',
-          notfoundBg:   'rgba(214, 185, 207, 0.12)',
-          verified:     '#A5EDE3',
-          clarified:    '#C8FFF5',
-          clarifiedBg:  'rgba(200, 255, 245, 0.12)',
+          supported:    'var(--evidence-supported)',
+          supportedBg:  'var(--evidence-supported-bg)',
+          ambiguous:    'var(--evidence-ambiguous)',
+          ambiguousBg:  'var(--evidence-ambiguous-bg)',
+          notfound:     'var(--evidence-notfound)',
+          notfoundBg:   'var(--evidence-notfound-bg)',
+          verified:     'var(--evidence-verified)',
+          clarified:    'var(--evidence-clarified)',
+          clarifiedBg:  'var(--evidence-clarified-bg)',
         },
       },
 
@@ -81,10 +81,10 @@ export default {
       },
 
       boxShadow: {
-        card:       '0 1px 3px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.25)',
-        'card-hover':'0 2px 6px rgba(0,0,0,0.5), 0 8px 24px rgba(0,0,0,0.35)',
-        dropdown:   '0 8px 24px rgba(0,0,0,0.6)',
-        modal:      '0 16px 48px rgba(0,0,0,0.8)',
+        card:       'var(--shadow-card)',
+        'card-hover':'var(--shadow-card-hover)',
+        dropdown:   'var(--shadow-dropdown)',
+        modal:      'var(--shadow-modal)',
       },
     },
   },

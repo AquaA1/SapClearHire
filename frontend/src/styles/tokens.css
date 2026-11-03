@@ -1,17 +1,99 @@
 /* ============================================================
    ClearHire Design Tokens
-   Sampled from reference screenshot (HRadar-style dark SaaS)
-   ALL styling MUST reference these variables. High contrast
-   readability guaranteed across all dark surfaces.
+   Enterprise Light Theme (Default :root)
+   Strict high-contrast typography, clean slate surfaces,
+   deep teal accents, and coordinated semantic indicators.
+   Full dark mode preserved under .dark for backwards compatibility.
    ============================================================ */
 
 :root {
+  /* ── Strict Surfaces ───────────────────────────────────── */
+  --canvas:           #F8FAFC;           /* App background: Clean, subtle off-white canvas (Slate 50) */
+  --sidebar:          #FFFFFF;           /* Sidebar background: Clean white navigation rail */
+  --surface:          #FFFFFF;           /* Card background: Pure white panels and cards */
+  --elevated:         #F1F5F9;           /* Elevated surface: Inputs, tables, secondary buttons, nested blocks (Slate 100) */
+  --outer:            #E2E8F0;           /* Outer background: Subtle outer framing (Slate 200) */
+  --hover:            #F1F5F9;           /* Hover interaction surface */
+
+  /* ── Borders ──────────────────────────────────────────── */
+  --border:           #E2E8F0;           /* Card borders and separators (Slate 200) */
+  --border-strong:    #CBD5E1;           /* Highlight borders on hover/focus (Slate 300) */
+
+  /* ── Strict Text ──────────────────────────────────────── */
+  --ink:              #0F172A;           /* Primary text: Headings and important content (Slate 900) */
+  --ink-secondary:    #334155;           /* Secondary text: High-contrast descriptions and metadata (Slate 700) */
+  --muted:            #64748B;           /* Muted text: Clear labels and supporting information (Slate 500) */
+  --muted-dim:        #94A3B8;           /* Subtle fine print / disabled labels (Slate 400) */
+
+  /* ── Enterprise Teal Accent Highlights ────────────────── */
+  --accent:           #0F766E;           /* Deep teal: Primary buttons, active indicators, links (Teal 700) */
+  --accent-secondary: #115E59;           /* Secondary teal: Hover states (Teal 800) */
+  --accent-dim:       rgba(15, 118, 110, 0.08); /* Pale crisp teal tint for badges and highlights */
+
+  /* ── High-Contrast Status Palette ─────────────────────── */
+  --success:          #047857;           /* Success / Verified (Emerald 700) */
+  --success-dim:      rgba(4, 120, 87, 0.08);
+  --info:             #0284C7;           /* Information (Sky 600) */
+  --info-dim:         rgba(2, 132, 199, 0.08);
+  --pending:          #4F46E5;           /* Pending / In review (Indigo 600) */
+  --pending-dim:      rgba(79, 70, 229, 0.08);
+  --warn:             #B45309;           /* Warning / Ambiguous (Amber 700) */
+  --warn-dim:         rgba(180, 83, 9, 0.08);
+  --danger:           #B91C1C;           /* Error / Not Found / Rejected (Red 700) */
+  --danger-dim:       rgba(185, 28, 28, 0.08);
+
+  /* ── Evidence Domain ──────────────────────────────────── */
+  --evidence-supported:     #047857;
+  --evidence-supported-bg:  rgba(4, 120, 87, 0.08);
+  --evidence-ambiguous:     #B45309;
+  --evidence-ambiguous-bg:  rgba(180, 83, 9, 0.08);
+  --evidence-notfound:      #B91C1C;
+  --evidence-notfound-bg:   rgba(185, 28, 28, 0.08);
+  --evidence-verified:      #047857;
+  --evidence-clarified:     #0F766E;
+  --evidence-clarified-bg:  rgba(15, 118, 110, 0.08);
+
+  /* ── Elevation Shadows ────────────────────────────────── */
+  --shadow-card:       0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-dropdown:   0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+  --shadow-modal:      0 20px 25px -5px rgba(0, 0, 0, 0.10), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+
+  /* ── Scrollbars ───────────────────────────────────────── */
+  --scrollbar-thumb:       rgba(100, 116, 139, 0.25);
+  --scrollbar-thumb-hover: rgba(100, 116, 139, 0.40);
+
+  /* ── Radii (22px Card Radius) ─────────────────────────── */
+  --radius-card:      22px;
+  --radius-sm:        10px;
+  --radius-pill:      9999px;
+
+  /* ── Spacing (4px grid) ───────────────────────────────── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* ── Typography (Single Manrope Family) ───────────────── */
+  --font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* ── Sidebar ──────────────────────────────────────────── */
+  --sidebar-w: 72px;
+}
+
+.dark {
   /* ── Strict Surfaces ───────────────────────────────────── */
   --canvas:           #171A19;           /* App background: Main dashboard background */
   --sidebar:          #1B1E1D;           /* Sidebar background: Navigation */
   --surface:          #222625;           /* Card background: Cards and panels */
   --elevated:         #292E2C;           /* Elevated surface: Modals, dropdowns, elevated elements */
   --outer:            #D3E1DE;           /* Outer background: Only where an outer page frame is necessary */
+  --hover:            #2D3330;
 
   /* ── Borders ──────────────────────────────────────────── */
   --border:           #343B38;           /* Card borders and separators */
@@ -40,25 +122,24 @@
   --danger:           #D6B9CF;           /* Error / Failed / Not Found (pastel dusty mauve) */
   --danger-dim:       rgba(214, 185, 207, 0.12);
 
-  /* ── Radii (22px Card Radius) ─────────────────────────── */
-  --radius-card:      22px;
-  --radius-sm:        10px;
-  --radius-pill:      9999px;
+  /* ── Evidence Domain ──────────────────────────────────── */
+  --evidence-supported:     #A5EDE3;
+  --evidence-supported-bg:  rgba(165, 237, 227, 0.12);
+  --evidence-ambiguous:     #C5D9E8;
+  --evidence-ambiguous-bg:  rgba(197, 217, 232, 0.12);
+  --evidence-notfound:      #D6B9CF;
+  --evidence-notfound-bg:   rgba(214, 185, 207, 0.12);
+  --evidence-verified:      #A5EDE3;
+  --evidence-clarified:     #C8FFF5;
+  --evidence-clarified-bg:  rgba(200, 255, 245, 0.12);
 
-  /* ── Spacing (4px grid) ───────────────────────────────── */
-  --space-1:  4px;
-  --space-2:  8px;
-  --space-3:  12px;
-  --space-4:  16px;
-  --space-5:  20px;
-  --space-6:  24px;
-  --space-8:  32px;
-  --space-10: 40px;
-  --space-12: 48px;
+  /* ── Elevation Shadows ────────────────────────────────── */
+  --shadow-card:       0 1px 3px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.25);
+  --shadow-card-hover: 0 2px 6px rgba(0,0,0,0.5), 0 8px 24px rgba(0,0,0,0.35);
+  --shadow-dropdown:   0 8px 24px rgba(0,0,0,0.6);
+  --shadow-modal:      0 16px 48px rgba(0,0,0,0.8);
 
-  /* ── Typography (Single Manrope Family) ───────────────── */
-  --font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-
-  /* ── Sidebar ──────────────────────────────────────────── */
-  --sidebar-w: 72px;
+  /* ── Scrollbars ───────────────────────────────────────── */
+  --scrollbar-thumb:       rgba(255, 255, 255, 0.15);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
 }
