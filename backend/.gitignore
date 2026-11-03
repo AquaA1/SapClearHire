@@ -46,12 +46,15 @@ htmlcov/
 .ruff_cache/
 
 # Environment variables & secrets
+*.env
 .env
 *.env.local
+!*.env.example
 
 # Storage uploads (keep folder, ignore contents)
 storage/*
 !storage/.gitkeep
+*.log
 
 # Database
 *.sqlite3
