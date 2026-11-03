@@ -45,14 +45,14 @@ async def verify_application_access(
     if user.role == UserRole.CANDIDATE:
         if require_employer:
             raise AuthorizationError("Only employers and reviewers may upload interview transcripts.")
-        if app.candidate_id != user.id:
+        if str(app.candidate_id) != str(user.id):
             raise AuthorizationError("You are not authorized to view transcripts for this application.")
         return app
 
     # Reviewer / Employer access
     if user.role in (UserRole.EMPLOYER_ADMIN, UserRole.REVIEWER):
-        # Allow access if associated with job creator or employer
-        if app.job and app.job.employer_id != user.id and app.job.creator_id != user.id and user.role != UserRole.REVIEWER:
+        # Reviewers have universal queue access; employers only access applications for their own jobs
+        if user.role == UserRole.EMPLOYER_ADMIN and app.job and str(app.job.employer_id) != str(user.id):
             raise AuthorizationError("You are not authorized to access applications outside your organization.")
         return app
 
