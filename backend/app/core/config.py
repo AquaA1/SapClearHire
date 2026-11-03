@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 8000
 
+    # Database backend selector: "sqlite", "hana" (SAP HANA Cloud), or "postgres"
+    DATABASE_BACKEND: Literal["sqlite", "hana", "postgres"] | None = None
+
     # PostgreSQL configuration
     POSTGRES_USER: str = "clearhire_user"
     POSTGRES_PASSWORD: str = "clearhire_secure_dev_password"
@@ -37,17 +40,54 @@ class Settings(BaseSettings):
     POSTGRES_POOL_RECYCLE: int = 300
     POSTGRES_POOL_TIMEOUT: int = 10
 
+    # SAP HANA Cloud configuration
+    HANA_HOST: str | None = None
+    HANA_PORT: int = 443
+    HANA_USER: str | None = None
+    HANA_PASSWORD: str | None = None
+    HANA_SCHEMA: str | None = None
+    HANA_ENCRYPT: bool = True
+    HANA_SSL_VALIDATE_CERTIFICATE: bool = True
+    HANA_POOL_SIZE: int = 10
+    HANA_MAX_OVERFLOW: int = 15
+    HANA_POOL_RECYCLE: int = 300
+    HANA_POOL_TIMEOUT: int = 15
+
     # Optional explicit database URL override (e.g. for testing with sqlite)
     DATABASE_URL_OVERRIDE: str | None = Field(default=None, alias="DATABASE_URL")
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:  # noqa: N802
-        """Returns explicitly provided DATABASE_URL, SAP BTP VCAP_SERVICES URI, or constructs async PostgreSQL URI."""
+        """Returns dynamically resolved async database connection URI based on configuration."""
+        # 1. If explicit HANA backend requested
+        if self.DATABASE_BACKEND == "hana":
+            if self.DATABASE_URL_OVERRIDE and "hana" in self.DATABASE_URL_OVERRIDE:
+                return self.DATABASE_URL_OVERRIDE
+            if self.HANA_HOST and self.HANA_USER and self.HANA_PASSWORD:
+                from urllib.parse import quote_plus
+
+                enc_user = quote_plus(self.HANA_USER)
+                enc_pass = quote_plus(self.HANA_PASSWORD)
+                ssl_val = "true" if self.HANA_SSL_VALIDATE_CERTIFICATE else "false"
+                enc_flag = "true" if self.HANA_ENCRYPT else "false"
+                uri = (
+                    f"hana+aiohdbcli://{enc_user}:{enc_pass}@{self.HANA_HOST}:{self.HANA_PORT}/"
+                    f"?encrypt={enc_flag}&sslValidateCertificate={ssl_val}"
+                )
+                if self.HANA_SCHEMA:
+                    uri += f"&currentSchema={quote_plus(self.HANA_SCHEMA)}"
+                return uri
+
+        # 2. Explicit DATABASE_URL override takes precedence next (e.g. SQLite in .env)
         if self.DATABASE_URL_OVERRIDE:
             return self.DATABASE_URL_OVERRIDE
 
-        # Auto-detect SAP BTP managed PostgreSQL binding if available
+        # 3. Default to SQLite if explicitly chosen or default
+        if self.DATABASE_BACKEND == "sqlite":
+            return "sqlite+aiosqlite:///./clearhire.db"
+
+        # 4. Auto-detect SAP BTP managed PostgreSQL binding if available
         try:
             from app.core.sap import get_sap_postgres_uri
 

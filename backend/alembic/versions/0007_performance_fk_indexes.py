@@ -9,7 +9,7 @@ Create Date: 2026-11-03 01:30:00.000000
 from collections.abc import Sequence
 
 import sqlalchemy as sa
-from alembic import op
+from alembic import context, op
 
 # revision identifiers, used by Alembic.
 revision: str = "0007"
@@ -19,11 +19,24 @@ depends_on: str | Sequence[str] | None = None
 
 
 def _create_index_if_not_exists(name: str, table_name: str, columns: list) -> None:
+    if context.is_offline_mode():
+        op.create_index(name, table_name, columns, unique=False)
+        return
     bind = op.get_bind()
     insp = sa.inspect(bind)
-    indexes = [idx["name"] for idx in insp.get_indexes(table_name)]
-    if name not in indexes:
+    indexes = insp.get_indexes(table_name)
+    existing_names = [idx["name"] for idx in indexes]
+    if name in existing_names:
+        return
+    existing_cols = [tuple(idx.get("column_names") or []) for idx in indexes]
+    if tuple(columns) in existing_cols:
+        return
+    try:
         op.create_index(name, table_name, columns, unique=False)
+    except Exception as exc:
+        if "already indexed" in str(exc).lower():
+            return
+        raise
 
 
 def upgrade() -> None:

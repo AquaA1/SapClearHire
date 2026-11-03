@@ -39,6 +39,16 @@ def get_engine() -> AsyncEngine:
                 cursor = dbapi_connection.cursor()
                 cursor.execute("PRAGMA foreign_keys=ON")
                 cursor.close()
+        elif "hana" in uri:
+            _engine = create_async_engine(
+                uri,
+                pool_size=getattr(settings, "HANA_POOL_SIZE", 10),
+                max_overflow=getattr(settings, "HANA_MAX_OVERFLOW", 15),
+                pool_recycle=getattr(settings, "HANA_POOL_RECYCLE", 300),
+                pool_timeout=getattr(settings, "HANA_POOL_TIMEOUT", 15),
+                pool_pre_ping=True,
+                echo=settings.DEBUG,
+            )
         else:
             _engine = create_async_engine(
                 uri,
@@ -87,9 +97,10 @@ async def check_database_connection(timeout_seconds: float = 3.0) -> bool:
     """
     try:
         engine = get_engine()
+        ping_sql = "SELECT 1 FROM DUMMY" if "hana" in str(engine.url) else "SELECT 1"
         async with engine.connect() as conn:
             # Enforce timeout for readiness probe
-            result = await conn.execute(text("SELECT 1"))
+            result = await conn.execute(text(ping_sql))
             return result.scalar() == 1
     except Exception as exc:
         logger.warning("Database connectivity check failed: %s", str(exc))

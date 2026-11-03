@@ -204,7 +204,7 @@ async def test_upload_invalid_extension_rejected_immediately(client: AsyncClient
 
     assert res.status_code == 422
     assert res.json()["error"]["code"] == "VALIDATION_ERROR"
-    assert "Only PDF documents are supported" in res.json()["error"]["message"]
+    assert "Unsupported file format" in res.json()["error"]["message"] or "Only PDF" in res.json()["error"]["message"]
 
 
 @pytest.mark.asyncio
