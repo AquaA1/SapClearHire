@@ -122,7 +122,7 @@ export const ReviewCaseDetailPage: React.FC = () => {
           <Link
             to={queueRoute}
             className="p-3 rounded-md bg-elevated border border-subtle text-muted hover:text-ink transition-colors cursor-pointer"
-            title="Return to triage queue"
+            title="Return to review queue"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>

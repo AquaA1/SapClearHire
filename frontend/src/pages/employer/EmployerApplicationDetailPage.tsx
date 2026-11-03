@@ -385,17 +385,6 @@ export const EmployerApplicationDetailPage: React.FC = () => {
                 >
                   <span>{isResolvingPrereq ? 'Extracting...' : (evaluation ? 'Re-Screen Evidence' : 'Screen Evidence')}</span>
                 </Button>
-
-                <Button
-                  onClick={handleAutoFlag}
-                  disabled={isFlagging}
-                  isLoading={isFlagging}
-                  variant="secondary"
-                  size="sm"
-                  leftIcon={<Flag className="w-3.5 h-3.5 text-warn" />}
-                >
-                  <span>Triage to Reviewer</span>
-                </Button>
               </div>
             </div>
 

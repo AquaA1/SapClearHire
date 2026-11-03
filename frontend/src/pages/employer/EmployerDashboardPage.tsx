@@ -163,15 +163,6 @@ export const EmployerDashboardPage: React.FC = () => {
               </p>
             </div>
 
-            <Button
-              onClick={() => navigate('/employer/reviews')}
-              variant="primary"
-              size="md"
-              rightIcon={<ArrowRight className="w-4 h-4" />}
-              className="w-full justify-between font-semibold"
-            >
-              <span>{pendingReviewsCount > 0 ? 'Triage Review Cases' : 'Inspect Review Triage'}</span>
-            </Button>
           </div>
         </div>
 
@@ -329,22 +320,6 @@ export const EmployerDashboardPage: React.FC = () => {
                       </span>
                       <span className="text-[11px] text-muted font-medium">
                         Define criteria weights & benchmarks
-                      </span>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-muted group-hover:text-ink transition-colors" />
-                </button>
-
-                <button
-                  onClick={() => navigate('/employer/reviews')}
-                  className="w-full p-3 rounded-sm bg-elevated hover:bg-elevated/80 border border-subtle text-left transition-colors flex items-center justify-between cursor-pointer group"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <CheckSquare className="w-4 h-4 text-accent shrink-0" />
-                    <div>
-                      <span className="text-xs font-semibold text-ink block">Triage Review Cases</span>
-                      <span className="text-[11px] text-muted font-medium">
-                        Adjudicate ungrounded claims
                       </span>
                     </div>
                   </div>
