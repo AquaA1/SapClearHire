@@ -113,34 +113,32 @@ async def seed_database() -> None:
             job_id = uuid.uuid4()
             sample_job = Job(
                 id=job_id,
+                employer_id=employer_user.id,
                 title="Senior Cloud Backend Engineer (SAP BTP)",
                 department="SAP Business Technology Platform",
-                location="Walldorf, Germany (Hybrid)",
                 description=(
                     "Join the ClearHire team to build transparent, evidence-backed hiring transparency pipelines "
                     "integrated with SAP BTP and modern enterprise stacks."
                 ),
                 status=JobStatus.ACTIVE,
-                creator_id=employer_user.id,
-                employer_id=employer_user.id,
-                criteria_version=1,
             )
             session.add(sample_job)
             await session.flush()
 
             for crit in DEMO_JOB_CRITERIA:
+                category_str = "requirement" if crit["category"] == CriterionCategory.REQUIRED else "preferred"
                 c = JobCriterion(
                     id=uuid.uuid4(),
                     job_id=job_id,
                     name=crit["name"],
-                    category=crit["category"],
+                    category=category_str,
                     description=crit["description"],
-                    order=crit["order"],
                     version=1,
+                    weight=1.0,
                     is_active=True,
                 )
                 session.add(c)
-                print(f"  ✓ Created Criterion [{crit['category'].value.upper()}]: {crit['name']}")
+                print(f"  ✓ Created Criterion [{category_str.upper()}]: {crit['name']}")
 
         await session.commit()
         print("\n✨ Database seeding complete! Ready for end-to-end testing.\n")
