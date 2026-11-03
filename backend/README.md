@@ -1,175 +1,159 @@
-# ClearHire — Hiring Evidence Transparency Platform (Backend)
+# ClearHire Backend — SAP HANA Cloud Integration
 
-Built for **SAP Hackfest 2026**, ClearHire prevents relevant candidate evidence from being silently missed during hiring screening. ClearHire maps verifiable candidate evidence to explicit, versioned job criteria with provenance, human reviewer rationales, and candidate clarification workflows.
-
-ClearHire **never makes hiring decisions** and **never guarantees outcome reversals**. It empowers human decision-makers with transparent, source-grounded evidence.
+ClearHire is an evidence transparency platform designed to prevent relevant candidate evidence from being silently missed during hiring screening. This backend is built on **FastAPI**, **SQLAlchemy 2.x**, and integrates directly with **SAP HANA Cloud** via `hdbcli` and `sqlalchemy-hana`.
 
 ---
 
-## 1. Architecture Overview
+## 1. Architecture & Multi-Database Support
 
-ClearHire Backend follows a **modular monolith** design built on Python 3.12, FastAPI, PostgreSQL, and SQLAlchemy 2.x Async.
+The ClearHire backend provides a modular enterprise architecture supporting multiple database engines via configuration:
+- **SAP HANA Cloud**: Enterprise-grade in-memory database with schema isolation (`HACKFEST0328`), SSL/TLS encryption, and connection pooling.
+- **SQLite (aiosqlite)**: Zero-configuration local development and rapid integration testing.
+- **PostgreSQL (asyncpg)**: Traditional relational deployment option.
 
 ```
 backend/
 ├── app/
-│   ├── main.py                     # FastAPI application factory & lifespan
+│   ├── main.py                     # FastAPI application factory, lifespan, & CORS
 │   ├── core/
-│   │   ├── config.py               # Pydantic-settings environment configuration
-│   │   ├── logging.py              # Structured JSON / human-readable logging
-│   │   ├── exceptions.py           # Domain exceptions & error response envelopes
-│   │   └── security.py             # RBAC roles & JWT verification interface
-│   ├── api/
-│   │   ├── router.py               # Root router (/api)
-│   │   └── v1/
-│   │       ├── router.py           # Versioned router (/api/v1)
-│   │       └── endpoints/
-│   │           └── health.py       # Health, liveness, and database readiness endpoints
+│   │   ├── config.py               # Pydantic Settings supporting HANA/SQLite/Postgres
+│   │   ├── logging.py              # Structured logging
+│   │   ├── security.py             # JWT token handling & RBAC role checks
+│   │   └── exceptions.py           # Domain exception handlers
+│   ├── api/v1/endpoints/           # REST endpoints
+│   │   ├── auth.py                 # Multi-role authentication & JWT issuance
+│   │   ├── candidates.py           # Candidate profile, dossier, and evidence view
+│   │   ├── criteria.py             # Job criteria definition & rubrics
+│   │   ├── documents.py            # PDF upload, OCR, and page text extraction
+│   │   ├── evaluations.py          # Grounded scoring & evidence mapping
+│   │   ├── reviews.py              # Human reviewer workflows & decisions
+│   │   ├── coaching.py             # Transcript analysis & coaching feedback
+│   │   ├── audit.py                # Cryptographic SHA-256 audit log inspection
+│   │   └── health.py               # Live & database readiness health probes
 │   ├── db/
+│   │   ├── session.py              # Multi-engine DB factory (HANA, SQLite, PostgreSQL)
 │   │   ├── base.py                 # DeclarativeBase with explicit constraint naming
-│   │   ├── session.py              # Async SQLAlchemy engine & request session lifecycle
-│   │   └── models/
-│   │       ├── base.py             # UUID v4 and UTC timestamp mixins
-│   │       └── audit.py            # Append-only AuditEvent persistence model
-│   ├── schemas/
-│   │   ├── common.py               # Standardized ErrorEnvelope & SuccessEnvelope
-│   │   └── health.py               # System health and readiness schemas
-│   ├── repositories/
-│   │   ├── base.py                 # Generic async repository pattern
-│   │   └── audit.py                # Append-only audit trail repository
-│   ├── services/
-│   │   └── health.py               # Liveness and PostgreSQL connectivity service
-│   ├── workers/
-│   │   ├── base.py                 # Background document processing job contracts
-│   │   └── local.py                # In-memory asyncio background worker queue
+│   │   └── models/                 # SQLAlchemy ORM models (Audit, User, Job, Evaluation, etc.)
 │   ├── integrations/
-│   │   ├── llm/
-│   │   │   ├── base.py             # Provider-neutral LLM extraction interface
-│   │   │   ├── fake.py             # Deterministic mock provider for tests/offline
-│   │   │   └── schemas.py          # Structured claims & page-referenced source quotes
-│   │   └── successfactors/
-│   │       └── client.py           # Interface stub for SAP SuccessFactors Recruiting API
+│   │   └── llm/                    # Provider-neutral LLM grounding & claims extraction
 │   └── utils/
-│       ├── document.py             # PDF page-preserving parser & magic-byte validation
-│       └── text.py                 # Source excerpt grounding & hallucination checker
-├── tests/
-│   ├── conftest.py                 # Async test fixtures, test DB, and ASGI client
-│   ├── unit/                       # Config, exceptions, LLM, grounding, worker tests
-│   └── integration/                # Database sessions, health endpoints, DB failure tests
-├── alembic/                        # Async database migrations
-├── storage/                        # Document upload directory (local storage)
-├── Dockerfile                      # Multi-stage production container
-├── docker-compose.yml              # Local PostgreSQL 16 & API container definitions
-├── pyproject.toml                  # Python package metadata, ruff & pytest configs
-└── .env.example                    # Environment variable template
+│       ├── text.py                 # Verifiable excerpt text grounding validator
+│       └── document.py             # PDF parser & magic-byte validator
+├── alembic/                        # Async database migrations (HANA & SQLite compatible)
+├── scripts/                        # Database initialization, seeding, and verification
+│   ├── init_hana_schema.py         # Dedicated HANA schema creator & smoke-tester
+│   ├── seed_all_workflows.py       # Comprehensive end-to-end multi-role data seeder
+│   └── verify_hana_workflows.py    # Automated verification of all HANA tables & foreign keys
+├── tests/                          # Automated test suite (210 passing tests)
+└── pyproject.toml                  # Dependencies including hdbcli & sqlalchemy-hana
 ```
 
 ---
 
-## 2. Key Architectural Guarantees
-
-1. **Explicit DB Constraint Naming**: All primary keys, foreign keys, unique constraints, and indexes use consistent prefix patterns (`pk_`, `fk_`, `uq_`, `ix_`) to prevent migration drift across database engines.
-2. **Strict Grounding Validation**: LLM extraction results must pass `validate_excerpt_in_text()` against the raw PDF text before becoming verified evidence. Hallucinated quotes are rejected.
-3. **Non-Blocking Background Tasks**: Heavy document parsing and AI calls are offloaded to `BaseBackgroundWorker` and do not block the HTTP request/response cycle.
-4. **Resilient Health Probes**:
-   - `GET /api/v1/health/live`: Probes process health only (returns `200` independently of external dependencies).
-   - `GET /api/v1/health/ready`: Performs `SELECT 1` on PostgreSQL. If unreachable, returns `503 Service Unavailable`.
-5. **Secure Error Envelopes**: Production responses never expose internal stack traces, connection strings, or database credentials.
-
----
-
-## 3. Local Development Setup
+## 2. SAP HANA Cloud Setup & Configuration
 
 ### Prerequisites
-- Python 3.12 (`python3.12 --version`)
-- PostgreSQL 15+ (or Docker Compose)
+- Python 3.12+
+- SAP HANA Cloud instance credentials
+- Direct cloud connectivity on port `443`
 
-### Step 1: Create Virtual Environment & Install Dependencies
-```bash
-cd backend
-python3.12 -m venv .venv
-source .venv/bin/activate
-pip install --upgrade pip
-pip install -e ".[dev]"
-```
-
-### Step 2: Environment Configuration
-Copy `.env.example` to `.env`:
+### Environment Configuration
+Copy `.env.example` to `.env` in the `backend/` directory:
 ```bash
 cp .env.example .env
 ```
 
-### Step 3: Start PostgreSQL
-**Option A: Using Docker Compose**
-```bash
-docker compose up -d db
+Configure the SAP HANA Cloud variables:
+```env
+DATABASE_BACKEND=hana
+HANA_HOST=64e8c26b-3e07-47e9-b246-617058b0306e.hna3.prod-eu10.hanacloud.ondemand.com
+HANA_PORT=443
+HANA_USER=Hackfest0328
+HANA_PASSWORD=<your_hana_password>
+HANA_SCHEMA=HACKFEST0328
+HANA_ENCRYPT=true
+HANA_SSL_VALIDATE_CERTIFICATE=true
+HANA_POOL_SIZE=10
+HANA_MAX_OVERFLOW=15
+HANA_POOL_RECYCLE=300
+HANA_POOL_TIMEOUT=15
 ```
 
-**Option B: Using Local PostgreSQL**
-Ensure PostgreSQL is running on port `5432` with the database `clearhire_db` and user `clearhire_user` matching your `.env` file.
+---
 
-### Step 4: Run Database Migrations
+## 3. Installation & Database Initialization
+
+### Step 1: Install Dependencies
+```bash
+python3.12 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -e ".[dev]"
+```
+
+### Step 2: Initialize SAP HANA Cloud Schema & Tables
+Run the automated schema initializer:
+```bash
+python scripts/init_hana_schema.py
+```
+Or run Alembic migrations:
 ```bash
 alembic upgrade head
 ```
 
-### Step 5: Start Development Server
+### Step 3: Seed Demonstration Workflows
+Seed full candidate screening data, evaluation rubrics, documents, review decisions, and audit events:
 ```bash
-uvicorn app.main:app --reload --port 8000
-```
-- Interactive API Documentation: [http://localhost:8000/docs](http://localhost:8000/docs)
-- Alternative API Documentation: [http://localhost:8000/redoc](http://localhost:8000/redoc)
-- OpenAPI Specification: [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json)
-
----
-
-## 4. Verification & Testing
-
-### Run Automated Tests
-```bash
-pytest -v
+python scripts/seed_all_workflows.py
 ```
 
-### Run Linter & Formatter Checks
+### Step 4: Verify Schema & Workflows
+Verify that all tables exist, contain seeded records, and validate relational foreign key integrity:
 ```bash
-# Lint checks
-ruff check .
-
-# Format checks
-ruff format --check .
-
-# Auto-format
-ruff format .
+python scripts/verify_hana_workflows.py
 ```
 
 ---
 
-## 5. API Endpoints (Foundation)
+## 4. Running the Backend Server
 
-| Method | Endpoint | Description | Expected Status |
-|---|---|---|---|
-| `GET` | `/api/v1/health` | Application status, service name, version, and server timestamp | `200 OK` |
-| `GET` | `/api/v1/health/live` | Process liveness probe for orchestrators (Kubernetes/container) | `200 OK` |
-| `GET` | `/api/v1/health/ready` | Dependency readiness probe (tests PostgreSQL `SELECT 1`) | `200 OK` or `503 Service Unavailable` |
+Start the FastAPI application with Uvicorn:
+```bash
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+- **Interactive API Documentation (Swagger)**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Alternative Documentation (ReDoc)**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+- **Health & Readiness Probe**: [http://localhost:8000/api/v1/health/ready](http://localhost:8000/api/v1/health/ready)
 
 ---
 
-## 6. Phase 1 Implementation Status & Known Limitations
+## 5. Running Automated Tests
 
-### Implemented & Verified
-- [x] FastAPI modular application structure and lifespan manager.
-- [x] Async SQLAlchemy 2.x engine, connection pooling, and request session lifecycle (`get_db_session`).
-- [x] MetaData constraint naming conventions and async Alembic migrations.
-- [x] Immutable `audit_events` model, migration `0001_initial_audit_events.py`, and repository.
-- [x] Provider-neutral LLM interface (`BaseLLMProvider`) and deterministic `FakeLLMProvider`.
-- [x] Verifiable text grounding utility (`validate_excerpt_in_text`) rejecting ungrounded quotes.
-- [x] Page-preserving PDF text extraction (`extract_text_by_page`) and magic-byte validation (`%PDF-`).
-- [x] Background worker abstraction (`BaseBackgroundWorker`) with local async worker queue (`LocalAsyncWorker`).
-- [x] Health, liveness, and database readiness endpoints with HTTP 503 failure handling.
-- [x] Comprehensive test suite (21 unit and integration tests passing).
-- [x] Multi-stage `Dockerfile` and `docker-compose.yml`.
+Run the full pytest suite:
+```bash
+pytest tests/
+```
+All **210 tests** validate:
+- Authentication & JWT RBAC security
+- Candidate dossiers & evidence scoring
+- Reviewer workflows & mandatory justification requirements
+- Audit trail integrity & cryptographic chain hashing
+- Text grounding validators (preventing hallucinated quotations)
+- Health check endpoints across database engines
 
-### Extension Points & Placeholders for Next Phase
-- **Authentication**: Phase 1 includes JWT validation, token creation, and RBAC role dependencies (`require_roles`). Full OIDC/SAML integration with SAP Cloud Identity Services is reserved for Phase 2. Client role spoofing is strictly prohibited.
-- **SAP SuccessFactors Integration**: `SuccessFactorsClient` provides interface stubs for Job Requisition and Application OData synchronization.
-- **Domain Entities**: Phase 1 established the foundation with `audit_events`. Subsequent phases will migrate `users`, `documents`, `jobs`, `job_criteria`, `evaluations`, and `review_decisions`.
+---
+
+## 6. Switching to Local SQLite Development
+
+To run locally without an external internet connection or cloud database:
+1. In `backend/.env`, set:
+   ```env
+   DATABASE_BACKEND=sqlite
+   DATABASE_URL=sqlite+aiosqlite:///./clearhire.db
+   ```
+2. Run migrations:
+   ```bash
+   alembic upgrade head
+   ```
+3. Restart the backend server.

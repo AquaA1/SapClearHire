@@ -47,12 +47,23 @@ htmlcov/
 
 # Environment variables & secrets
 .env
+*.env
 *.env.local
+!*.env.example
 
-# Storage uploads (keep folder, ignore contents)
+# Storage uploads & artifacts
 storage/*
 !storage/.gitkeep
+backend/storage/*
+!backend/storage/.gitkeep
+*.log
 
 # Database
 *.sqlite3
 *.db
+# Node / Frontend
+node_modules/
+frontend/node_modules/
+dist/
+dist-ssr/
+.DS_Store
