@@ -290,7 +290,7 @@ export const EmployerApplicationDetailPage: React.FC = () => {
             <h3 className="font-bold text-ink text-base">
               All Applicants ({allApps.length})
             </h3>
-            <span className="text-xs text-muted font-medium">Requisition Cohort</span>
+            <span className="text-xs text-ink-secondary font-medium">Requisition Cohort</span>
           </div>
 
           <div className="space-y-2 max-h-[calc(100vh-190px)] overflow-y-auto pr-1">
@@ -321,12 +321,12 @@ export const EmployerApplicationDetailPage: React.FC = () => {
                         <h4 className="font-bold text-ink text-sm truncate">
                           {app.candidate_name || `Applicant #${app.candidate_id.slice(0, 8)}`}
                         </h4>
-                        <span className="text-[11px] font-mono text-muted/70 shrink-0">
+                        <span className="text-[11px] font-mono text-ink-secondary/70 shrink-0">
                           #{app.id.slice(0, 8)}
                         </span>
                       </div>
                       <div className="flex items-center justify-between gap-1.5 mt-0.5">
-                        <p className="text-xs text-muted truncate">
+                        <p className="text-xs text-ink-secondary truncate">
                           {app.job_title}
                         </p>
                         <div className="shrink-0">
@@ -344,10 +344,10 @@ export const EmployerApplicationDetailPage: React.FC = () => {
         {/* Right Column: Full Candidate Detail Dossier (8 Cols) */}
         <div className="lg:col-span-8 space-y-5">
           {/* Header Banner */}
-          <div className="bg-surface rounded-card border border-subtle p-4 sm:p-5 shadow-card space-y-3.5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3.5">
-                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-elevated border border-subtle text-accent font-bold text-base flex items-center justify-center shrink-0">
+          <div className="bg-surface rounded-card border border-subtle p-4 sm:p-4.5 shadow-card space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-lg bg-elevated border border-subtle text-accent font-bold text-sm sm:text-base flex items-center justify-center shrink-0">
                   {activeApp.candidate_name
                     ? activeApp.candidate_name
                         .split(' ')
@@ -356,16 +356,16 @@ export const EmployerApplicationDetailPage: React.FC = () => {
                     : 'C'}
                 </div>
                 <div>
-                  <div className="flex items-center gap-2.5 mb-0.5 flex-wrap">
-                    <h2 className="text-xl sm:text-2xl font-bold text-ink tracking-tight">
+                  <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                    <h2 className="text-lg sm:text-xl font-bold text-ink tracking-tight">
                       {activeApp.candidate_name || `Applicant #${activeApp.candidate_id.slice(0, 8)}`}
                     </h2>
                     <StatusBadge status={activeApp.status} size="sm" />
                   </div>
-                  <div className="flex items-center gap-2 text-xs sm:text-sm text-muted font-medium">
+                  <div className="flex items-center gap-2 text-xs text-ink-secondary font-medium">
                     <span>{activeApp.job_title}</span>
                     <span>•</span>
-                    <span className="font-medium text-ink/80">
+                    <span className="font-mono text-ink-secondary/80">
                       App #{activeApp.id.slice(0, 8)}
                     </span>
                   </div>
@@ -399,34 +399,8 @@ export const EmployerApplicationDetailPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Pipeline Steps: Compact indicators */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 border-t border-subtle">
-              {[
-                { label: '1. Submitted', active: true },
-                { label: '2. Evidence Grounded', active: !!evaluation },
-                { label: '3. Review Pending', active: activeApp.status === 'needs_review' },
-                { label: '4. Decision Finalized', active: activeApp.status === 'reviewed' },
-              ].map((step, idx) => (
-                <div
-                  key={idx}
-                  className={`py-1.5 px-2.5 rounded-full border text-xs flex items-center justify-center gap-1.5 transition-all select-none ${
-                    step.active
-                      ? 'bg-accent/10 text-accent border-accent/30 font-semibold'
-                      : 'bg-elevated/30 text-muted-dim border-subtle/40 font-medium'
-                  }`}
-                >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                      step.active ? 'bg-accent' : 'bg-muted/40'
-                    }`}
-                  />
-                  <span className="truncate">{step.label}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Dossier Tabs: Subtle and compact */}
-            <div className="flex items-center gap-1.5 pt-2.5 border-t border-subtle flex-wrap">
+            {/* Dossier Tabs: Compact, evenly spaced, readable */}
+            <div className="flex items-center gap-2 pt-2.5 border-t border-subtle flex-wrap">
               {(['DETAILS', 'EVIDENCE', 'RESUME', 'INTERVIEW COACH', 'HIRING PIPELINE'] as const).map((tab) => {
                 const tabLabel =
                   tab === 'DETAILS'
@@ -442,10 +416,10 @@ export const EmployerApplicationDetailPage: React.FC = () => {
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`px-3 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                    className={`px-3.5 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                       activeTab === tab
                         ? 'bg-elevated text-ink border border-subtle shadow-xs'
-                        : 'text-muted hover:text-ink hover:bg-elevated/30 border border-transparent'
+                        : 'text-ink-secondary hover:text-ink hover:bg-elevated/40 border border-transparent'
                     }`}
                   >
                     {tabLabel}
@@ -515,7 +489,7 @@ export const EmployerApplicationDetailPage: React.FC = () => {
                       <h3 className="font-bold text-ink text-base">
                         Grounded Criteria Evaluations ({evaluation.criteria_evaluations.length})
                       </h3>
-                      <span className="text-xs font-semibold text-muted bg-elevated px-2.5 py-0.5 rounded-pill border border-subtle">
+                      <span className="text-xs font-mono font-medium text-ink-secondary">
                         Run #{evaluation.extraction_run_id?.slice(0, 8)}
                       </span>
                     </div>
@@ -568,7 +542,7 @@ export const EmployerApplicationDetailPage: React.FC = () => {
                 <div className="flex items-center justify-between pb-2.5 border-b border-subtle">
                   <div>
                     <h3 className="font-bold text-ink text-base">Adjudication Notes</h3>
-                    <p className="text-xs text-muted font-medium mt-0.5">
+                    <p className="text-xs text-ink-secondary font-medium mt-0.5">
                       Internal reviewer determinations and rationale logs
                     </p>
                   </div>
@@ -606,7 +580,7 @@ export const EmployerApplicationDetailPage: React.FC = () => {
                 )}
 
                 {notes.length === 0 ? (
-                  <div className="text-center py-5 text-muted text-xs sm:text-sm font-medium">
+                  <div className="text-center py-5 text-ink-secondary text-xs sm:text-sm font-medium">
                     No reviewer notes recorded for this candidate dossier yet.
                   </div>
                 ) : (
@@ -615,7 +589,7 @@ export const EmployerApplicationDetailPage: React.FC = () => {
                       <div key={note.id} className="p-3 rounded-md bg-elevated border border-subtle space-y-1.5">
                         <div className="flex items-center justify-between text-xs">
                           <span className="font-bold text-ink">{note.author}</span>
-                          <span className="text-muted font-medium">{note.time}</span>
+                          <span className="text-ink-secondary font-medium">{note.time}</span>
                         </div>
                         <p className="text-xs sm:text-sm text-ink/90 font-normal leading-relaxed">{note.text}</p>
                       </div>
@@ -645,17 +619,17 @@ export const EmployerApplicationDetailPage: React.FC = () => {
               <h3 className="font-bold text-ink text-base sm:text-lg">Hiring Workflow Status</h3>
               <div className="space-y-2.5 text-xs sm:text-sm">
                 <div className="flex justify-between items-center py-2 border-b border-subtle">
-                  <span className="text-muted font-medium">Current Application Status:</span>
+                  <span className="text-ink-secondary font-medium">Current Application Status:</span>
                   <StatusBadge status={activeApp.status} size="sm" />
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-subtle">
-                  <span className="text-muted font-medium">Submission Date:</span>
+                  <span className="text-ink-secondary font-medium">Submission Date:</span>
                   <span className="text-ink font-semibold">
                     {new Date(activeApp.submitted_at || activeApp.created_at).toLocaleDateString()}
                   </span>
                 </div>
                 <div className="flex justify-between items-center py-2">
-                  <span className="text-muted font-medium">Target Requisition:</span>
+                  <span className="text-ink-secondary font-medium">Target Requisition:</span>
                   <span className="text-ink font-semibold">{activeApp.job_title}</span>
                 </div>
               </div>

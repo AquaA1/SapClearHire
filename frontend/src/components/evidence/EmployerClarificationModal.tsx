@@ -58,7 +58,7 @@ export const EmployerClarificationModal: React.FC<EmployerClarificationModalProp
                 {isFurtherClarification ? 'Request Further Clarification' : 'Request Candidate Clarification'}
               </h3>
             </div>
-            <p className="text-sm sm:text-base text-muted mt-1 font-medium">
+            <p className="text-sm sm:text-base text-ink-secondary mt-1 font-medium">
               Target Criterion: <span className="text-ink font-semibold">{item.criterion_name}</span>
             </p>
           </div>
@@ -66,7 +66,7 @@ export const EmployerClarificationModal: React.FC<EmployerClarificationModalProp
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            className="text-muted hover:text-ink cursor-pointer p-1.5 rounded transition-colors"
+            className="text-ink-secondary hover:text-ink cursor-pointer p-1.5 rounded transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -74,20 +74,20 @@ export const EmployerClarificationModal: React.FC<EmployerClarificationModalProp
 
         {/* Grounding & Evidence Reference */}
         <div className="space-y-2.5 text-sm">
-          <div className="flex items-center justify-between text-muted font-medium">
+          <div className="flex items-center justify-between text-ink-secondary font-medium">
             <span className="font-semibold uppercase tracking-wider text-xs">
               AI Assessment: <span className="capitalize font-semibold text-ink">{item.status.replace('_', ' ')}</span>
             </span>
             {item.source_page && (
-              <span className="flex items-center gap-1.5 text-xs text-muted font-semibold bg-elevated px-2.5 py-1 rounded border border-subtle">
-                <FileText className="w-3.5 h-3.5" /> Page {item.source_page}
+              <span className="flex items-center gap-1 text-xs text-ink-secondary font-medium">
+                <FileText className="w-3.5 h-3.5 text-muted shrink-0" /> Page {item.source_page}
               </span>
             )}
           </div>
 
           {item.source_excerpt ? (
             <div className="bg-elevated border border-subtle rounded-md p-3.5 space-y-1.5">
-              <div className="flex items-center gap-2 text-muted text-xs font-semibold">
+              <div className="flex items-center gap-2 text-ink-secondary text-xs font-semibold">
                 <MessageSquareQuote className="w-4 h-4 text-accent shrink-0" />
                 <span>Resume Evidence Excerpt:</span>
               </div>
@@ -96,7 +96,7 @@ export const EmployerClarificationModal: React.FC<EmployerClarificationModalProp
               </p>
             </div>
           ) : (
-            <div className="bg-elevated/50 border border-dashed border-subtle rounded-md p-3 text-center text-sm text-muted italic">
+            <div className="bg-elevated/50 border border-dashed border-subtle rounded-md p-3 text-center text-sm text-ink-secondary italic">
               No direct resume excerpt available for this requirement.
             </div>
           )}

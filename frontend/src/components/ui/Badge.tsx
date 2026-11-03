@@ -93,13 +93,13 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 
   const sizeClass =
     size === 'lg'
-      ? 'px-4 py-2 text-base sm:text-lg font-bold gap-2.5'
+      ? 'px-3.5 py-1.5 text-sm sm:text-base font-bold gap-2'
       : size === 'sm'
-      ? 'px-3 py-1 text-xs sm:text-sm font-semibold gap-1.5'
-      : 'px-3.5 py-1.5 text-sm sm:text-base font-semibold gap-2';
+      ? 'px-2.5 py-0.5 text-xs font-semibold gap-1.5'
+      : 'px-3 py-1 text-xs sm:text-sm font-semibold gap-1.5';
 
   const dotSizeClass =
-    size === 'lg' ? 'w-2.5 h-2.5' : size === 'sm' ? 'w-2 h-2' : 'w-2.5 h-2.5';
+    size === 'lg' ? 'w-2 h-2' : size === 'sm' ? 'w-1.5 h-1.5' : 'w-2 h-2';
 
   return (
     <span
@@ -127,13 +127,13 @@ export const Badge: React.FC<BadgeProps> = ({
 }) => {
   const sizeClass =
     size === 'lg'
-      ? 'px-4 py-2 text-base sm:text-lg font-bold gap-2.5'
+      ? 'px-3.5 py-1.5 text-sm sm:text-base font-bold gap-2'
       : size === 'sm'
-      ? 'px-3 py-1 text-xs sm:text-sm font-semibold gap-1.5'
-      : 'px-3.5 py-1.5 text-sm sm:text-base font-semibold gap-2';
+      ? 'px-2.5 py-0.5 text-xs font-semibold gap-1.5'
+      : 'px-3 py-1 text-xs sm:text-sm font-semibold gap-1.5';
 
   const dotSizeClass =
-    size === 'lg' ? 'w-2.5 h-2.5' : size === 'sm' ? 'w-2 h-2' : 'w-2.5 h-2.5';
+    size === 'lg' ? 'w-2 h-2' : size === 'sm' ? 'w-1.5 h-1.5' : 'w-2 h-2';
 
   const variantClass: Record<string, string> = {
     default: 'bg-elevated text-ink border-subtle',

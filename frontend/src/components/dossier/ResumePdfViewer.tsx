@@ -247,7 +247,7 @@ export const ResumePdfViewer: React.FC<ResumePdfViewerProps> = ({
                   <StatusBadge status={docStatus.processing_status} size="sm" />
                 )}
               </div>
-              <div className="flex items-center gap-2.5 mt-1 text-xs sm:text-sm text-muted font-medium">
+              <div className="flex items-center gap-2.5 mt-1 text-xs sm:text-sm text-ink-secondary font-medium">
                 <span>{docStatus?.page_count ? `${docStatus.page_count} Pages` : '1 Page'}</span>
                 {docStatus?.file_size_bytes && (
                   <>
@@ -258,7 +258,7 @@ export const ResumePdfViewer: React.FC<ResumePdfViewerProps> = ({
                 <span>•</span>
                 <span>Uploaded {docStatus?.created_at ? new Date(docStatus.created_at).toLocaleDateString() : 'Recently'}</span>
                 <span>•</span>
-                <span className="font-mono text-xs text-muted">Doc #{documentId.slice(0, 8)}</span>
+                <span className="font-mono text-xs text-ink-secondary">Doc #{documentId.slice(0, 8)}</span>
               </div>
             </div>
           </div>
@@ -266,15 +266,15 @@ export const ResumePdfViewer: React.FC<ResumePdfViewerProps> = ({
           {/* Actions & View Mode Toggle */}
           <div className="flex items-center flex-wrap gap-2.5">
             {/* View Mode Toggle */}
-            <div className="bg-elevated p-1 rounded-pill border border-subtle flex items-center">
+            <div className="bg-elevated p-1 rounded-md border border-subtle flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => setViewMode('pdf')}
                 disabled={!blobUrl}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-xs sm:text-sm font-semibold transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all ${
                   viewMode === 'pdf'
                     ? 'bg-surface text-ink shadow-sm'
-                    : 'text-muted hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed'
+                    : 'text-ink-secondary hover:text-ink disabled:opacity-40 disabled:cursor-not-allowed'
                 }`}
                 title={blobUrl ? (isImage ? 'View original image document' : 'View original rendered PDF document') : 'Preview unavailable'}
               >
@@ -284,10 +284,10 @@ export const ResumePdfViewer: React.FC<ResumePdfViewerProps> = ({
               <button
                 type="button"
                 onClick={() => setViewMode('text')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-xs sm:text-sm font-semibold transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-semibold transition-all ${
                   viewMode === 'text'
                     ? 'bg-surface text-ink shadow-sm'
-                    : 'text-muted hover:text-ink'
+                    : 'text-ink-secondary hover:text-ink'
                 }`}
                 title="View page-by-page extracted OCR text"
               >
@@ -391,24 +391,24 @@ export const ResumePdfViewer: React.FC<ResumePdfViewerProps> = ({
                     key={pageNum}
                     type="button"
                     onClick={() => setSelectedPage(pageNum)}
-                    className={`px-3.5 py-1.5 rounded-pill text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                    className={`px-3 py-1 rounded-md text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                       selectedPage === pageNum
                         ? 'bg-accent text-surface shadow-sm'
-                        : 'bg-elevated/60 text-muted hover:text-ink border border-subtle'
+                        : 'bg-elevated/60 text-ink-secondary hover:text-ink border border-subtle'
                     }`}
                   >
                     Page {pageNum}
                   </button>
                 ))
               ) : (
-                <span className="text-sm text-muted">Page 1 (No pages detected)</span>
+                <span className="text-sm text-ink-secondary">Page 1 (No pages detected)</span>
               )}
             </div>
 
             {/* Search Input & Copy Button */}
             <div className="flex items-center gap-2.5">
               <div className="relative">
-                <Search className="w-4 h-4 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-4 h-4 text-ink-secondary absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   placeholder="Search page text..."
@@ -419,7 +419,7 @@ export const ResumePdfViewer: React.FC<ResumePdfViewerProps> = ({
               </div>
 
               {searchQuery.trim() && (
-                <span className="text-xs text-muted font-semibold shrink-0">
+                <span className="text-xs text-ink-secondary font-semibold shrink-0">
                   {matchCount} match{matchCount === 1 ? '' : 'es'}
                 </span>
               )}
@@ -443,19 +443,19 @@ export const ResumePdfViewer: React.FC<ResumePdfViewerProps> = ({
                 matchesSearch(activePageText) ? (
                   activePageText
                 ) : (
-                  <div className="text-center py-8 text-muted italic">
+                  <div className="text-center py-8 text-ink-secondary italic">
                     No matches found on Page {selectedPage} for "{searchQuery}".
                   </div>
                 )
               ) : (
-                <div className="text-center py-8 text-muted italic">
+                <div className="text-center py-8 text-ink-secondary italic">
                   No extractable digital text found on Page {selectedPage}.
                 </div>
               )}
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-xs sm:text-sm text-muted pt-2.5 border-t border-subtle">
+          <div className="flex items-center justify-between text-xs sm:text-sm text-ink-secondary pt-2.5 border-t border-subtle">
             <span>
               Verbatim extraction provided by backend PyMuPDF engine with page anchors.
             </span>

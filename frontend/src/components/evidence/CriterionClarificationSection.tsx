@@ -180,27 +180,27 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
   };
 
   return (
-    <div className="mt-5 pt-5 border-t border-subtle space-y-4">
+    <div className="mt-5 pt-5 border-t border-subtle space-y-3.5">
       {/* Header and Active Status Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-elevated/70 p-4 rounded-card border border-subtle">
-        <div className="flex items-center gap-2.5">
-          <MessageSquare className="w-5 h-5 text-accent" />
-          <span className="text-sm sm:text-base font-bold text-ink uppercase tracking-wider">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-elevated/40 p-3 sm:p-3.5 rounded-lg border border-subtle">
+        <div className="flex items-center gap-2">
+          <MessageSquare className="w-4 h-4 text-accent" />
+          <span className="text-xs sm:text-sm font-bold text-ink uppercase tracking-wider">
             Clarification Workflow
           </span>
         </div>
 
         <div>
           {activeState === 'AWAITING_CANDIDATE_RESPONSE' && (
-            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-pill text-xs sm:text-sm font-semibold bg-warn-dim text-warn border border-warn/30">
-              <Clock className="w-4 h-4" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-pill text-xs font-semibold bg-warn-dim text-warn border border-warn/30">
+              <Clock className="w-3.5 h-3.5" />
               {isEmployerOrReviewer ? 'Awaiting Candidate Response' : 'Awaiting your response'}
             </span>
           )}
 
           {activeState === 'AWAITING_EMPLOYER_REVIEW' && (
-            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-pill text-xs sm:text-sm font-semibold bg-accent-dim text-accent border border-accent/30">
-              <ShieldCheck className="w-4 h-4" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-pill text-xs font-semibold bg-accent-dim text-accent border border-accent/30">
+              <ShieldCheck className="w-3.5 h-3.5" />
               {isEmployerOrReviewer
                 ? 'Candidate Responded — Awaiting Employer Review'
                 : 'Submitted — Awaiting Employer Review'}
@@ -208,15 +208,15 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
           )}
 
           {activeState === 'DECIDED' && lastFinalDecision?.decision === ReviewDecisionType.ACCEPTED && (
-            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-pill text-xs sm:text-sm font-semibold bg-success-dim text-success border border-success/30">
-              <CheckCircle2 className="w-4 h-4" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-pill text-xs font-semibold bg-success-dim text-success border border-success/30">
+              <CheckCircle2 className="w-3.5 h-3.5" />
               Clarification Accepted — Human Verified
             </span>
           )}
 
           {activeState === 'DECIDED' && lastFinalDecision?.decision === ReviewDecisionType.REJECTED && (
-            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-pill text-xs sm:text-sm font-semibold bg-danger-dim text-danger border border-danger/30">
-              <XCircle className="w-4 h-4" />
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-pill text-xs font-semibold bg-danger-dim text-danger border border-danger/30">
+              <XCircle className="w-3.5 h-3.5" />
               Clarification Rejected — Human Rejected
             </span>
           )}
@@ -224,30 +224,30 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
       </div>
 
       {/* Chronological Conversational Thread */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {thread.map((entry, idx) => {
           if (entry.type === 'question') {
             return (
               <div
                 key={`q-${entry.id}-${idx}`}
-                className="bg-elevated/80 border border-warn/30 rounded-card p-4 sm:p-5 space-y-3 shadow-xs"
+                className="bg-elevated/40 border border-warn/30 rounded-lg p-3 sm:p-3.5 space-y-2 shadow-xs"
               >
-                <div className="flex items-center justify-between text-sm sm:text-base font-bold text-warn">
-                  <span className="flex items-center gap-2">
+                <div className="flex items-center justify-between text-xs sm:text-sm font-bold text-warn">
+                  <span className="flex items-center gap-1.5">
                     <HelpCircle className="w-4 h-4 text-warn shrink-0" />
                     Employer Requested Clarification
                   </span>
-                  <span className="text-xs sm:text-sm text-muted font-normal flex items-center gap-1.5">
+                  <span className="text-xs text-ink-secondary font-medium flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5" />
                     {new Date(entry.time).toLocaleString()}
                   </span>
                 </div>
-                <div className="pl-4 border-l-2 border-warn/50">
+                <div className="pl-3.5 border-l-2 border-warn/50">
                   <ExpandableText
                     text={entry.text}
                     maxChars={220}
                     quote
-                    className="text-base sm:text-[18px] text-ink leading-relaxed font-normal"
+                    className="text-sm sm:text-base text-ink leading-relaxed font-normal"
                   />
                 </div>
               </div>
@@ -258,24 +258,24 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
             return (
               <div
                 key={`r-${entry.id}-${idx}`}
-                className="bg-elevated/90 border border-accent/30 rounded-card p-4 sm:p-5 space-y-3 shadow-xs"
+                className="bg-elevated/40 border border-accent/30 rounded-lg p-3 sm:p-3.5 space-y-2 shadow-xs"
               >
-                <div className="flex items-center justify-between text-sm sm:text-base font-bold text-accent">
-                  <span className="flex items-center gap-2">
+                <div className="flex items-center justify-between text-xs sm:text-sm font-bold text-accent">
+                  <span className="flex items-center gap-1.5">
                     <CornerDownRight className="w-4 h-4 text-accent shrink-0" />
                     {isEmployerOrReviewer ? 'Candidate Response' : 'Your Clarification Response'}
                   </span>
-                  <span className="text-xs sm:text-sm text-muted font-normal flex items-center gap-1.5">
+                  <span className="text-xs text-ink-secondary font-medium flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5" />
                     {new Date(entry.time).toLocaleString()}
                   </span>
                 </div>
-                <div className="pl-4 border-l-2 border-accent/50">
+                <div className="pl-3.5 border-l-2 border-accent/50">
                   <ExpandableText
                     text={entry.text}
                     maxChars={220}
                     quote
-                    className="text-base sm:text-[18px] text-ink leading-relaxed font-normal"
+                    className="text-sm sm:text-base text-ink leading-relaxed font-normal"
                   />
                 </div>
               </div>
@@ -287,15 +287,15 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
             return (
               <div
                 key={`v-${entry.id}-${idx}`}
-                className={`border rounded-card p-4 sm:p-5 space-y-3 shadow-xs ${
+                className={`border rounded-lg p-3 sm:p-3.5 space-y-2 shadow-xs ${
                   isAccepted
                     ? 'bg-success-dim/20 border-success/30'
                     : 'bg-danger-dim/20 border-danger/30'
                 }`}
               >
-                <div className="flex items-center justify-between text-sm sm:text-base font-bold">
+                <div className="flex items-center justify-between text-xs sm:text-sm font-bold">
                   <span
-                    className={`flex items-center gap-2 ${
+                    className={`flex items-center gap-1.5 ${
                       isAccepted ? 'text-success' : 'text-danger'
                     }`}
                   >
@@ -306,18 +306,18 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
                     )}
                     Reviewer Determination: {isAccepted ? 'Accepted (Verified)' : 'Rejected'}
                   </span>
-                  <span className="text-xs sm:text-sm text-muted font-normal flex items-center gap-1.5">
+                  <span className="text-xs text-ink-secondary font-medium flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5" />
                     {new Date(entry.time).toLocaleString()}
                   </span>
                 </div>
-                <div className="pl-4 border-l-2 border-subtle-strong">
+                <div className="pl-3.5 border-l-2 border-subtle-strong">
                   <ExpandableText
                     text={entry.text}
                     maxChars={220}
                     quote
                     italic
-                    className="text-base sm:text-[18px] text-ink leading-relaxed font-normal"
+                    className="text-sm sm:text-base text-ink leading-relaxed font-normal"
                   />
                 </div>
               </div>
@@ -382,13 +382,13 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
 
       {/* Employer Actions when Candidate has Responded (Awaiting Employer Review) */}
       {isEmployerOrReviewer && activeState === 'AWAITING_EMPLOYER_REVIEW' && onReviewDecision && (
-        <div className="p-4 bg-surface rounded-card border border-accent/20 flex flex-wrap items-center justify-between gap-3">
-          <div className="text-sm sm:text-base font-semibold text-ink flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-accent" />
+        <div className="p-3 sm:p-3.5 bg-surface rounded-lg border border-subtle/80 flex flex-wrap items-center justify-between gap-3">
+          <div className="text-xs sm:text-sm font-semibold text-ink flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-accent" />
             Evaluate Candidate Clarification:
           </div>
 
-          <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
               onClick={() => {
@@ -396,9 +396,9 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
                 setDecisionRationale('');
                 setDecisionError('');
               }}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-pill text-xs sm:text-sm font-semibold bg-success-dim hover:bg-success/20 text-success border border-success/30 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-semibold bg-success-dim hover:bg-success/25 text-success border border-success/30 transition-colors cursor-pointer"
             >
-              <CheckCircle2 className="w-4 h-4" />
+              <CheckCircle2 className="w-3.5 h-3.5" />
               <span>Accept Clarification</span>
             </button>
 
@@ -409,18 +409,18 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
                 setDecisionRationale('');
                 setDecisionError('');
               }}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-pill text-xs sm:text-sm font-semibold bg-danger-dim hover:bg-danger/20 text-danger border border-danger/30 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-semibold bg-danger-dim hover:bg-danger/25 text-danger border border-danger/30 transition-colors cursor-pointer"
             >
-              <XCircle className="w-4 h-4" />
+              <XCircle className="w-3.5 h-3.5" />
               <span>Reject Clarification</span>
             </button>
 
             <button
               type="button"
               onClick={() => setShowFurtherClarifyModal(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-pill text-xs sm:text-sm font-semibold bg-warn-dim hover:bg-warn/20 text-warn border border-warn/30 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs sm:text-sm font-semibold bg-warn-dim hover:bg-warn/25 text-warn border border-warn/30 transition-colors cursor-pointer"
             >
-              <HelpCircle className="w-4 h-4" />
+              <HelpCircle className="w-3.5 h-3.5" />
               <span>Request Further Clarification</span>
             </button>
           </div>
@@ -437,7 +437,7 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
                 Sign Clarification Determination:{' '}
                 <span className="capitalize">{decisionModalType}</span>
               </h3>
-              <p className="text-sm text-muted mt-1 font-medium">
+              <p className="text-sm text-ink-secondary mt-1 font-medium">
                 Criterion: <span className="text-ink font-semibold">{item.criterion_name}</span>
               </p>
             </div>
@@ -450,7 +450,7 @@ export const CriterionClarificationSection: React.FC<CriterionClarificationSecti
                   </label>
                   <span
                     className={`text-xs font-medium ${
-                      decisionRationale.trim().length >= 25 ? 'text-accent' : 'text-muted'
+                      decisionRationale.trim().length >= 25 ? 'text-accent' : 'text-ink-secondary'
                     }`}
                   >
                     {decisionRationale.trim().length}/25 min characters

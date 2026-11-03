@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
-import { StatusBadge } from '../ui/StatusBadge';
+import { StatusBadge } from '../ui/Badge';
 import {
   transcriptService,
   InterviewTranscript,
@@ -156,11 +156,11 @@ export const InterviewTranscriptSection: React.FC<InterviewTranscriptSectionProp
               <MessageSquare className="w-5 h-5" />
             </div>
             <h3 className="text-lg font-bold text-ink">Interview Coach & Dialogue Audit</h3>
-            <span className="px-2.5 py-0.5 rounded-pill text-xs font-bold bg-accent-dim text-accent border border-accent/20">
+            <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-accent-dim text-accent border border-accent/20">
               Phase 3 Spec
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-muted max-w-2xl">
+          <p className="text-xs sm:text-sm text-ink-secondary max-w-2xl">
             Verbatim dialogue extraction and structural conceptual feedback. Aligned with strict
             responsible AI bounds: zero personality scoring, zero rejection guessing, and 100% verbatim excerpt grounding.
           </p>
@@ -180,7 +180,7 @@ export const InterviewTranscriptSection: React.FC<InterviewTranscriptSectionProp
 
       {/* Loading & Error States */}
       {isLoading && (
-        <div className="bg-surface rounded-card border border-subtle p-12 text-center text-muted flex items-center justify-center gap-3">
+        <div className="bg-surface rounded-card border border-subtle p-12 text-center text-ink-secondary flex items-center justify-center gap-3">
           <RefreshCw className="w-5 h-5 animate-spin text-accent" />
           <span className="text-sm font-medium">Loading interview transcripts...</span>
         </div>
@@ -198,11 +198,11 @@ export const InterviewTranscriptSection: React.FC<InterviewTranscriptSectionProp
       {/* Empty State */}
       {!isLoading && !error && transcripts.length === 0 && (
         <div className="bg-surface rounded-card border border-subtle p-12 text-center space-y-3 shadow-card">
-          <div className="w-12 h-12 rounded-full bg-elevated text-muted mx-auto flex items-center justify-center">
+          <div className="w-12 h-12 rounded-full bg-elevated text-ink-secondary mx-auto flex items-center justify-center">
             <FileText className="w-6 h-6" />
           </div>
           <h4 className="text-base font-bold text-ink">No Interview Transcripts Uploaded</h4>
-          <p className="text-xs sm:text-sm text-muted max-w-md mx-auto">
+          <p className="text-xs sm:text-sm text-ink-secondary max-w-md mx-auto">
             {isCandidate
               ? 'When your interview notes or dialogue transcripts are uploaded by the employer, your transparent Q&A review and conceptual coaching feedback will appear here.'
               : 'Upload interview dialogue files (.txt, .md, .json, .pdf, .docx) to analyze Q&A exchanges, verify technical criteria, and generate coaching feedback.'}
@@ -232,7 +232,7 @@ export const InterviewTranscriptSection: React.FC<InterviewTranscriptSectionProp
                 </div>
                 <div>
                   <h4 className="text-sm sm:text-base font-bold text-ink">{t.round_name}</h4>
-                  <div className="flex items-center gap-2 text-xs text-muted mt-0.5">
+                  <div className="flex items-center gap-2 text-xs text-ink-secondary mt-0.5">
                     <span>{t.file_name}</span>
                     <span>•</span>
                     <span>{new Date(t.created_at).toLocaleDateString()}</span>
@@ -260,7 +260,7 @@ export const InterviewTranscriptSection: React.FC<InterviewTranscriptSectionProp
               <div className="p-6 rounded-card bg-accent-dim/30 border border-accent/30 text-center space-y-2">
                 <RefreshCw className="w-5 h-5 animate-spin text-accent mx-auto" />
                 <p className="text-sm font-semibold text-ink">Analyzing Interview Dialogue...</p>
-                <p className="text-xs text-muted">
+                <p className="text-xs text-ink-secondary">
                   Segmenting questions, verifying verbatim candidate quotes, and benchmarking conceptual depth.
                 </p>
               </div>
@@ -281,12 +281,12 @@ export const InterviewTranscriptSection: React.FC<InterviewTranscriptSectionProp
                           Q{qa.question_index}
                         </span>
                         {qa.mapped_skill_name && (
-                          <span className="px-2.5 py-0.5 rounded-pill bg-elevated font-medium text-xs text-ink border border-subtle">
+                          <span className="px-2.5 py-0.5 rounded bg-elevated font-medium text-xs text-ink-secondary border border-subtle">
                             Skill: {qa.mapped_skill_name}
                           </span>
                         )}
                         {qa.start_line && (
-                          <span className="text-xs text-muted font-mono">
+                          <span className="text-xs text-ink-secondary font-mono">
                             Line {qa.start_line}
                             {qa.end_line && qa.end_line !== qa.start_line ? `-${qa.end_line}` : ''}
                           </span>
@@ -296,7 +296,7 @@ export const InterviewTranscriptSection: React.FC<InterviewTranscriptSectionProp
                       <div className="flex items-center gap-2">
                         {getStatusBadge(qa.evidence_status)}
                         {qa.clarification_requested && (
-                          <span className="px-2 py-0.5 rounded-pill text-xs font-bold bg-accent-dim text-accent border border-accent/20">
+                          <span className="px-2 py-0.5 rounded text-xs font-bold bg-accent-dim text-accent border border-accent/20">
                             Clarification Provided
                           </span>
                         )}
@@ -305,7 +305,7 @@ export const InterviewTranscriptSection: React.FC<InterviewTranscriptSectionProp
 
                     {/* Question */}
                     <div>
-                      <h5 className="text-xs font-bold uppercase tracking-wider text-muted mb-1">
+                      <h5 className="text-xs font-bold uppercase tracking-wider text-ink-secondary mb-1">
                         Question Asked
                       </h5>
                       <p className="text-sm sm:text-base font-semibold text-ink">{qa.interviewer_question}</p>
@@ -313,7 +313,7 @@ export const InterviewTranscriptSection: React.FC<InterviewTranscriptSectionProp
 
                     {/* Candidate Verbatim Answer */}
                     <div className="bg-elevated/60 p-4 rounded-md border border-subtle space-y-1.5">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-muted uppercase tracking-wider">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-ink-secondary uppercase tracking-wider">
                         <ShieldCheck className="w-3.5 h-3.5 text-success" />
                         <span>Candidate's Verbatim Response (Grounded)</span>
                       </div>
@@ -325,14 +325,14 @@ export const InterviewTranscriptSection: React.FC<InterviewTranscriptSectionProp
                     {/* Expected Technical Concept & Alignment */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs sm:text-sm">
                       <div className="p-3.5 rounded-md bg-elevated/40 border border-subtle space-y-1">
-                        <span className="font-bold text-muted block text-xs uppercase tracking-wider">
+                        <span className="font-bold text-ink-secondary block text-xs uppercase tracking-wider">
                           Conceptual Benchmark Target
                         </span>
                         <p className="text-ink font-medium leading-normal">{qa.expected_concept}</p>
                       </div>
 
                       <div className="p-3.5 rounded-md bg-elevated/40 border border-subtle space-y-1">
-                        <span className="font-bold text-muted block text-xs uppercase tracking-wider">
+                        <span className="font-bold text-ink-secondary block text-xs uppercase tracking-wider">
                           Evidence Assessment
                         </span>
                         <p className="text-ink font-medium leading-normal">{qa.alignment_summary}</p>
@@ -397,7 +397,7 @@ export const InterviewTranscriptSection: React.FC<InterviewTranscriptSectionProp
               <button
                 type="button"
                 onClick={() => setIsUploadModalOpen(false)}
-                className="text-muted hover:text-ink cursor-pointer"
+                className="text-ink-secondary hover:text-ink cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -405,7 +405,7 @@ export const InterviewTranscriptSection: React.FC<InterviewTranscriptSectionProp
 
             <form onSubmit={handleUploadSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-muted uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-ink-secondary uppercase tracking-wider mb-1.5">
                   Interview Round / Stage
                 </label>
                 <input
@@ -419,7 +419,7 @@ export const InterviewTranscriptSection: React.FC<InterviewTranscriptSectionProp
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-muted uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-ink-secondary uppercase tracking-wider mb-1.5">
                   Transcript File
                 </label>
                 <input
@@ -427,10 +427,10 @@ export const InterviewTranscriptSection: React.FC<InterviewTranscriptSectionProp
                   ref={fileInputRef}
                   accept=".txt,.md,.json,.pdf,.docx"
                   onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                  className="w-full text-xs text-muted file:mr-3 file:py-2 file:px-4 file:rounded-md file:border file:border-subtle file:text-xs file:font-bold file:bg-elevated file:text-ink hover:file:bg-surface cursor-pointer"
+                  className="w-full text-xs text-ink-secondary file:mr-3 file:py-2 file:px-4 file:rounded-md file:border file:border-subtle file:text-xs file:font-bold file:bg-elevated file:text-ink hover:file:bg-surface cursor-pointer"
                   required
                 />
-                <p className="text-xs text-muted mt-1.5">
+                <p className="text-xs text-ink-secondary mt-1.5">
                   Supports plain text (.txt, .md), JSON (.json), PDF (.pdf), or Word (.docx).
                 </p>
               </div>
@@ -477,7 +477,7 @@ export const InterviewTranscriptSection: React.FC<InterviewTranscriptSectionProp
               <button
                 type="button"
                 onClick={() => setSelectedQAForClarify(null)}
-                className="text-muted hover:text-ink cursor-pointer"
+                className="text-ink-secondary hover:text-ink cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -485,12 +485,12 @@ export const InterviewTranscriptSection: React.FC<InterviewTranscriptSectionProp
 
             <div className="space-y-3">
               <div className="p-3 rounded-md bg-elevated/60 text-xs space-y-1">
-                <span className="font-bold text-muted uppercase">Question:</span>
+                <span className="font-bold text-ink-secondary uppercase">Question:</span>
                 <p className="text-ink font-semibold">{selectedQAForClarify.interviewer_question}</p>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-muted uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-ink-secondary uppercase tracking-wider mb-1.5">
                   Your Factual Clarification
                 </label>
                 <textarea
@@ -501,7 +501,7 @@ export const InterviewTranscriptSection: React.FC<InterviewTranscriptSectionProp
                   className="w-full bg-elevated border border-subtle rounded-md p-3 text-xs sm:text-sm text-ink placeholder:text-muted focus:outline-none focus:border-accent font-medium resize-none"
                   required
                 />
-                <p className="text-xs text-muted mt-1">
+                <p className="text-xs text-ink-secondary mt-1">
                   This clarification will be permanently added to your dossier audit trail.
                 </p>
               </div>

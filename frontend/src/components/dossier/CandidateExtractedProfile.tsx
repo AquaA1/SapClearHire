@@ -204,8 +204,8 @@ export const CandidateExtractedProfile: React.FC<CandidateExtractedProfileProps>
               <h2 className="text-lg sm:text-xl font-bold text-ink">
                 {candidateName}
               </h2>
-              <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-muted font-medium mt-0.5">
-                <Mail className="w-3.5 h-3.5 text-muted" />
+              <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-ink-secondary font-medium mt-0.5">
+                <Mail className="w-3.5 h-3.5 text-ink-secondary" />
                 <span>{contactInfo.email || application.candidate_email || 'Email not provided'}</span>
                 {contactInfo.phone && (
                   <>
@@ -226,13 +226,13 @@ export const CandidateExtractedProfile: React.FC<CandidateExtractedProfileProps>
           </div>
 
           <div className="text-right sm:border-l sm:border-subtle sm:pl-4 space-y-0.5">
-            <span className="text-[11px] text-muted font-semibold uppercase tracking-wider block">
+            <span className="text-[11px] text-ink-secondary font-semibold uppercase tracking-wider block">
               Applied Requisition
             </span>
             <span className="text-xs sm:text-sm font-bold text-ink block">
               {application.job_title}
             </span>
-            <span className="text-[11px] text-muted font-medium block">
+            <span className="text-[11px] text-ink-secondary font-medium block">
               Submitted {new Date(application.submitted_at || application.created_at).toLocaleDateString()}
             </span>
           </div>
@@ -245,14 +245,14 @@ export const CandidateExtractedProfile: React.FC<CandidateExtractedProfileProps>
             <span className="font-semibold text-ink">AI Extraction Notice:</span>
             <span>Deterministic resume claim extraction. All items grounded with original page citations.</span>
           </div>
-          <span className="text-[11px] bg-surface px-2 py-0.5 rounded-pill border border-subtle text-muted font-mono font-medium shrink-0">
+          <span className="text-[11px] bg-surface px-2 py-0.5 rounded border border-subtle text-ink-secondary font-mono font-medium shrink-0">
             Unverified
           </span>
         </div>
 
         {summary && (
           <div className="p-3 rounded-lg bg-elevated/40 border border-subtle space-y-1">
-            <span className="text-xs font-semibold text-muted uppercase tracking-wider block">
+            <span className="text-xs font-semibold text-ink-secondary uppercase tracking-wider block">
               Professional Summary
             </span>
             <p className="text-ink/90 text-xs sm:text-sm leading-relaxed italic">
@@ -271,12 +271,12 @@ export const CandidateExtractedProfile: React.FC<CandidateExtractedProfileProps>
               <span className="font-bold text-ink block text-sm">
                 AI Claim Extraction in Progress...
               </span>
-              <span className="text-muted text-xs block">
+              <span className="text-ink-secondary text-xs block">
                 Parsing structured qualifications, validating source grounding, and checking chronological consistency.
               </span>
             </div>
           </div>
-          <span className="text-xs font-mono font-bold text-accent bg-surface px-2.5 py-1 rounded-pill border border-accent/30">
+          <span className="text-xs font-mono font-bold text-accent bg-surface px-2.5 py-1 rounded-md border border-accent/30">
             {extractionRun?.status?.toUpperCase() || 'EXTRACTING'}
           </span>
         </div>
@@ -290,7 +290,7 @@ export const CandidateExtractedProfile: React.FC<CandidateExtractedProfileProps>
               <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
               <div className="space-y-1">
                 <h3 className="text-sm sm:text-base font-bold text-ink">AI Claim Extraction Failed</h3>
-                <p className="text-xs sm:text-sm text-muted max-w-lg leading-relaxed">
+                <p className="text-xs sm:text-sm text-ink-secondary max-w-lg leading-relaxed">
                   {extractionRun.error_message || error || 'The extraction worker encountered an error while processing the resume. Click retry below to execute extraction again.'}
                 </p>
               </div>
@@ -321,7 +321,7 @@ export const CandidateExtractedProfile: React.FC<CandidateExtractedProfileProps>
                   Extracted Skills Inventory ({skills.length})
                 </h3>
               </div>
-              <span className="text-xs text-muted font-medium">
+              <span className="text-xs text-ink-secondary font-medium">
                 Grounded to Original Page Coordinates
               </span>
             </div>
@@ -330,7 +330,7 @@ export const CandidateExtractedProfile: React.FC<CandidateExtractedProfileProps>
               <div className="space-y-3">
                 {Object.entries(skillsByCategory).map(([category, catSkills]) => (
                   <div key={category} className="space-y-1.5">
-                    <span className="text-xs font-semibold text-muted uppercase tracking-wider block">
+                    <span className="text-xs font-semibold text-ink-secondary uppercase tracking-wider block">
                       {category} ({catSkills.length})
                     </span>
                     <div className="flex flex-wrap gap-2">
@@ -345,7 +345,7 @@ export const CandidateExtractedProfile: React.FC<CandidateExtractedProfileProps>
                             {Math.round(skill.confidence * 100)}%
                           </span>
                           {skill.source_page && (
-                            <span className="text-[11px] text-muted bg-surface/50 px-1.5 py-0.5 rounded border border-subtle">
+                            <span className="text-[11px] text-ink-secondary bg-surface/50 px-1.5 py-0.5 rounded border border-subtle">
                               p.{skill.source_page}
                             </span>
                           )}
@@ -356,7 +356,7 @@ export const CandidateExtractedProfile: React.FC<CandidateExtractedProfileProps>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-5 text-xs sm:text-sm text-muted italic">
+              <div className="text-center py-5 text-xs sm:text-sm text-ink-secondary italic">
                 No distinct skills identified in this resume.
               </div>
             )}
@@ -371,7 +371,7 @@ export const CandidateExtractedProfile: React.FC<CandidateExtractedProfileProps>
                   Work History & Professional Experience ({experiences.length})
                 </h3>
               </div>
-              <span className="text-xs text-muted font-medium">Chronological Claims</span>
+              <span className="text-xs text-ink-secondary font-medium">Chronological Claims</span>
             </div>
 
             {experiences.length > 0 ? (
@@ -393,9 +393,9 @@ export const CandidateExtractedProfile: React.FC<CandidateExtractedProfileProps>
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-2 text-xs text-muted shrink-0">
+                        <div className="flex items-center gap-2 text-xs text-ink-secondary shrink-0">
                           <span className="flex items-center gap-1.5 font-medium bg-surface px-2 py-0.5 rounded border border-subtle">
-                            <Calendar className="w-3 h-3 text-muted" />
+                            <Calendar className="w-3 h-3 text-ink-secondary" />
                             {meta.start_date || 'N/A'} — {meta.is_current ? 'Present' : (meta.end_date || 'N/A')}
                           </span>
                           <span className="bg-surface px-2 py-0.5 rounded border border-subtle font-semibold text-ink">
@@ -431,7 +431,7 @@ export const CandidateExtractedProfile: React.FC<CandidateExtractedProfileProps>
                             maxChars={180}
                             quote
                             italic
-                            className="text-xs text-muted bg-surface/40 p-2.5 rounded"
+                            className="text-xs text-ink-secondary bg-surface/40 p-2.5 rounded"
                             expandLabel="View source excerpt"
                             collapseLabel="Collapse excerpt"
                           />
@@ -442,7 +442,7 @@ export const CandidateExtractedProfile: React.FC<CandidateExtractedProfileProps>
                 })}
               </div>
             ) : (
-              <div className="text-center py-5 text-xs sm:text-sm text-muted italic">
+              <div className="text-center py-5 text-xs sm:text-sm text-ink-secondary italic">
                 No formal work experience claims extracted from resume.
               </div>
             )}
@@ -457,7 +457,7 @@ export const CandidateExtractedProfile: React.FC<CandidateExtractedProfileProps>
                   Education & Academic Credentials ({educations.length})
                 </h3>
               </div>
-              <span className="text-xs text-muted font-medium">Academic History</span>
+              <span className="text-xs text-ink-secondary font-medium">Academic History</span>
             </div>
 
             {educations.length > 0 ? (
@@ -473,13 +473,13 @@ export const CandidateExtractedProfile: React.FC<CandidateExtractedProfileProps>
                         <h4 className="font-bold text-ink text-sm sm:text-base">
                           {meta.degree || edu.claim_text}
                         </h4>
-                        <div className="text-xs sm:text-sm text-muted mt-0.5">
+                        <div className="text-xs sm:text-sm text-ink-secondary mt-0.5">
                           <span className="text-accent font-semibold">{meta.institution || 'Institution Unspecified'}</span>
                           {meta.field_of_study && <span> • {meta.field_of_study}</span>}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 text-xs text-muted shrink-0">
+                      <div className="flex items-center gap-2 text-xs text-ink-secondary shrink-0">
                         {meta.graduation_year && (
                           <span className="bg-surface px-2.5 py-0.5 rounded border border-subtle font-semibold">
                             Class of {meta.graduation_year}
@@ -494,7 +494,7 @@ export const CandidateExtractedProfile: React.FC<CandidateExtractedProfileProps>
                 })}
               </div>
             ) : (
-              <div className="text-center py-5 text-xs sm:text-sm text-muted italic">
+              <div className="text-center py-5 text-xs sm:text-sm text-ink-secondary italic">
                 No academic degree claims detected in resume.
               </div>
             )}
@@ -517,7 +517,7 @@ export const CandidateExtractedProfile: React.FC<CandidateExtractedProfileProps>
                       <div key={proj.id} className="p-3 rounded-md bg-elevated/50 border border-subtle space-y-1">
                         <div className="flex items-center justify-between text-xs sm:text-sm">
                           <strong className="text-ink font-bold">{meta.project_name || proj.claim_text}</strong>
-                          <span className="text-[11px] text-muted font-semibold">p.{proj.source_page}</span>
+                          <span className="text-[11px] text-ink-secondary font-semibold">p.{proj.source_page}</span>
                         </div>
                         {meta.technologies && (
                           <span className="text-xs text-accent font-semibold block">
@@ -525,14 +525,14 @@ export const CandidateExtractedProfile: React.FC<CandidateExtractedProfileProps>
                           </span>
                         )}
                         {meta.description && (
-                          <p className="text-xs text-muted leading-relaxed line-clamp-2">{meta.description}</p>
+                          <p className="text-xs text-ink-secondary leading-relaxed line-clamp-2">{meta.description}</p>
                         )}
                       </div>
                     );
                   })}
                 </div>
               ) : (
-                <div className="text-center py-5 text-xs sm:text-sm text-muted italic">
+                <div className="text-center py-5 text-xs sm:text-sm text-ink-secondary italic">
                   No individual projects detected in resume.
                 </div>
               )}
@@ -553,7 +553,7 @@ export const CandidateExtractedProfile: React.FC<CandidateExtractedProfileProps>
                       <div key={cert.id} className="p-3 rounded-md bg-elevated/50 border border-subtle space-y-1">
                         <div className="flex items-center justify-between text-xs sm:text-sm">
                           <strong className="text-ink font-bold">{meta.certification_name || cert.claim_text}</strong>
-                          <span className="text-[11px] text-muted font-semibold">p.{cert.source_page}</span>
+                          <span className="text-[11px] text-ink-secondary font-semibold">p.{cert.source_page}</span>
                         </div>
                         {meta.issuing_organization && (
                           <span className="text-xs text-accent font-semibold block">
@@ -561,14 +561,14 @@ export const CandidateExtractedProfile: React.FC<CandidateExtractedProfileProps>
                           </span>
                         )}
                         {meta.issue_date && (
-                          <span className="text-xs text-muted block">Issued: {meta.issue_date}</span>
+                          <span className="text-xs text-ink-secondary block">Issued: {meta.issue_date}</span>
                         )}
                       </div>
                     );
                   })}
                 </div>
               ) : (
-                <div className="text-center py-5 text-xs sm:text-sm text-muted italic">
+                <div className="text-center py-5 text-xs sm:text-sm text-ink-secondary italic">
                   No certifications detected in resume.
                 </div>
               )}
@@ -582,7 +582,7 @@ export const CandidateExtractedProfile: React.FC<CandidateExtractedProfileProps>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-base font-bold text-ink">Structured Claim Extraction Pending</h3>
-                <p className="text-xs sm:text-sm text-muted mt-0.5 max-w-lg leading-relaxed">
+                <p className="text-xs sm:text-sm text-ink-secondary mt-0.5 max-w-lg leading-relaxed">
                   The AI pipeline has not generated structured qualification claims for this candidate resume yet. You can trigger claim extraction now or view the raw extracted text below.
                 </p>
               </div>
@@ -609,7 +609,7 @@ export const CandidateExtractedProfile: React.FC<CandidateExtractedProfileProps>
                   Verbatim Extracted Resume Text (PyMuPDF)
                 </h3>
               </div>
-              <span className="text-xs text-muted font-semibold">
+              <span className="text-xs text-ink-secondary font-semibold">
                 Page {selectedRawPage} of {rawPageEntries.length || 1}
               </span>
             </div>
@@ -622,10 +622,10 @@ export const CandidateExtractedProfile: React.FC<CandidateExtractedProfileProps>
                     key={pageNum}
                     type="button"
                     onClick={() => setSelectedRawPage(pageNum)}
-                    className={`px-3 py-1 rounded-pill text-xs font-semibold transition-all ${
+                    className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
                       selectedRawPage === pageNum
                         ? 'bg-accent text-surface shadow-xs'
-                        : 'bg-elevated text-muted hover:text-ink border border-subtle'
+                        : 'bg-elevated text-ink-secondary hover:text-ink border border-subtle'
                     }`}
                   >
                     Page {pageNum}
@@ -636,7 +636,7 @@ export const CandidateExtractedProfile: React.FC<CandidateExtractedProfileProps>
 
             <div className="bg-elevated/60 border border-subtle rounded-md p-4 max-h-[400px] overflow-y-auto font-mono text-xs sm:text-sm text-ink/90 whitespace-pre-wrap leading-relaxed select-text">
               {docStatus?.extracted_text_by_page?.[selectedRawPage] || (
-                <span className="text-muted italic">
+                <span className="text-ink-secondary italic">
                   No extractable digital text found on Page {selectedRawPage}.
                 </span>
               )}
