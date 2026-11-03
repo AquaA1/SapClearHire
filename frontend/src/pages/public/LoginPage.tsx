@@ -222,12 +222,10 @@ export const LoginPage: React.FC = () => {
               <span className="text-xs font-bold text-muted uppercase tracking-wider block mb-2.5 text-center">
                 Quick-Fill Test Credentials
               </span>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 gap-2.5">
                 {[
                   { role: UserRole.CANDIDATE, label: 'Candidate' },
                   { role: UserRole.EMPLOYER_ADMIN, label: 'Employer' },
-                  { role: UserRole.REVIEWER, label: 'Reviewer' },
-                  { role: UserRole.SYSTEM_AUDITOR, label: 'Auditor' },
                 ].map(({ role, label }) => (
                   <button
                     key={role}

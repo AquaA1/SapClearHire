@@ -353,23 +353,13 @@ export const CandidateApplicationDetailPage: React.FC = () => {
           <span className="block text-xs sm:text-sm font-semibold text-muted uppercase tracking-wider mb-3.5">
             Hiring Transparency Progression
           </span>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-3 max-w-xl">
             {[
               { label: '1. Submitted', active: true, done: true },
               {
                 label: '2. AI Extraction',
                 active: application.status !== 'submitted',
                 done: !!evaluation,
-              },
-              {
-                label: '3. Human Review',
-                active: application.status === 'needs_review',
-                done: application.status === 'reviewed',
-              },
-              {
-                label: '4. Decision Ready',
-                active: application.status === 'reviewed',
-                done: application.status === 'reviewed',
               },
             ].map((step, idx) => (
               <div
