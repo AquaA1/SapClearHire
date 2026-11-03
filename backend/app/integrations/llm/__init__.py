@@ -27,8 +27,8 @@ def get_llm_provider() -> BaseLLMProvider:
     if settings.LLM_PROVIDER == "gemini":
         if not base_url or "api.openai.com" in base_url:
             base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
-        if not model:
-            model = "gemini-3.5-flash-lite"
+        if not model or model == "gpt-4o-mini":
+            model = "gemini-2.5-flash"
 
     # Real configurable HTTP client provider (e.g. OpenAI / Anthropic / Gemini gateway)
     return HTTPClientLLMProvider(
